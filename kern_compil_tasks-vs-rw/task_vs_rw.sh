@@ -5,7 +5,7 @@
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
 Usage:\n\
-sh task_vs_read.sh [bfq | cfq | ...] [num_readers] [num_writers] [seq | rand]\n\
+task_vs_rw.sh [bfq | cfq | ...] [num_readers] [num_writers] [seq | rand]\n\
    [make | checkout | merge] [results_dir]\n\
 \n\
 For example:\n\

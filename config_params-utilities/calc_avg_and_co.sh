@@ -3,7 +3,7 @@
 #       computes the 95..99% confidence interval for a file with one col 
 #
 # INPUT: one column of data
-# OUTPUT: min max mean conf
+# OUTPUT: min max mean std_dev conf
 #
 
 awk ' BEGIN {
