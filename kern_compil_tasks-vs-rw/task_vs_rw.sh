@@ -100,44 +100,54 @@ set_tracing 1
 case $TASK in
 	make)
 		(cd $KERN_DIR && make -j5 | tee ${curr_dir}/$TASK.out) &
-		file_check_time=15
+		waited_pattern="kernel/sched\.o"
 	   	;;
 	checkout)
 		(cd $KERN_DIR && echo git checkout test1 ;\
 			echo\
-			"git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out)" 
+			"git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out" 
 			git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out) &
-		file_check_time=32
+		waited_pattern="Checking out files"
 	   	;;
 	merge)
 		(cd $KERN_DIR && echo git merge test2 ;\
-			echo "git merge test2 2>&1 | tee ${curr_dir}/$TASK.out)"
+			echo "git merge test2 2>&1 | tee ${curr_dir}/$TASK.out"
 			git merge test2 2>&1 | tee ${curr_dir}/$TASK.out) &
-		file_check_time=32
+		waited_pattern="Checking out files"
 	   	;;
 esac
 
-echo Waiting for $file_check_time secs, to let $TASK finish checking files
-echo "(mostly reads in this phase). In case of checkout and merge, this"
-echo is also done to try to let them be at around 0% when readers are started.
-sleep $file_check_time
+echo Waiting for make to start actual source compilation or for checkout/merge
+echo to be just after 0%.
+echo In general, the purpose of this waiting is leaving out parts with variable
+echo workloads, that, as we discovered, would almost completely distort the
+echo results with both schedulers.
+
+while ! grep "$waited_pattern" $TASK.out; do
+	sleep 1
+done
 
 start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
 
 # wait for reader start-up transitory to terminate
-sleep 5
+sleep `expr $NUM_READERS + $NUM_WRITERS + 6`
 
 #start logging aggthr
 iostat -tmd /dev/$HD 5 | tee iostat.out &
 
 # store the current number of lines to subtract it from the total for make
-if (( $TASK == "make" )); then
-	initial_num_lines=`cat $TASK.out | wc -l`
+if [ "$TASK" == "make" ]; then
+	initial_completion_level=`cat $TASK.out | wc -l`
+else
+	initial_completion_level=`sed 's/\r/\n/g' $TASK.out |\
+		grep "Checking out files" |\
+		tail -n 1 | awk '{printf "%d", $4}'`
 fi
 
-echo Test duration 120 secs
+test_dur=120
+echo Test duration $test_dur secs
 # actual test duration
-sleep 120
+sleep $test_dur
 
 # test finished, shutdown what needs to
 shutdwn
@@ -148,30 +158,27 @@ echo "Results for $sched, $NUM_READERS $RW_TYPE readers and $NUM_WRITERS\
  $RW_TYPE against a kernel $TASK" | tee $file_name
 print_save_agg_thr $file_name
 
-printf "Adding to ${file_name} ->"
+if [ "$TASK" == "make" ]; then
+	final_completion_level=`cat $TASK.out | wc -l`
+else
+	final_completion_level=`sed 's/\r/\n/g' $TASK.out |\
+		grep "Checking out files" |\
+		tail -n 1 | awk '{printf "%d", $4}'`
+fi
+printf "Adding to $file_name -> "
 
-# start task
-case $TASK in
-	make)
-		printf "Number of output lines from make during test:\n" |\
-	       		tee -a ${file_name}
-		expr `cat $TASK.out | wc -l` - $initial_num_lines |\
-			tee -a ${file_name}
-	   	;;
-	checkout | merge)
-		printf "$TASK completion percentage:\n" |\
-	       		tee -a ${file_name}
-		sed 's/\r/\n/g' $TASK.out | grep "Checking out files" |\
-			tail -n 1 | awk '{print $4}' | tee -a ${file_name}
-		printf "Entire line:\n" |\
-	       		tee -a ${file_name}
-		sed 's/\r/\n/g' $TASK.out | grep "Checking out files" |\
-			tail -n 1 | tee -a ${file_name}
-	   	;;
-esac
+printf "$TASK completion increment during test\n" |\
+      	tee -a $file_name
+printf `expr $final_completion_level - $initial_completion_level` |\
+	tee -a $file_name
+
+if [ "$TASK" == "make" ]; then
+	printf " lines\n" | tee -a $file_name
+else
+	printf "%%\n" | tee -a $file_name
+fi
 
 cd ..
 
 # rm work dir
-#rm -rf results-${sched}
-
+rm -rf results-${sched}
