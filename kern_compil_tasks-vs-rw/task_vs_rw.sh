@@ -44,30 +44,37 @@ echo Executing $TASK prologue before actual test
 case $TASK in
 	make)
 		(cd $KERN_DIR &&
-		echo Switching to master &&\
-		git checkout -f master ;\
+		if [ "`git branch | head -n 1`" != "* master" ]; then
+			echo Switching to master &&\
+			git checkout -f master ;\
+		else
+			echo Already on master
+		fi
 		make clean)
 		echo clean finished
 	   	;;
 	checkout)
 		(cd $KERN_DIR &&\
 			echo Switching to master &&\
-			git checkout -f master ;\
+			git checkout -f master &&\
+			echo Removing previous branches &&\
 			git branch -D test1 ;\
+			echo Creating the branch to switch to &&\
 			git branch test1 v2.6.30)
   	   	;;
 	merge)
 		(cd $KERN_DIR &&\
-			echo Switching to master &&\
-			git checkout -f master ;\
-			git branch -D test1 ;\
-			git branch -D test2 ;\
+			echo Renaming the first branch if existing &&\
+			git branch -M test1 to_delete;\
+			echo Creating first branch to merge &&\
 			git branch test1 v2.6.30 &&\
-	        	git branch test2 v2.6.33 &&\
-			echo Now switching to test2 &&\
-			git checkout -f test2 &&
-			echo And finally to test1 &&\
-			git checkout -f test1)
+			echo Switching to the first branch and cleaning &&\
+			git checkout -f test1 &&\
+			git clean -f -d
+			echo Removing previous branches &&\
+			git branch -D to_delete test2 &&\
+			echo Creating second branch to merge &&\
+	        	git branch test2 v2.6.33) 
 	   	;;
 	*)
 		echo Wrong task name $TASK
@@ -119,11 +126,11 @@ esac
 
 echo Waiting for make to start actual source compilation or for checkout/merge
 echo to be just after 0%.
-echo In general, the purpose of this waiting is leaving out parts with variable
-echo workloads, that, as we discovered, would almost completely distort the
+echo Done to leave out parts of these tasks that have cause highly variable
+echo workloads, and, as we discovered, would almost completely distort the
 echo results with both schedulers.
 
-while ! grep "$waited_pattern" $TASK.out; do
+while ! grep "$waited_pattern" $TASK.out 2> /dev/null ; do
 	sleep 1
 done
 
