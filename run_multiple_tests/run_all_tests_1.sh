@@ -1,3 +1,4 @@
+#!/bin/bash
 NUM_REPETITIONS=5
 cur_date=`date +%y%m%d_%H%M`
 RES_DIR=../results/run_all_tests_1/$cur_date
@@ -81,14 +82,17 @@ function comm_startup_lat
 
 echo Tests beginning on $cur_date
 
+echo /etc/init.d/cron stop
+/etc/init.d/cron stop
+
 rm -rf $RES_DIR
 mkdir -p $RES_DIR
 
 for sched in ${schedulers[*]}; do
 	echo Running tests on $sched
-	comm_startup_lat $sched
-	agg_thr_with_greedy_rw $sched
 	kern_compil_tasks_vs_rw $sched
+	agg_thr_with_greedy_rw $sched
+	comm_startup_lat $sched
 done
 
 cur_date=`date +%y%m%d_%H%M`
