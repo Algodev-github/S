@@ -78,7 +78,7 @@ function file_loop
 }
 
 out_file=overall_stats-`basename $results_dir`.txt
-rm $out_file
+rm -f $out_file
 
 # create and enter work dir
 rm -rf work_dir
