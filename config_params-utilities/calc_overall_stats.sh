@@ -75,6 +75,9 @@ function file_loop
 
 		quant_loops
 	done
+	if (($n > 0)); then
+		echo $n repetitions | tee -a ../$out_file
+	fi
 }
 
 out_file=overall_stats-`basename $results_dir`.txt
@@ -97,18 +100,15 @@ for file_filter in "*10*seq*" "*10*rand*" "*5*seq*" "*5*rand*"; do
 			cat line_file$cur_quant | tee -a ../$out_file
 			second_field=`tail -n 1 ../$out_file |\
 		       		awk '{print $2}'`
-#	                if [ "$second_field" == "of" ] || \
-#				[ "$second_field" == "completion" ] ; then
-#				cat number_file$cur_quant | tee -a ../$out_file
-#			else
-				cat number_file$cur_quant |\
-					$CALC_AVG_AND_CO 99 |\
-					tee -a ../$out_file
-#			fi
+			cat number_file$cur_quant |\
+				$CALC_AVG_AND_CO 99 |\
+				tee -a ../$out_file
 			rm line_file$cur_quant number_file$cur_quant
 		done
 	done
+	if (($n > 0)); then
 	echo ------------------------------------------------------------------
+	fi
 done
 
 

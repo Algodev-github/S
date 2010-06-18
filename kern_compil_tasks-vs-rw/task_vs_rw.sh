@@ -101,7 +101,7 @@ flush_caches
 # start task
 case $TASK in
 	make)
-		(cd $KERN_DIR && make -j1 | tee ${curr_dir}/$TASK.out) &
+		(cd $KERN_DIR && make -j5 | tee ${curr_dir}/$TASK.out) &
 		waited_pattern="arch/x86/kernel/time\.o"
 	   	;;
 	checkout)

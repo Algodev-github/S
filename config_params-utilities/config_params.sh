@@ -1,10 +1,10 @@
 TRACE=0
-HD=hda
-FIO=~bfq/linux/fio/fio
+HD=sda
+FIO=fio
 NUM_BLOCKS=2000000
 NUM_BLOCKS_CREATE=5000000
 BASE_DIR=/tmp/test
 BASE_SEQ_FILE_PATH=$BASE_DIR/largefile
 FILE_TO_RAND_READ=$BASE_DIR/verylargefile_read
 FILE_TO_RAND_WRITE=$BASE_DIR/verylargefile_write
-KERN_DIR=/root/linux-2.6
+KERN_DIR=/home/paolo/fake_tree/linux-2.6
