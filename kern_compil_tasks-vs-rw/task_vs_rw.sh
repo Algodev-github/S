@@ -17,7 +17,6 @@ the computed stats is stored in the .. dir with respect to the cur dir.\n\
 \n\
 Default parameters values are bfq, 1, 1, seq, make and .\n"
 
-TRACE=0
 sched=${1-bfq}
 NUM_READERS=${2-1}
 NUM_WRITERS=${3-1}
@@ -99,15 +98,11 @@ curr_dir=$PWD
 echo Flushing caches
 flush_caches
 
-# init and turn on tracing if TRACE==1	
-init_tracing
-set_tracing 1
-
 # start task
 case $TASK in
 	make)
-		(cd $KERN_DIR && make -j5 | tee ${curr_dir}/$TASK.out) &
-		waited_pattern="kernel/sched\.o"
+		(cd $KERN_DIR && make -j1 | tee ${curr_dir}/$TASK.out) &
+		waited_pattern="arch/x86/kernel/time\.o"
 	   	;;
 	checkout)
 		(cd $KERN_DIR && echo git checkout test1 ;\
@@ -153,7 +148,11 @@ fi
 
 test_dur=120
 echo Test duration $test_dur secs
-# actual test duration
+
+# init and turn on tracing if TRACE==1	
+init_tracing
+set_tracing 1
+
 sleep $test_dur
 
 # test finished, shutdown what needs to
