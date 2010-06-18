@@ -1,5 +1,5 @@
 #!/bin/bash
-NUM_REPETITIONS=5
+NUM_REPETITIONS=10
 cur_date=`date +%y%m%d_%H%M`
 RES_DIR=../results/run_all_tests_1/$cur_date
 schedulers=(bfq cfq)
