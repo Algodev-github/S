@@ -107,7 +107,7 @@ set_tracing 1
 case $TASK in
 	make)
 		(cd $KERN_DIR && make -j5 | tee ${curr_dir}/$TASK.out) &
-		waited_pattern="kernel/sched\.o"
+		waited_pattern="arch/x86/kernel/time\.o"
 	   	;;
 	checkout)
 		(cd $KERN_DIR && echo git checkout test1 ;\
