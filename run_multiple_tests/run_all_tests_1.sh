@@ -55,13 +55,13 @@ function comm_startup_lat
 	repeat kons_startup "comm_startup_lat.sh $1 10 0 rand 5"\
 		"konsole -e /bin/true"
 
-	repeat xterm_startup "comm_startup_lat.sh $1 10 0 seq 5"\
+	repeat xterm_startup "comm_startup_lat.sh $1 10 0 seq 10"\
 		"xterm /bin/true"
-	repeat xterm_startup "comm_startup_lat.sh $1 10 0 rand 5"\
+	repeat xterm_startup "comm_startup_lat.sh $1 10 0 rand 10"\
 		"xterm /bin/true"
    
-	repeat bash_startup "comm_startup_lat.sh $1 10 0 seq 5" "bash -c exit"
-	repeat bash_startup "comm_startup_lat.sh $1 10 0 rand 5" "bash -c exit"
+	repeat bash_startup "comm_startup_lat.sh $1 10 0 seq 10" "bash -c exit"
+	repeat bash_startup "comm_startup_lat.sh $1 10 0 rand 10" "bash -c exit"
 
 	# 5 readers and 5 writers
 	repeat kons_startup "comm_startup_lat.sh $1 5 5 seq 5"\
@@ -69,13 +69,13 @@ function comm_startup_lat
 	repeat kons_startup "comm_startup_lat.sh $1 5 5 rand 5"\
 		"konsole -e /bin/true"
 
-	repeat xterm_startup "comm_startup_lat.sh $1 5 5 seq 5"\
+	repeat xterm_startup "comm_startup_lat.sh $1 5 5 seq 10"\
 		"xterm /bin/true"
-	repeat xterm_startup "comm_startup_lat.sh $1 5 5 rand 5"\
+	repeat xterm_startup "comm_startup_lat.sh $1 5 5 rand 10"\
 		"xterm /bin/true"
    
-	repeat bash_startup "comm_startup_lat.sh $1 5 5 seq 5" "bash -c exit"
-	repeat bash_startup "comm_startup_lat.sh $1 5 5 rand 5" "bash -c exit"
+	repeat bash_startup "comm_startup_lat.sh $1 5 5 seq 10" "bash -c exit"
+	repeat bash_startup "comm_startup_lat.sh $1 5 5 rand 10" "bash -c exit"
 }
 
 # fairness tests to be added ...
