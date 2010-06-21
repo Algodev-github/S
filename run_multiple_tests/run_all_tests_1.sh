@@ -10,8 +10,10 @@ function repeat
 	for ((i = 0 ; $i < $NUM_REPETITIONS ; i++))
 	do
 		echo bash $2 $RES_DIR/$1/repetition$i
-		echo Warning: there are running tests, next test: | wall
-		echo bash $2 "$3" $RES_DIR/$1/repetition$i | wall
+		echo Warning: there are running tests. > msg
+		echo Next test: bash $2 "$3" $RES_DIR/$1/repetition$i>>msg
+		cat msg | wall
+		rm msg
 		if [ ! "$3" == "" ] ; then
 			bash $2 "$3" $RES_DIR/$1/repetition$i
 		else
