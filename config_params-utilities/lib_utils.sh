@@ -80,25 +80,25 @@ function start_readers_writers
 	if [ "$RW_TYPE" == "seq" ]; then
 		for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 		do
-			$FIO --name=seqreader$i -rw=read\
+			fio --name=seqreader$i -rw=read\
 				--numjobs=1 \
 				--filename=${BASE_SEQ_FILE_PATH}$i &
 		done
 		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 		do
 			rm -f ${BASE_SEQ_FILE_PATH}_write$i
-			$FIO --name=seqwriter$i -rw=write\
+			fio --name=seqwriter$i -rw=write\
 				--numjobs=1 --size=10G\
 				--filename=${BASE_SEQ_FILE_PATH}_write$i &
 		done
 	else
 		if [ $NUM_READERS -gt 0 ] ; then
-		        $FIO --name=writers --rw=randread \
+		        fio --name=writers --rw=randread \
        	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ &
 		fi
 		if [ $NUM_WRITERS -gt 0 ] ; then
 			rm -f $FILE_TO_RAND_WRITE
-			$FIO --name=readers --rw=randwrite \
+			fio --name=readers --rw=randwrite \
 				--size=10G --numjobs=$NUM_WRITERS\
 				--filename=$FILE_TO_RAND_WRITE &
 		fi
