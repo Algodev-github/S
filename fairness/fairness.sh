@@ -1,85 +1,67 @@
 #!/bin/bash
-. ../utilities/lib_utils.sh
+. ../config_params-utilities/config_params.sh
+. ../config_params-utilities/lib_utils.sh
+CALC_AVG_AND_CO=`cd ../config_params-utilities; pwd`/calc_avg_and_co.sh
 
 # see the following string for usage, or invoke fairness -h
 usage_msg="\
 Usage:\n\
-sh fairness.sh [bfq | cfq | ...] [num_files] [iterations] [file_size_kb] \
-[weights]\n\
+./fairness.sh [bfq | cfq | ...] [num_files] [iterations] [file_size_kb] \n\
+	      [weights]\n\
 \n\
 For example:\n\
-sh fairness.sh bfq 2 2 100000 1000 500\n\
-switches to bfq and launches 2 iterations of 2 sequential readers for 2 \
-different files and the first reader will have a weight of 1000, and the \
-second 500.\n\
+fairness.sh bfq 2 10 100000 1000 500\n\
+switches to bfq and launches 10 iterations of 2 sequential readers of 2 \n\
+different files; the first reader has weight 1000, the second 500.\n\
 \n\
-Default parameters values are bfq, 4, 2, 200000 and 500 for each process\n"
+Default parameters values are bfq, 4, 2, $NUM_BLOCKS, and 100 for each reader\n"
 
-TRACE=0
 SCHED=${1-bfq}
 NUM_FILES=${2-4}
 ITERATIONS=${3-2}
-NUM_BLOCKS=${4-2000000}
-NUM_BLOCKS_CREATE=5000000
-BASE_DIR=/tmp/test
-BASE_FILE_PATH=${BASE_DIR}/largefile
-HD="sda"
-
-FILES=""
-for ((i = 0 ; $i < ${NUM_FILES} ; i++)) ; do
-	FILES+="${BASE_FILE_PATH}$i "
-done
-
-#FILES="/mnt/sda/sda5/bigfile /mnt/sda/sda12/bigfile /mnt/sda/sda20/bigfile /mnt/sda/sda34/bigfile"
-FILES="/mnt/sda/sda5/bigfile /mnt/sda/sda34/bigfile"
-
-args=("$@")
-for ((i = 0 ; $i < ${NUM_FILES} ; i++)) ; do
-	if [ "${args[$(($i+4))]}" != "" ] ; then
-		WEIGHT[$i]=${args[$(($i+4))]}
-	else
-		WEIGHT[$i]=500
-	fi
-done
-
-max_w=${WEIGHT[0]}
-for ((i = 0 ; $i < ${NUM_FILES} ; i++)) ; do
-	if [[ ${WEIGHT[$i]} -gt $max_w ]] ; then
-		max_w=${WEIGHT[$i]}
-	fi
-done
+NUM_BLOCKS=${4-$NUM_BLOCKS}
 
 if [ "$1" == "-h" ]; then
-	printf "${usage_msg}"
+	printf "$usage_msg"
 	exit
 fi
 
+# set proper group
 if [ "${SCHED}" == "bfq" ] ; then
 	GROUP="bfqio"
 elif [ "${SCHED}" == "cfq" ] ; then
 	GROUP="blkio"
 fi
 
+mkdir -p /cgroup
 umount /cgroup
-
 mount -t cgroup -o $GROUP none /cgroup
 
-mkdir -p ${BASE_DIR}
-
-echo Creating files to read ...
-for ((i = 0 ; $i < ${NUM_FILES} ; i++)) ; do
+# load file names and create group dirs
+FILES=""
+for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
 	mkdir -p /cgroup/test$i
-	if [ ! -f ${BASE_FILE_PATH}$i ] ; then
-		echo dd if=/dev/zero bs=1K count=${NUM_BLOCKS_CREATE} \
-			of=${BASE_FILE_PATH}$i
-		#dd if=/dev/zero bs=1K count=${NUM_BLOCKS_CREATE} \
-		#	of=${BASE_FILE_PATH}$i
+	FILES+="${BASE_SEQ_FILE_PATH}$i "
+done
+
+# initialize weight array
+args=("$@")
+max_w=${WEIGHT[0]}
+for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
+	if [ "${args[$(($i+4))]}" != "" ] ; then
+		WEIGHT[$i]=${args[$(($i+4))]}
+	else
+		WEIGHT[$i]=100
+	fi
+	if [[ ${WEIGHT[$i]} -gt $max_w ]] ; then
+		max_w=${WEIGHT[$i]}
 	fi
 done
-echo done
+
+create_files $NUM_FILES seq
 echo
 
-# create and enter work dir
+# create result dir tree and cd to its root
 rm -rf results-${SCHED}
 mkdir -p results-$SCHED
 for ((i = 0 ; $i < ${ITERATIONS} ; i++)) ; do
@@ -87,24 +69,25 @@ for ((i = 0 ; $i < ${ITERATIONS} ; i++)) ; do
 done
 cd results-$SCHED
 
+# switch to the desired scheduler
 echo Switching to $SCHED
 echo $SCHED > /sys/block/$HD/queue/scheduler
 
 # setup a quick shutdown for Ctrl-C
-trap "set_tracing 0; killall dd iostat; exit" sigint
-
-curr_dir=$PWD
+trap "shutdwn; exit" sigint
 
 # init and turn on tracing if TRACE==1
 init_tracing
 set_tracing 1
 
-for ((i = 0 ; $i < ${ITERATIONS} ; i++)) ; do
+for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	echo Iteration $(($i+1))/$ITERATIONS
 	echo Flushing caches
 	flush_caches
 
+	# start readers
 	idx=0
+	echo $FILES
 	for f in $FILES ; do
 		echo ${WEIGHT[$idx]} > /cgroup/test$idx/$GROUP.weight
 		dd if=$f of=/dev/null bs=1K \
@@ -114,10 +97,13 @@ for ((i = 0 ; $i < ${ITERATIONS} ; i++)) ; do
 		idx=$(($idx+1))
 	done
 
+	# wait a just a little bit for all the readers to start
 	sleep 2
 
+	# start logging aggregated throughput
 	iostat -tmd /dev/$HD 5 | tee iter-$i/iostat.out &
 
+	# wait for all the readers to complete
 	for ((j = $((($i*(${NUM_FILES}+1))+1)) ; \
 		$j <= $((($i*(${NUM_FILES}+1))+${NUM_FILES})) ; j++)) ; do
 		wait %$j
@@ -128,35 +114,22 @@ done
 
 set_tracing 0
 
-total_size=$((${NUM_BLOCKS}*${NUM_FILES}))
-for ((i = 0 ; $i < ${ITERATIONS} ; i++)) ; do
-	delay=0
-	for ((j = 0 ; $j < ${NUM_FILES} ; j++)) ; do
-		tmp=$(cat iter-$i/singles-dd/dd-$j | grep copied | \
-			awk '{ print $6 }')
-		if [ $(echo "$delay < $tmp" | bc) -eq 1 ] ; then
-			delay=$tmp
-		fi
-	done
-	printf "Aggbw: %f\n" `echo \($total_size / 1024 \) / $delay | bc -l`
-done
-
-for ((i = 0 ; $i < ${ITERATIONS} ; i++)) ; do
+for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	cd iter-$i
 	len=$(cat iostat.out | grep ^$HD | wc -l)
-	echo Aggregated Throughtput iteration $i | tee -a ../output
+	echo Aggregated Throughtput in iteration $i | tee -a ../output
 	cat iostat.out | grep ^$HD | awk '{ print $3 }' | \
 		tail -n$(($len-3)) | head -n$(($len-3)) > iostat-aggthr
-	sh ../../../utilities/calc_avg_and_co.sh 99 < iostat-aggthr | \
+	$CALC_AVG_AND_CO 99 < iostat-aggthr | \
 		tee -a ../output
-	echo dd time iteration $i | tee -a ../output
+
+	echo reader time stats in iteration $i | tee -a ../output
 	cat singles-dd/* | grep copied | awk '{ print $6 }' > time
-	sh ../../../utilities/calc_avg_and_co.sh 99 < time | \
-		tee -a ../output
-	echo dd bandwith iteration $i | tee -a ../output
+	$CALC_AVG_AND_CO 99 < time | tee -a ../output
+
+	echo reader bandwith stats in iteration $i | tee -a ../output
 	cat singles-dd/* | grep copied | awk '{ print $8 }' > band
-	sh ../../../utilities/calc_avg_and_co.sh 99 < band | \
-		tee -a ../output
+	$CALC_AVG_AND_CO 99 < band | tee -a ../output
 	cd ..
 done
 
