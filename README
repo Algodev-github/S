@@ -1,47 +1,50 @@
 Small collection of programs to measure disk IO performance.
 
+These scripts have been written just for internal use, and are more
+a yard than a well-finished work. Browse them at your own risk :)
+
 CONTENT
 
 There is a bash script for each type of test, plus some utilities.
-The file tree is as follows:
+Here is the list of the directories and of the files they contain:
 agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
-	Measure the aggregated throughput with parallel, greedy, i.e.,
-	continuously issuing disk requests, readers and/or writers. Both
+	Measures the aggregated throughput with parallel, greedy (i.e.,
+	continuously issuing disk requests readers and/or writers. Both
 	readers and writers are implemented with fio, and may be sequential
 	or random.
 	Files are read from and written to the /tmp/test directory (created
 	if non existing).
+	This type of workload is also used as background in the other tests.
 	At the end of the test, the min, max, avg, std deviation,
 	confidence interval of the read/write/total aggregated throughput
 	values sampled during the run is reported.
-	This type of workload is also used as background in the other tests.
 comm_startup_lat: comm_startup_lat.sh
-	Measure the cold-cache startup latency of the given command,
-	launched while the configurable workload used in the agg_thr
+	Measures the cold-cache startup latency of the given command,
+	launched while the same configurable workload used in the agg_thr
 	test is running. At the end of the test reports min, max, avg, std
 	dev and conf interval of both the sampled latencies and the read/
 	write/total aggregated throughput.
 kern_compil_tasks-vs-rw: task_vs_rw.sh
-	Measure the progress of a make, git checkout or git merge task,
-	executed while the configurable workload used in the agg_thr
+	Measures the progress of a make, git checkout or git merge task,
+	executed while the same configurable workload used in the agg_thr
 	test is running. At the end of the test reports the number of lines
 	written to stdout by make, or the progress of the file checkout
-	phase of git merge or checkout, plus the same statistics on disk
+	phase of git merge or git checkout, plus the same statistics on disk
 	throughput as the other tests.
 fairness: fairness.sh
-	Measure how the disk bandwidth is distributed among parallel
+	Measures how the disk bandwidth is distributed among parallel
 	sequential readers. This is more a work in progress than the other
 	scripts.
 run_multiple_tests
 	Scripts to execute subsets of the above tests. At the moment,
 	there is only one script, run_all_tests_1.sh, which repeatedly
 	executes all the tests on several workloads. It can be configured
-	only by changing its code (number of repetitions of each test,
-	schedulers used, ...)
+	only by changing its code (you may want to change the number of
+	repetitions of each test, the schedulers used, ...)
 config_params-utilities: several files here
 	. config_params.sh
 		(Hopefully all and only the) parameters that need to be set
-		to let the test scripts run
+		to let the test scripts run smoothly on your system
 	. lib_utils.sh
 		Common functions used by the test scripts
 	. calc_avg_and_co.sh
@@ -58,7 +61,7 @@ config_params-utilities: several files here
 		files produced in a set of repetitions of the same test,
 		and computes min/max/avg/std_dev/confidence_interval
 		statistics on any of the avg values reported in these files
-		(hence statistics over multiple repetitions of
+		(hence it computes statistics over multiple repetitions of
 		the same test).
 
 USAGE AND OUTPUT OF THE SCRIPTS
@@ -67,17 +70,15 @@ The steps should be:
 
 1) edit config_params-utilities/config_params.sh to fit your system
 
-2) run each test manually or run multiple tests through a script like
-   run_multiple_tests/run_all_tests_1.sh. Each test script produces a
+2) run each test manually or run multiple tests automatically through a script
+   like run_multiple_tests/run_all_tests_1.sh. Each test script produces a
    result file that contains statistics on the quantities of interest
    (throughput, latency, number of lines produced by make, ...).
 
-3) if you repeated a test more than once and stored the result files in a
+3) if you repeate a test more than once and store the result files in a
    given directory or in its subdirs, then you may use
    config_params-utilities/calc_overall_stats.sh to further aggregate the
    results and compute statistics on the avg values across the repetitions.
-   Especially, this script reports the min and max, as well as the
-   avg/std_dev/conf_interv of the avg values reported in the result files.
 
-For examples and brief help just invoke the desired script, apart from
-run_multiple_tests.sh, with just the -h option.
+For examples and brief help just invoke the desired script with the
+-h option (apart from run_multiple_tests.sh, which provides no help).
