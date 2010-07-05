@@ -38,24 +38,30 @@ echo
 
 rm -f $KERN_DIR/.git/index.lock
 
+(cd $KERN_DIR &&
+if [ "`git branch | grep base_branch`" == "" ]; then
+	echo Creating the base branch &&\
+	git branch base_branch v2.6.32 ;\
+fi)
+
 echo Executing $TASK prologue before actual test
 # task prologue
 case $TASK in
 	make)
 		(cd $KERN_DIR &&
-		if [ "`git branch | head -n 1`" != "* master" ]; then
-			echo Switching to master &&\
-			git checkout -f master ;\
+		if [ "`git branch | head -n 1`" != "* base_branch" ]; then
+			echo Switching to base_branch &&\
+			git checkout -f base_branch ;\
 		else
-			echo Already on master
+			echo Already on base_branch
 		fi
 		make clean)
 		echo clean finished
 	   	;;
 	checkout)
 		(cd $KERN_DIR &&\
-			echo Switching to master &&\
-			git checkout -f master &&\
+			echo Switching to base_branch &&\
+			git checkout -f base_branch &&\
 			echo Removing previous branches &&\
 			git branch -D test1 ;\
 			echo Creating the branch to switch to &&\
@@ -121,9 +127,9 @@ esac
 
 echo Waiting for make to start actual source compilation or for checkout/merge
 echo to be just after 0%.
-echo Done to leave out parts of these tasks that have cause highly variable
-echo workloads, and, as we discovered, would almost completely distort the
-echo results with both schedulers.
+echo For make this is done to leave out the initial configuration part, whose
+echo workload and execution time may vary significantly, and, as we verified,
+echo would distort the results with both schedulers.
 
 while ! grep "$waited_pattern" $TASK.out 2> /dev/null ; do
 	sleep 1
