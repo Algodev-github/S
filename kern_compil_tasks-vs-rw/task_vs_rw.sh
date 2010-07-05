@@ -55,7 +55,7 @@ case $TASK in
 		else
 			echo Already on base_branch
 		fi
-		make clean)
+		make clean && make defconfig)
 		echo clean finished
 	   	;;
 	checkout)
