@@ -6,7 +6,8 @@ a yard than a well-finished work. Browse them at your own risk :)
 CONTENT
 
 There is a bash script for each type of test, plus some utilities.
-Here is the list of the directories and of the files they contain:
+To execute each script, it is better to first cd to the dir that contains it.
+Here is the list of the directories and of the scripts they contain:
 agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
 	Measures the aggregated throughput with parallel, greedy (i.e.,
 	continuously issuing disk requests readers and/or writers. Both
