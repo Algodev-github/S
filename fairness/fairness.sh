@@ -6,13 +6,14 @@ CALC_AVG_AND_CO=`cd ../config_params-utilities; pwd`/calc_avg_and_co.sh
 # see the following string for usage, or invoke fairness -h
 usage_msg="\
 Usage:\n\
-./fairness.sh [bfq | cfq | ...] [num_files] [iterations] [file_size_kb] \n\
+./fairness.sh [bfq | cfq | ...] [num_files] [iterations] [file_size_MB] \n\
 	      [weights]\n\
 \n\
 For example:\n\
-fairness.sh bfq 2 10 100000 1000 500\n\
+fairness.sh bfq 2 10 100 1000 500\n\
 switches to bfq and launches 10 iterations of 2 sequential readers of 2 \n\
-different files; the first reader has weight 1000, the second 500.\n\
+different files of 100MB each; the first reader has weight 1000, the second\n\
+500.\n\
 \n\
 Default parameters values are bfq, 4, 2, $NUM_BLOCKS, and 100 for each reader\n"
 
@@ -90,7 +91,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	echo $FILES
 	for f in $FILES ; do
 		echo ${WEIGHT[$idx]} > /cgroup/test$idx/$GROUP.weight
-		dd if=$f of=/dev/null bs=1K \
+		dd if=$f of=/dev/null bs=1M \
 			count=$(((${NUM_BLOCKS}*${WEIGHT[$idx]})/$max_w)) \
 			2>&1 | tee iter-$i/singles-dd/dd-$idx &
 		echo $! > /cgroup/test$idx/tasks

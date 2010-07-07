@@ -4,11 +4,15 @@ TRACE=0
 # The disk on which you are about to run the tests
 HD=sda
 
-# number of 1K blocks to read/write for each file
-NUM_BLOCKS=2000000
+# number of 1M blocks of the files to create for seq reading/writing
+NUM_BLOCKS_CREATE_SEQ=500
 
-# number of 1K blocks of the files to create for seq reading
-NUM_BLOCKS_CREATE=5000000
+# number of 1M blocks of the files to create for rand reading/writing
+# (the larger the better for randomness)
+NUM_BLOCKS_CREATE_RAND=$(($NUM_BLOCKS_CREATE_SEQ * 10))
+
+# portion, in 1M blocks, to read for each file, used only in fairness.sh
+NUM_BLOCKS=2000
 
 # where files are read from or written to
 BASE_DIR=/tmp/test

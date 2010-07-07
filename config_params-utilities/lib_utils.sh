@@ -51,20 +51,22 @@ function create_files
 		for ((i = 0 ; $i < $NUM_READERS ; i++))
 		do
         		if [ ! -f ${BASE_SEQ_FILE_PATH}$i ] ; then
-                		echo dd if=/dev/zero bs=1K \
-					count=$NUM_BLOCKS_CREATE \
+                		echo dd if=/dev/zero bs=1M \
+					count=$NUM_BLOCKS_CREATE_SEQ \
 					of=${BASE_SEQ_FILE_PATH}$i
-				dd if=/dev/zero bs=1K\
-					count=$NUM_BLOCKS_CREATE \
+				dd if=/dev/zero bs=1M \
+					count=$NUM_BLOCKS_CREATE_SEQ \
 					of=${BASE_SEQ_FILE_PATH}$i
         		fi
 		done
 	else
 		echo Creating file to rand read ...
 		if [ ! -f $FILE_TO_RAND_READ ] ; then
-        		echo dd if=/dev/zero bs=1G count=10\
+        		echo dd if=/dev/zero bs=1M \
+				count=$NUM_BLOCKS_CREATE_RAND \
 				of=$FILE_TO_RAND_READ
-        		dd if=/dev/zero bs=1G count=10 of=$FILE_TO_RAND_READ
+        		dd if=/dev/zero bs=1M count=$NUM_BLOCKS_CREATE_RAND \
+				of=$FILE_TO_RAND_READ
 		fi
 	fi
 	echo done
@@ -80,15 +82,15 @@ function start_readers_writers
 	if [ "$RW_TYPE" == "seq" ]; then
 		for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 		do
-			fio --name=seqreader$i -rw=read\
+			fio --name=seqreader$i -rw=read \
 				--numjobs=1 \
 				--filename=${BASE_SEQ_FILE_PATH}$i &
 		done
 		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 		do
 			rm -f ${BASE_SEQ_FILE_PATH}_write$i
-			fio --name=seqwriter$i -rw=write\
-				--numjobs=1 --size=10G\
+			fio --name=seqwriter$i -rw=write \
+				--numjobs=1 --size=${NUM_BLOCKS_CREATE_SEQ}M\
 				--filename=${BASE_SEQ_FILE_PATH}_write$i &
 		done
 	else
@@ -99,7 +101,8 @@ function start_readers_writers
 		if [ $NUM_WRITERS -gt 0 ] ; then
 			rm -f $FILE_TO_RAND_WRITE
 			fio --name=readers --rw=randwrite \
-				--size=10G --numjobs=$NUM_WRITERS\
+				--size=$NUM_BLOCKS_CREATE_RAND}M \
+				--numjobs=$NUM_WRITERS \
 				--filename=$FILE_TO_RAND_WRITE &
 		fi
 	fi
