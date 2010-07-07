@@ -5,7 +5,7 @@ TRACE=0
 HD=sda
 
 # number of 1M blocks of the files to create for seq reading/writing
-NUM_BLOCKS_CREATE_SEQ=500
+NUM_BLOCKS_CREATE_SEQ=2000
 
 # number of 1M blocks of the files to create for rand reading/writing
 # (the larger the better for randomness)
