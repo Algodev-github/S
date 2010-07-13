@@ -75,9 +75,9 @@ case $TASK in
 			git branch test1 v2.6.30 &&\
 			echo Switching to the first branch and cleaning &&\
 			git checkout -f test1 &&\
-			git clean -f -d
+			git clean -f -d ;
 			echo Removing previous branches &&\
-			git branch -D to_delete test2 &&\
+			git branch -D to_delete test2 ;\
 			echo Creating second branch to merge &&\
 	        	git branch test2 v2.6.33) 
 	   	;;
@@ -115,7 +115,7 @@ case $TASK in
 			echo\
 			"git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out" 
 			git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out) &
-		waited_pattern="Checking out files"
+		waited_pattern="(Checking out files)|(Switched)"
 	   	;;
 	merge)
 		(cd $KERN_DIR && echo git merge test2 ;\
@@ -131,9 +131,17 @@ echo For make this is done to leave out the initial configuration part, whose
 echo workload and execution time may vary significantly, and, as we verified,
 echo would distort the results with both schedulers.
 
-while ! grep "$waited_pattern" $TASK.out 2> /dev/null ; do
+while ! grep -E "$waited_pattern" $TASK.out > /dev/null 2>&1 ; do
 	sleep 1
 done
+
+if grep "Switched" $TASK.out > /dev/null ; then
+	echo $TASK already finished, shutting down and removing all files
+	shutdwn
+	cd ..
+	rm -rf results-${sched}
+	exit
+fi
 
 start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
 

@@ -21,7 +21,6 @@ calc_overall_stats.sh test_result_dir [num_quantities]
    
 results_dir=`cd $1; pwd`
 num_quants=${2:-3}
-record_lines=${3:-$(($num_quants * 3 + 1))}
 
 record_lines=$(($num_quants * 3 + 1))
 CALC_AVG_AND_CO=`pwd`/calc_avg_and_co.sh
@@ -68,6 +67,9 @@ function file_loop
 	n=0
 	for in_file in `find $results_dir -name "*$sched*$file_filter"`; do
 
+		if ((`cat $in_file | wc -l` < $record_lines)); then
+			continue
+		fi
 		if (($n == 0)); then
 			head -n 1 $in_file | tee -a ../$out_file
 		fi

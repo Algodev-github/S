@@ -16,7 +16,7 @@ sh aggthr_of_greedy_rw.sh [bfq | cfq | ...] [num_readers] [num_writers]\n\
 [seq | rand] [stat_dest_dir] [duration]\n\
 \n\
 For example:\n\
-sh aggthr_of_greedy_rw.sh bfq 10 10 rand ..\n\
+sh aggthr_of_greedy_rw.sh bfq 10 rand ..\n\
 switches to bfq and launches 10 rand readers and 10 rand writers\n\
 with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
