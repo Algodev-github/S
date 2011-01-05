@@ -1,0 +1,108 @@
+diff -Naurp tmp/vlc-0.8.6.c/modules/access_output/udp.c vlc-0.8.6.c/modules/access_output/udp.c
+--- tmp/vlc-0.8.6.c/modules/access_output/udp.c	2007-06-16 14:25:07.000000000 +0000
++++ vlc-0.8.6.c/modules/access_output/udp.c	2008-02-14 18:04:07.000000000 +0000
+@@ -92,6 +92,11 @@ static void Close( vlc_object_t * );
+                        "directly, without trying to fill the MTU (ie, " \
+                        "without trying to make the biggest possible packets " \
+                        "in order to improve streaming)." )
++#define LOSS_TEXT ("Max loss rate (x 1000)")
++#define LOSS_LONGTEXT ("Maximum loss rate accepted over Window packets.") 
++
++#define WINDOW_TEXT ("Window (pkts)")
++#define WINDOW_LONGTEXT ("Window for packet loss calculation.") 
+ 
+ vlc_module_begin();
+     set_description( _("UDP stream output") );
+@@ -106,6 +111,10 @@ vlc_module_begin();
+     add_suppressed_integer( SOUT_CFG_PREFIX "late" );
+     add_bool( SOUT_CFG_PREFIX "raw",  0, NULL, RAW_TEXT, RAW_LONGTEXT,
+                                  VLC_TRUE );
++    add_integer( SOUT_CFG_PREFIX "loss", 0, NULL, LOSS_TEXT, LOSS_LONGTEXT,
++                                 VLC_TRUE );
++    add_integer( SOUT_CFG_PREFIX "win", 0, NULL, WINDOW_TEXT, WINDOW_LONGTEXT,
++                                 VLC_TRUE );
+ 
+     set_capability( "sout access", 100 );
+     add_shortcut( "udp" );
+@@ -122,6 +131,8 @@ static const char *ppsz_sout_options[] =
+     "ttl",
+     "group",
+     "raw",
++    "loss",
++    "win",
+     NULL
+ };
+ 
+@@ -145,6 +156,8 @@ typedef struct sout_access_thread_t
+     int64_t     i_caching;
+     int         i_group;
+ 
++    float	i_max_loss;
++
+     block_fifo_t *p_empty_blocks;
+ 
+ } sout_access_thread_t;
+@@ -281,10 +294,13 @@ static int Open( vlc_object_t *p_this )
+     if( val.b_bool )  p_access->pf_write = WriteRaw;
+     else p_access->pf_write = Write;
+ 
++    var_Get( p_access, SOUT_CFG_PREFIX "loss", &val );
++    p_sys->p_thread->i_max_loss = val.i_int / 1000.0;
++
+     p_access->pf_seek = Seek;
+ 
+-    msg_Dbg( p_access, "udp access output opened(%s:%d)",
+-             psz_dst_addr, i_dst_port );
++    msg_Dbg( p_access, "udp access output opened(%s:%d) loss=%f",
++             psz_dst_addr, i_dst_port, p_sys->p_thread->i_max_loss );
+ 
+     free( psz_dst_addr );
+ 
+@@ -500,6 +516,12 @@ static block_t *NewUDPPacket( sout_acces
+     return p_buffer;
+ }
+ 
++/*
++ * maximum interarrival time (in packets) with a loss < i_max_loss
++ */
++#define BURST_WINDOW(p_this) ((p_this)->i_max_loss * 100)
++#define MAX_UDELAY 1000000
++
+ /*****************************************************************************
+  * ThreadWrite: Write a packet on the network at the good time.
+  *****************************************************************************/
+@@ -509,6 +531,7 @@ static void ThreadWrite( vlc_object_t *p
+     mtime_t              i_date_last = -1;
+     mtime_t              i_to_send = p_thread->i_group;
+     int                  i_dropped_packets = 0;
++    int                  i_idx = 0, i_last_bad = -1;
+ #if defined(WIN32) || defined(UNDER_CE)
+     char strerror_buf[WINSOCK_STRERROR_SIZE];
+ # define strerror( x ) winsock_strerror( strerror_buf )
+@@ -555,6 +578,7 @@ static void ThreadWrite( vlc_object_t *p
+             }
+         }
+ 
++        i_idx++;
+         i_to_send--;
+         if( !i_to_send || (p_pk->i_flags & BLOCK_FLAG_CLOCK) )
+         {
+@@ -580,6 +604,18 @@ static void ThreadWrite( vlc_object_t *p
+             msg_Dbg( p_thread, "packet has been sent too late (" I64Fd ")",
+                      i_sent - i_date );
+         }
++        if ( i_sent > i_date + MAX_UDELAY )
++        {
++            msg_Dbg( p_thread, "packet %d late for %fs buffering", i_idx, MAX_UDELAY/1000000.0 );
++            if( i_last_bad != -1 &&
++                i_idx - i_last_bad < BURST_WINDOW(p_thread) )
++            {
++                msg_Dbg( p_thread, "MAX_LOSS_RATE exceeded (%d-%d/%.0f)",
++                         i_idx, i_last_bad,
++                         BURST_WINDOW(p_thread) );
++            }
++            i_last_bad = i_idx;
++        }
+ #endif
+ 
+         block_FifoPut( p_thread->p_empty_blocks, p_pk );

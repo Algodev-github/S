@@ -1,0 +1,30 @@
+To run experiments you need first to patch vlc to add the max loss rate check
+functionality (which just writes a message on stdout when the target max loss
+rate is exceeded).
+To this purpose, get vlc sources (check in this directory which patches are
+currently available), then cd to the vlc sources root dir and invoke
+
+patch -p1 < PATH_TO_THE_PATCH/vlc-your_version-limit-loss-rate.patch
+
+After properly compiling vlc, you have to set a few parameters in conf.sh,
+explained below, and finally just invoke vlc_test.sh as superuser.
+
+The parameters to set in conf.sh are:
+. where the vlc executable containing the patch is located
+. the user you want to be for executing the main tasks that do not need
+  superuser privileges
+. the address of the system running the vlc server and the user@address to use
+  when launching the (fake) clients
+. the list of movies to play (the paths to the files)
+
+There are a few other configuration parameters that you might want
+to change. Probably it is better to first familiarize with the set of
+scripts. To this purpose you may start by invoking
+vlc_test.sh -h
+to get an idea of the usage, and then browse the script vlc_test.sh itself to
+understand what it does exactly and how the other programs help it.
+
+POSSIBLE PROBLEMS
+
+One of the reasons why the scripts may fail is that your version of nc has
+a different syntax/semantic w.r.t. to the expected one.

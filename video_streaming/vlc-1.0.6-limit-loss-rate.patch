@@ -1,0 +1,116 @@
+--- vlc-1.0.6.orig//modules/access_output/udp.c	2010-12-19 06:53:43.202721600 +0000
++++ vlc-1.0.6/modules/access_output/udp.c	2011-01-05 10:37:08.822512000 +0000
+@@ -76,6 +76,12 @@
+                           "helps reducing the scheduling load on " \
+                           "heavily-loaded systems." )
+ 
++#define LOSS_TEXT ("Max loss rate (x 1000)")
++#define LOSS_LONGTEXT ("Maximum loss rate accepted over Window packets.") 
++
++#define WINDOW_TEXT ("Window (pkts)")
++#define WINDOW_LONGTEXT ("Window for packet loss calculation.") 
++
+ vlc_module_begin ()
+     set_description( N_("UDP stream output") )
+     set_shortname( "UDP" )
+@@ -87,6 +93,11 @@
+     add_obsolete_integer( SOUT_CFG_PREFIX "late" )
+     add_obsolete_bool( SOUT_CFG_PREFIX "raw" )
+ 
++    add_integer( SOUT_CFG_PREFIX "loss", 0, NULL, LOSS_TEXT, LOSS_LONGTEXT,
++                                 true )
++    add_integer( SOUT_CFG_PREFIX "win", 0, NULL, WINDOW_TEXT, WINDOW_LONGTEXT,
++                                 true )
++
+     set_capability( "sout access", 0 )
+     add_shortcut( "udp" )
+     set_callbacks( Open, Close )
+@@ -99,6 +110,8 @@
+ static const char *const ppsz_sout_options[] = {
+     "caching",
+     "group",
++    "loss",
++    "win",
+     NULL
+ };
+ 
+@@ -124,6 +137,7 @@
+     int           i_handle;
+     bool          b_mtu_warning;
+     size_t        i_mtu;
++    float         i_max_loss;
+ 
+     block_fifo_t *p_fifo;
+     block_fifo_t *p_empty_blocks;
+@@ -234,8 +248,13 @@
+     }
+ 
+     p_access->pf_write = Write;
++    
++    p_sys->i_max_loss =
++	var_GetInteger( p_access, SOUT_CFG_PREFIX "loss" ) / 1000.0;
+     p_access->pf_seek = Seek;
+     p_access->pf_control = Control;
++    msg_Dbg( p_access, "udp access output opened(dst_port %d) loss=%f",
++	     i_dst_port, p_sys->i_max_loss );
+ 
+     return VLC_SUCCESS;
+ }
+@@ -400,6 +419,12 @@
+     return p_buffer;
+ }
+ 
++/*
++ * maximum interarrival time (in packets) with a loss < i_max_loss
++ */
++#define BURST_WINDOW(p_this) ((p_this)->i_max_loss * 100)
++#define MAX_UDELAY 1000000
++
+ /*****************************************************************************
+  * ThreadWrite: Write a packet on the network at the good time.
+  *****************************************************************************/
+@@ -410,8 +435,9 @@
+     mtime_t i_date_last = -1;
+     const unsigned i_group = var_GetInteger( p_access,
+                                              SOUT_CFG_PREFIX "group" );
+-    mtime_t i_to_send = i_group;
+-    unsigned i_dropped_packets = 0;
++    volatile mtime_t i_to_send = i_group;
++    volatile unsigned i_dropped_packets = 0;
++    volatile int i_idx = 0, i_last_bad = -1;
+ 
+     for (;;)
+     {
+@@ -442,6 +468,8 @@
+         }
+ 
+         block_cleanup_push( p_pk );
++
++	i_idx++ ;
+         i_to_send--;
+         if( !i_to_send || (p_pk->i_flags & BLOCK_FLAG_CLOCK) )
+         {
+@@ -465,8 +493,22 @@
+             msg_Dbg( p_access, "packet has been sent too late (%"PRId64 ")",
+                      i_sent - i_date );
+         }
++	if ( i_sent > i_date + MAX_UDELAY )
++	    {
++		msg_Dbg( p_access,
++			 "packet %d late for %fs buffering",
++			 i_idx, MAX_UDELAY/1000000.0 );
++		if( i_last_bad != -1 &&
++		    i_idx - i_last_bad < BURST_WINDOW(p_sys) )
++		    {
++			msg_Dbg( p_access, "MAX_LOSS_RATE exceeded (%d-%d/%.0f)",
++				 i_idx, i_last_bad,
++				 BURST_WINDOW(p_sys) );
++		    }
++		i_last_bad = i_idx;
++	    }
+ #endif
+-
++	
+         block_FifoPut( p_sys->p_empty_blocks, p_pk );
+ 
+         i_date_last = i_date;
