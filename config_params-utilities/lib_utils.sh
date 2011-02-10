@@ -50,23 +50,45 @@ function create_files
 		echo Creating files to seq read ...
 		for ((i = 0 ; $i < $NUM_READERS ; i++))
 		do
-        		if [ ! -f ${BASE_SEQ_FILE_PATH}$i ] ; then
-                		echo dd if=/dev/zero bs=1M \
+			fname=${BASE_SEQ_FILE_PATH}$i
+			test -f ${fname}
+			file_absent=$?
+			wrong_size=0
+        		if [ -f ${fname} ] ; then
+				file_size=$(du --apparent-size -B 1024 $fname | col -x | cut -f 1 -d " ")
+				computed_size=$(echo "${NUM_BLOCKS_CREATE_SEQ} * 1024" | bc -l)
+				if [[ "${file_size}" -ne "${computed_size}" ]]; then
+					wrong_size=1
+				fi
+			fi
+			if [[ "${file_absent}" -eq "1" || "${wrong_size}" -eq "1" ]]; then
+				echo dd if=/dev/zero bs=1M \
 					count=$NUM_BLOCKS_CREATE_SEQ \
-					of=${BASE_SEQ_FILE_PATH}$i
+					of=${fname}
 				dd if=/dev/zero bs=1M \
 					count=$NUM_BLOCKS_CREATE_SEQ \
-					of=${BASE_SEQ_FILE_PATH}$i
+					of=${fname}
         		fi
 		done
 	else
 		echo Creating file to rand read ...
-		if [ ! -f $FILE_TO_RAND_READ ] ; then
+		fname=${FILE_TO_RAND_READ}
+		test -f ${fname}
+		file_absent=$?
+		wrong_size=0
+		if [ -f ${fname} ] ; then
+			file_size=$(du --apparent-size -B 1024 $fname | col -x | cut -f 1 -d " ")
+			computed_size=$(echo "${NUM_BLOCKS_CREATE_RAND} * 1024" | bc -l)
+			if [[ "${file_size}" -ne "${computed_size}" ]]; then
+				wrong_size=1
+			fi
+		fi
+		if [[ "${file_absent}" -eq "1" || "${wrong_size}" -eq "1" ]]; then
         		echo dd if=/dev/zero bs=1M \
 				count=$NUM_BLOCKS_CREATE_RAND \
-				of=$FILE_TO_RAND_READ
+				of=${fname}
         		dd if=/dev/zero bs=1M count=$NUM_BLOCKS_CREATE_RAND \
-				of=$FILE_TO_RAND_READ
+				of=${fname}
 		fi
 	fi
 	echo done
