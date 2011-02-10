@@ -1,4 +1,6 @@
 #!/bin/bash
+. ../config_params-utilities/config_params.sh
+
 NUM_REPETITIONS=10
 cur_date=`date +%y%m%d_%H%M`
 RES_DIR=../results/run_all_tests_1/$cur_date
@@ -89,6 +91,17 @@ echo /etc/init.d/cron stop
 
 rm -rf $RES_DIR
 mkdir -p $RES_DIR
+
+(echo 1> /sys/block/${HD}/device/queue_depth) &> /dev/null
+ret=$?
+if [[ "$ret" -eq "0" ]]; then
+	echo "Setting queue depth to ${NCQ_QUEUE_DEPTH} on ${HD}"
+	echo ${NCQ_QUEUE_DEPTH} | tee /sys/block/${HD}/device/queue_depth
+elif [[ "$(id -u)" -ne "0" ]]; then
+	echo "You are currently executing this script as the $(whoami) user."
+	echo "Please run the script as root."
+	exit 1
+fi
 
 for sched in ${schedulers[*]}; do
 	echo Running tests on $sched

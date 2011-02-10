@@ -30,3 +30,6 @@ KERN_DIR=/home/paolo/fake_tree/linux-2.6
 #	For the make test to run without blocking, you must be sure that the
 #	tree contains a valid .config for these kernels (a valid .config
 #	for any of the three will do also for the others).
+
+# NCQ queue depth
+NCQ_QUEUE_DEPTH=1
