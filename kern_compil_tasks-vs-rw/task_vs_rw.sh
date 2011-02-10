@@ -36,7 +36,11 @@ STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 create_files $NUM_READERS $RW_TYPE
 echo
 
-rm -f $KERN_DIR/.git/index.lock
+if [[ -d ${KERN_DIR}/.git ]]; then
+	rm -f $KERN_DIR/.git/index.lock
+else
+	cd ${BASE_DIR} && git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
+fi
 
 (cd $KERN_DIR &&
 if [ "`git branch | grep base_branch`" == "" ]; then
