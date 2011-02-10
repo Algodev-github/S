@@ -6,15 +6,17 @@ UTIL_DIR=`cd ../config_params-utilities; pwd`
 function show_usage {
 	echo "\
 Usage: sh video_play_vs_comms.sh [bfq | cfq | ...] [num_readers] [num_writers]
-	[seq | rand] [num_iter] [stat_dest_dir]
+	[seq | rand] [num_iter] [real | fake] [stat_dest_dir]
+
+fake implies that \"-vo null\" and \"-ao null\" are passed to mplayer.
 
 For example:
-sh video_play_vs_comms.sh bfq 5 5 seq 20 mydir
+sh video_play_vs_comms.sh bfq 5 5 seq 20 real mydir
 switches to bfq and, after launching 5 sequential readers and 5 sequential
 writers, runs \"bash -c exit\" for 20 times. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
-Default parameter values are: bfq, 5, 5, seq, 10 and .
+Default parameter values are: bfq, 5, 5, seq, 10, real .
 "
 }
 
@@ -23,13 +25,16 @@ NUM_READERS=${2-5}
 NUM_WRITERS=${3-5}
 RW_TYPE=${4-seq}
 NUM_ITER=${5-10}
-STAT_DEST_DIR=${6-.}
+TYPE=${6-real}
+STAT_DEST_DIR=${7-.}
 
 COMMAND="bash -c exit"
 PLAYER_CMD="mplayer"
 BENCH_OPTS="-benchmark -framedrop"
-VIDEO_OPTS="-vo null"
-AUDIO_OPTS="-ao null"
+if [ $TYPE == "fake" ]; then
+	VIDEO_OPTS="-vo null"
+	AUDIO_OPTS="-ao null"
+fi
 NOCACHE_OPTS="-nocache"
 SKIP_START_OPTS="-ss"
 SKIP_LENGTH_OPTS="-endpos"
