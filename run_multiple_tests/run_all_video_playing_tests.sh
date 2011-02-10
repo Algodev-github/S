@@ -27,7 +27,7 @@ echo /etc/init.d/cron stop
 rm -rf $RES_DIR
 mkdir -p $RES_DIR
 
-echo 1> /sys/block/${HD}/device/queue_depth &> /dev/null
+echo ${NCQ_QUEUE_DEPTH} > /sys/block/${HD}/device/queue_depth &> /dev/null
 ret=$?
 if [[ "$ret" -eq "0" ]]; then
 	echo "Setting queue depth to ${NCQ_QUEUE_DEPTH} on ${HD}"
