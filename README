@@ -7,7 +7,7 @@ CONTENT
 
 There is a bash script for each type of test, plus some utilities.
 To execute each script, it is better to first cd to the dir that contains it.
-Here is the list of the directories and of the scripts they contain:
+Here is the list of the directories and of the stuff they contain:
 agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
 	Measures the aggregated throughput with parallel, greedy (i.e.,
 	continuously issuing disk requests readers and/or writers. Both
@@ -25,6 +25,22 @@ comm_startup_lat: comm_startup_lat.sh
 	test is running. At the end of the test reports min, max, avg, std
 	dev and conf interval of both the sampled latencies and the read/
 	write/total aggregated throughput.
+video_playing_vs_commands: video_playing_vs_commands.sh
+	Measures the number of frames dropped while playing a video clip and,
+	at the same time, 1) repeatedly invoking a short command and 2) serving
+	one of the workloads of the of the agg_thr test.
+video_streaming
+	This is a small package, made of a few scripts, programs and patches
+	for setting up a simple experiment with a video server.
+	In particular, a patched version of vlc is used, which also logs the
+	frame-loss rate. This information is used by the scripts to execute
+	the following experiment: measure the maximum number of movies that
+	can be streamed in parallel without exceeding 1% frame loss rate. In
+	brief, the steps are: start streaming a new movie, in parallel
+	with the ones already being streamed, every N seconds; stop if 1%
+	frame-loss rate has been reached. To perturbe the streaming, several
+	intermittent file readers are run in parallel too. More details
+	and instructions in the README within the package.
 kern_compil_tasks-vs-rw: task_vs_rw.sh
 	Measures the progress of a make, git checkout or git merge task,
 	executed while the same configurable workload used in the agg_thr
@@ -41,9 +57,10 @@ fairness: fairness.sh
 	sequential readers. This is more a work in progress than the other
 	scripts.
 run_multiple_tests
-	Scripts to execute subsets of the above tests. At the moment,
-	there is only one script, run_all_tests_1.sh, which repeatedly
-	executes all the tests on several workloads. It can be configured
+	Scripts to execute subsets of the above tests. For example,
+	there is the script run_all_tests_1.sh, which repeatedly
+	executes all the tests, apart from the video playing/streaming ones,
+	with several workloads. It can be configured
 	only by changing its code (you may want to change the number of
 	repetitions of each test, the schedulers used, ...)
 config_params-utilities: several files here
@@ -80,10 +97,10 @@ The steps should be:
    result file that contains statistics on the quantities of interest
    (throughput, latency, number of lines produced by make, ...).
 
-3) if you repeate a test more than once and store the result files in a
+3) if you repeat a test more than once and store the result files in a
    given directory or in its subdirs, then you may use
    config_params-utilities/calc_overall_stats.sh to further aggregate the
    results and compute statistics on the avg values across the repetitions.
 
 For examples and brief help just invoke the desired script with the
--h option (apart from run_multiple_tests.sh, which provides no help).
+-h option (apart from the scripts in run_multiple_tests, which provide no help).
