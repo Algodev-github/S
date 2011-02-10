@@ -1,23 +1,25 @@
 #!/bin/bash
 . ../config_params-utilities/config_params.sh
 
+TYPE=${1-real}
 cur_date=`date +%y%m%d_%H%M`
-RES_DIR=../results/video_playing_tests/$cur_date
+RES_DIR=../results/video_playing_tests_$TYPE/$cur_date
 ITER=10
 schedulers=(bfq cfq)
 
 function video_playing 
 {
 	cd ../video_playing_vs_commands
-	bash video_play_vs_comms.sh $1 10 0 seq $ITER $RES_DIR
+	bash video_play_vs_comms.sh $1 10 0 seq $ITER $TYPE $RES_DIR
 
-	bash video_play_vs_comms.sh $1 10 0 rand $ITER  $RES_DIR
+	bash video_play_vs_comms.sh $1 10 0 rand $ITER $TYPE $RES_DIR
 
-	bash video_play_vs_comms.sh $1 5 5 seq $ITER $RES_DIR
+	bash video_play_vs_comms.sh $1 5 5 seq $ITER $TYPE $RES_DIR
 
-	bash video_play_vs_comms.sh $1 5 5 rand $ITER $RES_DIR
+	bash video_play_vs_comms.sh $1 5 5 rand $ITER $TYPE $RES_DIR
 }
 echo Tests beginning on $cur_date
+echo Mode: $TYPE, see my code for details
 
 echo /etc/init.d/cron stop
 /etc/init.d/cron stop
@@ -25,7 +27,7 @@ echo /etc/init.d/cron stop
 rm -rf $RES_DIR
 mkdir -p $RES_DIR
 
-echo 1> /sys/block/${HD}/device/queue_depth) &> /dev/null
+echo 1> /sys/block/${HD}/device/queue_depth &> /dev/null
 ret=$?
 if [[ "$ret" -eq "0" ]]; then
 	echo "Setting queue depth to ${NCQ_QUEUE_DEPTH} on ${HD}"
