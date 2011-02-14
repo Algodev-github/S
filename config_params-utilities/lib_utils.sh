@@ -2,23 +2,23 @@ CALC_AVG_AND_CO=`cd ../config_params-utilities; pwd`/calc_avg_and_co.sh
 
 function init_tracing {
 	if [ "$TRACE" == "1" ] ; then
-		if [ ! -d /debug/tracing ] ; then
-			mount -t debugfs none /debug
+		if [ ! -d /sys/kernel/debug/tracing ] ; then
+			mount -t debugfs none /sys/kernel/debug
 		fi
-		echo nop > /debug/tracing/current_tracer
-		echo 100000 > /debug/tracing/buffer_size_kb
+		echo nop > /sys/kernel/debug/tracing/current_tracer
+		echo 100000 > /sys/kernel/debug/tracing/buffer_size_kb
 		echo "${SCHED}*" "__${SCHED}*" >\
-			/debug/tracing/set_ftrace_filter
+			/sys/kernel/debug/tracing/set_ftrace_filter
 		echo "echo 1 > /sys/block/$HD/$HD1/trace/enable"
 		echo 1 > /sys/block/$HD/$HD1/trace/enable
-		echo blk > /debug/tracing/current_tracer
+		echo blk > /sys/kernel/debug/tracing/current_tracer
 	fi
 }
 
 function set_tracing {
 	if [ "$TRACE" == "1" ] ; then
-		echo "echo $1 > /debug/tracing/tracing_enabled"
-		echo $1 > /debug/tracing/tracing_enabled
+		echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
+		echo $1 > /sys/kernel/debug/tracing/tracing_enabled
 	fi
 }
 
