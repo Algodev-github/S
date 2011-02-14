@@ -105,26 +105,26 @@ function start_readers_writers
 		for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 		do
 			fio --name=seqreader$i -rw=read \
-				--numjobs=1 \
+				--numjobs=1 --loops=100 \
 				--filename=${BASE_SEQ_FILE_PATH}$i &
 		done
 		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 		do
 			rm -f ${BASE_SEQ_FILE_PATH}_write$i
-			fio --name=seqwriter$i -rw=write \
+			fio --name=seqwriter$i -rw=write --loops=100 \
 				--numjobs=1 --size=${NUM_BLOCKS_CREATE_SEQ}M\
 				--filename=${BASE_SEQ_FILE_PATH}_write$i &
 		done
 	else
 		if [ $NUM_READERS -gt 0 ] ; then
-		        fio --name=writers --rw=randread \
+		        fio --name=writers --rw=randread --loops=100 \
        	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ &
 		fi
 		if [ $NUM_WRITERS -gt 0 ] ; then
 			rm -f $FILE_TO_RAND_WRITE
 			fio --name=readers --rw=randwrite \
-				--size=$NUM_BLOCKS_CREATE_RAND}M \
-				--numjobs=$NUM_WRITERS \
+				--size=$NUM_BLOCKS_CREATE_RANDOM \
+				--numjobs=$NUM_WRITERS --loops=100 \
 				--filename=$FILE_TO_RAND_WRITE &
 		fi
 	fi
