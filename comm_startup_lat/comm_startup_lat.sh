@@ -36,6 +36,7 @@ fi
 
 function invoke_commands {
 	for ((i = 0 ; i < $NUM_ITER ; i++)) ; do
+		sleep 1
 		echo Iteration $(($i+1)) / $NUM_ITER
 		# we do not sync here, otherwise
 		# writes stall everything with
@@ -43,14 +44,13 @@ function invoke_commands {
 		# do not change)
 		echo 3 > /proc/sys/vm/drop_caches
 		(time -p $COMMAND) 2>&1 | tee -a lat-${SCHED}
-		sleep 1
 	done
 }
 
 function calc_latency {
 	echo "Latency:" | tee -a $1
 	len=$(cat lat-${SCHED} | grep ^real | wc -l)
-	cat lat-${SCHED} | grep ^real | tail -n$(($len-3)) | \
+	cat lat-${SCHED} | grep ^real | tail -n$(($len)) | \
 		awk '{ print $2 }' > lat-${SCHED}-real
 	sh $UTIL_DIR/calc_avg_and_co.sh 99 < lat-${SCHED}-real\
        		| tee -a $1
@@ -107,9 +107,9 @@ iostat -tmd /dev/$HD 3 | tee iostat.out &
 
 invoke_commands
 
-compute_statistics
-
 shutdwn
+
+compute_statistics
 
 cd ..
 
