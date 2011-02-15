@@ -13,7 +13,8 @@ fake implies that \"-vo null\" and \"-ao null\" are passed to mplayer.
 For example:
 sh video_play_vs_comms.sh bfq 5 5 seq 20 real mydir
 switches to bfq and, after launching 5 sequential readers and 5 sequential
-writers, runs \"bash -c exit\" for 20 times. The file containing the computed
+writers, runs mplayer for 20 times. During each run 
+\"bash -c exit\" is executed every 3 seconds. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
 Default parameter values are: bfq, 5, 5, seq, 10, real .
@@ -75,7 +76,7 @@ function invoke_player_plus_commands {
 			# any scheduler (and however latencies
 			# do not change)
 			echo 3 > /proc/sys/vm/drop_caches
-			(time -p $COMMAND) 2>&1 | tee -a lat-${SCHED} &
+			(time -p $COMMAND) 2>&1 | tee -a lat-${sched} &
 			echo sleep 3
 			sleep 3
 			if [ "`pgrep ${PLAYER_CMD}`" == "" ] ; then
@@ -85,6 +86,7 @@ function invoke_player_plus_commands {
 
 		grep -n "^BENCHMARKn:" ${PLAYER_OUT_FNAME} | tr -s " " | \
 			cut -f7 -d" " >> ${DROP_DATA_FNAME}
+		cat ${DROP_DATA_FNAME}
 		rm -f ${PLAYER_OUT_FNAME}
 	done
 }
@@ -96,10 +98,10 @@ function calc_frame_drops {
 
 function calc_latency {
 	echo "Latency:" | tee -a $1
-	len=$(cat lat-${SCHED} | grep ^real | wc -l)
-	cat lat-${SCHED} | grep ^real | tail -n$(($len-3)) | \
-		awk '{ print $2 }' > lat-${SCHED}-real
-	sh $UTIL_DIR/calc_avg_and_co.sh 99 < lat-${SCHED}-real\
+	len=$(cat lat-${sched} | grep ^real | wc -l)
+	cat lat-${sched} | grep ^real | tail -n$(($len)) | \
+		awk '{ print $2 }' > lat-${sched}-real
+	sh $UTIL_DIR/calc_avg_and_co.sh 99 < lat-${sched}-real\
        		| tee -a $1
 }
 
@@ -111,7 +113,7 @@ ${sched}-${NUM_READERS}r${NUM_WRITERS}w_${RW_TYPE}-lat_thr_stat.txt
 	echo Results for $sched, $NUM_ITER $COMMAND, $NUM_READERS $RW_TYPE\
 		readers	and $NUM_WRITERS $RW_TYPE writers | tee $file_name
 
-	sh $CALC_AVG_AND_CO 99 < ${DROP_DATA_FNAME} | tee -a $file_name
+	calc_frame_drops $file_name
 	calc_latency $file_name
 
 	print_save_agg_thr $file_name
@@ -155,11 +157,11 @@ iostat -tmd /dev/$HD 3 | tee iostat.out &
 
 invoke_player_plus_commands
 
-compute_statistics
-
 shutdwn
+
+compute_statistics
 
 cd ..
 
 # rm work dir
-rm -rf results-${sched}
+#rm -rf results-${sched}
