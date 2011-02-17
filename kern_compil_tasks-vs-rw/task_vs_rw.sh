@@ -61,7 +61,7 @@ case $TASK in
 		else
 			echo Already on base_branch
 		fi
-		make clean && make defconfig)
+		make mrproper && make defconfig)
 		echo clean finished
 	   	;;
 	checkout)
