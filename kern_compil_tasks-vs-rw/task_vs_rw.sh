@@ -39,7 +39,9 @@ echo
 if [[ -d ${KERN_DIR}/.git ]]; then
 	rm -f $KERN_DIR/.git/index.lock
 else
-	cd ${BASE_DIR} && git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
+	mkdir -p ${BASE_DIR}
+	cd ${BASE_DIR}
+	git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
 fi
 
 (cd $KERN_DIR &&
