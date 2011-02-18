@@ -137,8 +137,17 @@ echo For make this is done to leave out the initial configuration part, whose
 echo workload and execution time may vary significantly, and, as we verified,
 echo would distort the results with both schedulers.
 
+count=0
 while ! grep -E "$waited_pattern" $TASK.out > /dev/null 2>&1 ; do
 	sleep 1
+	count=$(($count+1))
+	if [ $count -eq 120 ]; then
+		echo $TASK timed out, shutting down and removing all files
+		shutdwn
+		cd ..
+		rm -rf results-${sched}
+		exit
+	fi
 done
 
 if grep "Switched" $TASK.out > /dev/null ; then
