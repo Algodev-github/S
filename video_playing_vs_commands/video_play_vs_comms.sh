@@ -164,4 +164,4 @@ compute_statistics
 cd ..
 
 # rm work dir
-#rm -rf results-${sched}
+rm -rf results-${sched}
