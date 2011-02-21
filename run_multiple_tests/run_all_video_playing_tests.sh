@@ -3,7 +3,13 @@
 
 TYPE=${1-real}
 cur_date=`date +%y%m%d_%H%M`
-RES_DIR=../results/video_playing_tests_$TYPE/$cur_date
+if [ $# -eq 2 ] ; then
+	RES_DIR=${2}/video_playing-$TYPE
+else
+	RES_DIR=../results/video_playing_tests-$TYPE/$cur_date
+fi
+
+
 ITER=10
 schedulers=(bfq cfq)
 

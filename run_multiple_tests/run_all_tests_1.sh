@@ -54,9 +54,9 @@ function comm_startup_lat
 	cd ../comm_startup_lat
 
 	# 10 readers
-	repeat kons_startup "comm_startup_lat.sh $1 10 0 seq 5"\
+	repeat kons_startup "comm_startup_lat.sh $1 10 0 seq 10"\
 		"konsole -e /bin/true"
-	repeat kons_startup "comm_startup_lat.sh $1 10 0 rand 5"\
+	repeat kons_startup "comm_startup_lat.sh $1 10 0 rand 10"\
 		"konsole -e /bin/true"
 
 	repeat xterm_startup "comm_startup_lat.sh $1 10 0 seq 10"\
@@ -68,9 +68,9 @@ function comm_startup_lat
 	repeat bash_startup "comm_startup_lat.sh $1 10 0 rand 10" "bash -c exit"
 
 	# 5 readers and 5 writers
-	repeat kons_startup "comm_startup_lat.sh $1 5 5 seq 5"\
+	repeat kons_startup "comm_startup_lat.sh $1 5 5 seq 10"\
 		"konsole -e /bin/true"
-	repeat kons_startup "comm_startup_lat.sh $1 5 5 rand 5"\
+	repeat kons_startup "comm_startup_lat.sh $1 5 5 rand 10"\
 		"konsole -e /bin/true"
 
 	repeat xterm_startup "comm_startup_lat.sh $1 5 5 seq 10"\
@@ -104,10 +104,13 @@ fi
 
 for sched in ${schedulers[*]}; do
 	echo Running tests on $sched
-	kern_compil_tasks_vs_rw $sched
-	agg_thr_with_greedy_rw $sched
 	comm_startup_lat $sched
+	agg_thr_with_greedy_rw $sched
+	kern_compil_tasks_vs_rw $sched
 done
+
+cd ../run_multiple_tests
+./run_all_video_playing_tests.sh real $RES_DIR
 
 cur_date=`date +%y%m%d_%H%M`
 echo All test finished on $cur_date
