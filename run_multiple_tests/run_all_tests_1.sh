@@ -11,7 +11,7 @@ function repeat
 	mkdir -p $RES_DIR/$1
 	for ((i = 0 ; $i < $NUM_REPETITIONS ; i++))
 	do
-		echo bash $2 $RES_DIR/$1/repetition$i
+		echo bash $2 $3 $RES_DIR/$1/repetition$i
 		echo Warning: there are running tests. > msg
 		echo Next test: bash $2 "$3" $RES_DIR/$1/repetition$i>>msg
 		cat msg | wall
