@@ -103,7 +103,7 @@ elif [[ "$(id -u)" -ne "0" ]]; then
 fi
 
 for sched in ${schedulers[*]}; do
-	echo Running tests on $sched
+	echo Running tests on $sched \($HD\)
 	comm_startup_lat $sched
 	agg_thr_with_greedy_rw $sched
 	kern_compil_tasks_vs_rw $sched
