@@ -123,7 +123,7 @@ function start_readers_writers
 		if [ $NUM_WRITERS -gt 0 ] ; then
 			rm -f $FILE_TO_RAND_WRITE
 			fio --name=readers --rw=randwrite \
-				--size=$NUM_BLOCKS_CREATE_RANDOM \
+				--size=${NUM_BLOCKS_CREATE_RAND}M \
 				--numjobs=$NUM_WRITERS --loops=100 \
 				--filename=$FILE_TO_RAND_WRITE &
 		fi
