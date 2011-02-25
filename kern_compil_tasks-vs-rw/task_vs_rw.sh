@@ -41,7 +41,7 @@ if [[ -d ${KERN_DIR}/.git ]]; then
 else
 	mkdir -p ${BASE_DIR}
 	cd ${BASE_DIR}
-	git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
+	git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git $KERN_DIR
 fi
 
 (cd $KERN_DIR &&
