@@ -94,7 +94,6 @@ trap "shutdwn; exit" sigint
 flush_caches
 
 init_tracing
-set_tracing 1
 
 start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
 
@@ -105,6 +104,7 @@ sleep $((6 + $NUM_READERS + $NUM_WRITERS))
 # start logging aggthr
 iostat -tmd /dev/$HD 3 | tee iostat.out &
 
+set_tracing 1
 invoke_commands
 
 shutdwn
