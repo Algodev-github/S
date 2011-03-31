@@ -7,7 +7,7 @@ NUM_READERS=${2-1}
 NUM_WRITERS=${3-1}
 RW_TYPE=${4-seq}
 STAT_DEST_DIR=${5-.}
-DURATION=${6-120}
+DURATION=${6-60}
 
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
@@ -59,7 +59,7 @@ start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
 sleep 5
 
 # start logging aggthr
-iostat -tmd /dev/$HD 3 | tee iostat.out &
+iostat -tmd /dev/$HD 2 | tee iostat.out &
 
 echo Test duration: $DURATION secs
 sleep $DURATION
