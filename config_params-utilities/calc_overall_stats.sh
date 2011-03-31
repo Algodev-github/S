@@ -107,7 +107,7 @@ rm -rf work_dir
 mkdir -p work_dir
 cd work_dir
 
-for file_filter in "*10*seq*" "*10*rand*" "*5*seq*" "*5*rand*"; do
+for file_filter in "*[-_]1r0w_seq*" "*[-_]1r0w_rand*" "*[-_]0r0w_seq*" "*10*seq*" "*10*rand*" "*5*seq*" "*5*rand*"; do
 	for sched in bfq cfq; do
 		file_loop
 		if [ ! -f line_file0 ]; then

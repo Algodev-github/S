@@ -27,9 +27,13 @@ function repeat
 function agg_thr_with_greedy_rw 
 {
 	cd ../agg_thr-with-greedy_rw 
+	repeat aggthr "aggthr-with-greedy_rw.sh $1 1 0 seq"
+
 	repeat aggthr "aggthr-with-greedy_rw.sh $1 10 0 seq"
 
 	repeat aggthr "aggthr-with-greedy_rw.sh $1 10 0 rand"
+
+	repeat aggthr "aggthr-with-greedy_rw.sh $1 1 0 rand"
 
 	repeat aggthr "aggthr-with-greedy_rw.sh $1 5 5 seq"
 
@@ -39,12 +43,15 @@ function agg_thr_with_greedy_rw
 function kern_compil_tasks_vs_rw
 {
 	cd ../kern_compil_tasks-vs-rw
+	repeat make "task_vs_rw.sh $1 0 0 seq make"
 	repeat make "task_vs_rw.sh $1 10 0 seq make"
 	repeat make "task_vs_rw.sh $1 10 0 rand make"
 
+	repeat checkout "task_vs_rw.sh $1 0 0 seq checkout"
 	repeat checkout "task_vs_rw.sh $1 10 0 seq checkout"
 	repeat checkout "task_vs_rw.sh $1 10 0 rand checkout"
 
+	repeat merge "task_vs_rw.sh $1 0 0 seq merge"
 	repeat merge "task_vs_rw.sh $1 10 0 seq merge"
 	repeat merge "task_vs_rw.sh $1 10 0 rand merge"
 }
@@ -52,6 +59,15 @@ function kern_compil_tasks_vs_rw
 function comm_startup_lat
 {
 	cd ../comm_startup_lat
+
+	# 0 readers/writers
+	repeat oowriter_startup "comm_startup_lat.sh $1 0 0 seq 5"\
+		"oowriter -terminate_after_init"
+	repeat kons_startup "comm_startup_lat.sh $1 0 0 seq 10"\
+		"konsole -e /bin/true"
+	repeat xterm_startup "comm_startup_lat.sh $1 0 0 seq 10"\
+		"xterm /bin/true"
+	repeat bash_startup "comm_startup_lat.sh $1 0 0 seq 10" "bash -c exit"
 
 	# 10 readers
 	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 seq 5"\

@@ -16,6 +16,8 @@ schedulers=(bfq cfq)
 function video_playing 
 {
 	cd ../video_playing_vs_commands
+	bash video_play_vs_comms.sh $1 0 0 seq $ITER $TYPE $RES_DIR
+
 	bash video_play_vs_comms.sh $1 10 0 seq $ITER $TYPE $RES_DIR
 
 	bash video_play_vs_comms.sh $1 10 0 rand $ITER $TYPE $RES_DIR
