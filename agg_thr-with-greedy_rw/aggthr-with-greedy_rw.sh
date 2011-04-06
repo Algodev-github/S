@@ -55,8 +55,10 @@ set_tracing 1
 
 start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
 
-# wait for reader start-up transitory to terminate
-sleep 5
+# wait just a little for reader start-up transitory to terminate:
+# we do not want to wait too much, because we want to get
+# also the effects of the transitory
+sleep 2
 
 # start logging aggthr
 iostat -tmd /dev/$HD 2 | tee iostat.out &
@@ -68,7 +70,8 @@ shutdwn
 
 mkdir -p $STAT_DEST_DIR
 file_name=$STAT_DEST_DIR/\
-${sched}-${NUM_READERS}r${NUM_WRITERS}w_${RW_TYPE}-aggthr_stat.txt
+${sched}-${NUM_READERS}r${NUM_WRITERS}\
+w_${RW_TYPE}-${DURATION}sec-aggthr_stat.txt
 echo "Results for $sched, $NUM_READERS $RW_TYPE readers and \
 $NUM_WRITERS $RW_TYPE writers" | tee $file_name
 print_save_agg_thr $file_name

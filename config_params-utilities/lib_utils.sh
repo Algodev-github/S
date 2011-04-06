@@ -138,8 +138,13 @@ function print_save
 
 	echo "$message" | tee -a ${thr_stat_file_name}
 	len=$(cat iostat.out | grep ^$HD | wc -l)
+	# collect iostat aggthr lines into one file, throwing away:
+	# . the first sample, because it just contains a wrong value
+	#   (easy to see by letting iostat start during a steady workload)
+	# . the last sample, because it can be influenced by the operations
+	#   performed at the end of the test
 	cat iostat.out | grep ^$HD | awk "{ $command }" |\
-	 tail -n$(($len-3)) | head -n$(($len-3)) > iostat-aggthr
+		tail -n$(($len-1)) | head -n$(($len-1)) > iostat-aggthr
 	#cat iostat-aggthr
 	sh $CALC_AVG_AND_CO 99 < iostat-aggthr |\
 	 tee -a $thr_stat_file_name
