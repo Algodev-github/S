@@ -125,11 +125,11 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 		tee -a ../output
 
 	echo reader time stats in iteration $i | tee -a ../output
-	cat singles-dd/* | grep copied | awk '{ print $6 }' > time
+	cat singles-dd/* | grep "copied\|copiati" | awk '{ print $6 }' > time
 	$CALC_AVG_AND_CO 99 < time | tee -a ../output
 
 	echo reader bandwith stats in iteration $i | tee -a ../output
-	cat singles-dd/* | grep copied | awk '{ print $8 }' > band
+	cat singles-dd/* | grep "copied\|copiati" | awk '{ print $8 }' > band
 	$CALC_AVG_AND_CO 99 < band | tee -a ../output
 	cd ..
 done

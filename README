@@ -56,6 +56,18 @@ fairness: fairness.sh
 	Measures how the disk bandwidth is distributed among parallel
 	sequential readers. This is more a work in progress than the other
 	scripts.
+interleaved_io: interleaved_io.sh
+	Measures the aggregate throughput against an I/O pattern with
+	interleaved readers. The script will spawn the desired number of
+	parallel processes, each reading sequentially a 16KB-zone of the disk.
+	The zones are interleaved, in that the zone read by the first process
+	is contiguous to the zone read by the second process, and so on.
+	At the end of the test, the min, max, avg, std deviation,
+	confidence interval of the read/write/total aggregated throughput
+	values sampled during the run is reported.
+	By default, the script won't create any file, but read directly
+	from the device on which the root directory is mounted.
+
 run_multiple_tests
 	Scripts to execute subsets of the above tests. For example,
 	there is the script run_all_tests_1.sh, which repeatedly

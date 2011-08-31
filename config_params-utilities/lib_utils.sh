@@ -130,6 +130,25 @@ function start_readers_writers
 	fi
 }
 
+function start_interleaved_readers
+{
+        READFILE=$1
+        NUM_READERS=$2
+
+        ZONE_SIZE=16384
+        SKIP_BYTES=$[((${NUM_READERS}-1)*${ZONE_SIZE})+1]
+
+        echo Starting $NUM_READERS interleaved readers
+        for ((i = 0 ; $i < $NUM_READERS ; i++))
+        do
+                READ_OFFSET=$[$i*$ZONE_SIZE]
+                fio --name=reader$i -rw=read --numjobs=1 --filename=$READFILE \
+                --ioengine=sync --iomem=malloc --bs=$ZONE_SIZE \
+                --offset=$READ_OFFSET --zonesize=$ZONE_SIZE \
+		--zoneskip=$SKIP_BYTES > /dev/null &
+        done
+}
+
 function print_save
 {
 	thr_stat_file_name=$1

@@ -109,6 +109,18 @@ function comm_startup_lat
 	repeat bash_startup "comm_startup_lat.sh $1 5 5 rand 10" "bash -c exit"
 }
 
+function interleaved_io
+{
+	cd ../interleaved_io
+	# dump emulation
+	repeat interleaved_io "interleaved_io.sh $1 3"
+
+	# more interleaved readers
+	repeat interleaved_io "interleaved_io.sh $1 5"
+	repeat interleaved_io "interleaved_io.sh $1 7"
+	repeat interleaved_io "interleaved_io.sh $1 9"
+}
+
 # fairness tests to be added ...
 
 echo Tests beginning on $cur_date
@@ -134,6 +146,7 @@ for sched in ${schedulers[*]}; do
 	comm_startup_lat $sched
 	agg_thr_with_greedy_rw $sched
 	kern_compil_tasks_vs_rw $sched
+	interleaved_io $sched
 done
 
 cd ../run_multiple_tests

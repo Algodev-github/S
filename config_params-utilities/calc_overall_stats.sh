@@ -7,9 +7,9 @@ usage_msg="\
 Usage:\n\
 calc_overall_stats.sh [aggthr | startup_lat | kern_task] test_result_dir\n\
    \n\
-   Use aggthr as first param for the results of agg_thr-with-greedy_rw.sh,\n\
-   startup_lat for the results of comm_startup_lat.sh, and kern_task for
-   the results of task_vs_rw.sh.\n\
+   Use aggthr as first param for the results of agg_thr-with-greedy_rw.sh and\n\
+   interleaved_io.sh., startup_lat for the results of comm_startup_lat.sh,\n\
+   and kern_task for the results of task_vs_rw.sh. \n\
 \n\
    For example:\n\
    calc_overall_stats.sh startup_lat ../results/kons_startup\n\
@@ -18,7 +18,6 @@ calc_overall_stats.sh [aggthr | startup_lat | kern_task] test_result_dir\n\
    dir and in its subdirs.\n\
    \n\
    The default value of the type is $res_type\n"
-   
 
 CALC_AVG_AND_CO=`pwd`/calc_avg_and_co.sh
 
@@ -107,7 +106,7 @@ rm -rf work_dir
 mkdir -p work_dir
 cd work_dir
 
-for file_filter in "*[-_]1r0w_seq*" "*[-_]1r0w_rand*" "*[-_]0r0w_seq*" "*10*seq*" "*10*rand*" "*5*seq*" "*5*rand*"; do
+for file_filter in "*[-_]1r0w_seq*" "*[-_]1r0w_rand*" "*[-_]0r0w_seq*" "*10*seq*" "*10*rand*" "*5*seq*" "*5*rand*" "*int_io*"; do
 	for sched in bfq cfq; do
 		file_loop
 		if [ ! -f line_file0 ]; then
