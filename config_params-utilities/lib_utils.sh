@@ -9,8 +9,6 @@ function init_tracing {
 		echo 100000 > /sys/kernel/debug/tracing/buffer_size_kb
 		echo "${SCHED}*" "__${SCHED}*" >\
 			/sys/kernel/debug/tracing/set_ftrace_filter
-		echo "echo 1 > /sys/block/$HD/$HD1/trace/enable"
-		echo 1 > /sys/block/$HD/$HD1/trace/enable
 		echo blk > /sys/kernel/debug/tracing/current_tracer
 	fi
 }
@@ -19,6 +17,8 @@ function set_tracing {
 	if [ "$TRACE" == "1" ] ; then
 		echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
 		echo $1 > /sys/kernel/debug/tracing/tracing_enabled
+		echo "echo $1 > /sys/block/$HD/trace/enable"
+		echo $1 > /sys/block/$HD/trace/enable
 	fi
 }
 
