@@ -117,6 +117,7 @@ function interleaved_io
 
 	# more interleaved readers
 	repeat interleaved_io "interleaved_io.sh $1 5"
+	repeat interleaved_io "interleaved_io.sh $1 6"
 	repeat interleaved_io "interleaved_io.sh $1 7"
 	repeat interleaved_io "interleaved_io.sh $1 9"
 }

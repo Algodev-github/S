@@ -5,7 +5,7 @@
 sched=${1-bfq}
 NUM_READERS=${2-3}
 STAT_DEST_DIR=${3-.}
-DURATION=${4-120}
+DURATION=${4-60}
 
 # see the following string for usage, or invoke interleaved_io.sh -h
 usage_msg="\
