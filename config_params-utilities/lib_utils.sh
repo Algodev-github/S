@@ -1,4 +1,5 @@
 CALC_AVG_AND_CO=`cd ../config_params-utilities; pwd`/calc_avg_and_co.sh
+FIO="fio --minimal --loops=100"
 
 function init_tracing {
 	if [ "$TRACE" == "1" ] ; then
@@ -31,7 +32,7 @@ function flush_caches
 function shutdwn
 {
 	set_tracing 0
-	killall dd fio iostat make git
+	killall dd fio iostat make git 2> /dev/null
 
 	# fio does not handle SIGTERM, and hence does not destroy
 	# the shared memory segments on this signal
@@ -104,27 +105,26 @@ function start_readers_writers
 	if [ "$RW_TYPE" == "seq" ]; then
 		for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 		do
-			fio --name=seqreader$i -rw=read \
-				--numjobs=1 --loops=100 \
+			$FIO --name=seqreader$i -rw=read --numjobs=1 \
 				--filename=${BASE_SEQ_FILE_PATH}$i &
 		done
 		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 		do
 			rm -f ${BASE_SEQ_FILE_PATH}_write$i
-			fio --name=seqwriter$i -rw=write --loops=100 \
+			$FIO --name=seqwriter$i -rw=write \
 				--numjobs=1 --size=${NUM_BLOCKS_CREATE_SEQ}M\
 				--filename=${BASE_SEQ_FILE_PATH}_write$i &
 		done
 	else
 		if [ $NUM_READERS -gt 0 ] ; then
-		        fio --name=writers --rw=randread --loops=100 \
+		        $FIO --name=writers --rw=randread \
        	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ &
 		fi
 		if [ $NUM_WRITERS -gt 0 ] ; then
 			rm -f $FILE_TO_RAND_WRITE
-			fio --name=readers --rw=randwrite \
+			$FIO --name=readers --rw=randwrite \
 				--size=${NUM_BLOCKS_CREATE_RAND}M \
-				--numjobs=$NUM_WRITERS --loops=100 \
+				--numjobs=$NUM_WRITERS \
 				--filename=$FILE_TO_RAND_WRITE &
 		fi
 	fi
@@ -142,7 +142,8 @@ function start_interleaved_readers
         for ((i = 0 ; $i < $NUM_READERS ; i++))
         do
                 READ_OFFSET=$[$i*$ZONE_SIZE]
-                fio --name=reader$i -rw=read --numjobs=1 --filename=$READFILE \
+                $FIO --name=reader$i -rw=read --numjobs=1 \
+		--filename=$READFILE \
                 --ioengine=sync --iomem=malloc --bs=$ZONE_SIZE \
                 --offset=$READ_OFFSET --zonesize=$ZONE_SIZE \
 		--zoneskip=$SKIP_BYTES > /dev/null &
