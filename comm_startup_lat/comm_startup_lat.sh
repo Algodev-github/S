@@ -3,7 +3,7 @@
 . ../config_params-utilities/lib_utils.sh
 UTIL_DIR=`cd ../config_params-utilities; pwd` 
 # Set to yes if you want also iostat to be executed in parallel
-IOSTAT=yes
+IOSTAT=no
 
 function show_usage {
 	echo "\
@@ -108,7 +108,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 
 	# wait for reader/writer start-up transitory to terminate
 	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
-	SLEEP=$(( $SLEEP + ($SLEEP / 2 ) ))
+	SLEEP=$(( 6 + ($SLEEP / 2 ) ))
 	echo sleep $SLEEP
 	sleep $SLEEP
 fi
