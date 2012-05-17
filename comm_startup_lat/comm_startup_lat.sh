@@ -108,7 +108,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 
 	# wait for reader/writer start-up transitory to terminate
 	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
-	SLEEP=$(( 6 + ($SLEEP / 2 ) ))
+	SLEEP=$(( 7 + ($SLEEP / 2 ) ))
 	echo sleep $SLEEP
 	sleep $SLEEP
 fi
