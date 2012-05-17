@@ -2,11 +2,15 @@
 . ../config_params-utilities/config_params.sh
 . ../config_params-utilities/lib_utils.sh
 UTIL_DIR=`cd ../config_params-utilities; pwd` 
+# Set to yes if you want also iostat to be executed in parallel
+IOSTAT=yes
 
 function show_usage {
 	echo "\
 Usage: sh comm_startup_lat.sh [bfq | cfq | ...] [num_readers] [num_writers]
 	[seq | rand] [num_iter] [command] [stat_dest_dir]
+
+num_iter == 0 means infinite iterations
 
 For example:
 sh comm_startup_lat.sh bfq 5 5 seq 20 \"xterm /bin/true\" mydir
@@ -35,24 +39,26 @@ if [ "$1" == "-h" ]; then
 fi
 
 function invoke_commands {
-	for ((i = 0 ; i < $NUM_ITER ; i++)) ; do
-		sleep 1
-		echo Iteration $(($i+1)) / $NUM_ITER
+	for ((i = 0 ; $NUM_ITER == 0 || i < $NUM_ITER ; i++)) ; do
+		echo
+		if (($NUM_ITER > 0)); then
+			printf "Iteration $(($i+1)) / $NUM_ITER\n"
+		fi
 		# we do not sync here, otherwise
 		# writes stall everything with
 		# every scheduler (and however latencies
-		# do not change)
+		# are independent of whether we sync)
 		echo 3 > /proc/sys/vm/drop_caches
-		(time -p $COMMAND) 2>&1 | tee -a lat-${SCHED}
+		printf "Invoking \"$COMMAND\"\t\t"
+		printf "Latency [sec]: "
+		(/usr/bin/time -f %e $COMMAND) 2>&1 | tee -a lat-${sched}
+		sleep 1
 	done
 }
 
 function calc_latency {
-	echo "Latency:" | tee -a $1
-	len=$(cat lat-${SCHED} | grep ^real | wc -l)
-	cat lat-${SCHED} | grep ^real | tail -n$(($len)) | \
-		awk '{ print $2 }' > lat-${SCHED}-real
-	sh $UTIL_DIR/calc_avg_and_co.sh 99 < lat-${SCHED}-real\
+	echo "Latency statistics:" | tee -a $1
+	sh $UTIL_DIR/calc_avg_and_co.sh 99 < lat-${sched}\
        		| tee -a $1
 }
 
@@ -66,7 +72,9 @@ ${sched}-${NUM_READERS}r${NUM_WRITERS}w_${RW_TYPE}-lat_thr_stat.txt
 
 	calc_latency $file_name
 
-	print_save_agg_thr $file_name
+	if [ $IOSTAT == "yes" ]; then
+		print_save_agg_thr $file_name
+	fi
 }
 
 ## Main ##
@@ -85,8 +93,8 @@ mkdir -p results-$sched
 cd results-$sched
 
 # switch to the desired scheduler
-echo Switching to $sched
 echo $sched > /sys/block/$HD/queue/scheduler
+echo Switched to $sched
 
 # setup a quick shutdown for Ctrl-C 
 trap "shutdwn; exit" sigint
@@ -95,14 +103,20 @@ flush_caches
 
 init_tracing
 
-start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
+if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
+	start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
 
-# wait for reader/writer start-up transitory to terminate
-echo sleep $((6 + $NUM_READERS + $NUM_WRITERS))
-sleep $((6 + $NUM_READERS + $NUM_WRITERS))
+	# wait for reader/writer start-up transitory to terminate
+	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
+	SLEEP=$(( $SLEEP + ($SLEEP / 2 ) ))
+	echo sleep $SLEEP
+	sleep $SLEEP
+fi
 
 # start logging aggthr
-iostat -tmd /dev/$HD 3 | tee iostat.out &
+if [ $IOSTAT == "yes" ]; then
+	iostat -tmd /dev/$HD 3 | tee iostat.out &
+fi
 
 set_tracing 1
 invoke_commands
@@ -114,4 +128,4 @@ compute_statistics
 cd ..
 
 # rm work dir
-rm -rf results-${sched}
+#rm -rf results-${sched}
