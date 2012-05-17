@@ -98,6 +98,11 @@ config_params-utilities: several files here
 		(hence it computes statistics over multiple repetitions of
 		the same test).
 
+MAIN DEPENDENCY
+
+You need at least fio, iostat and awk installed. For the kernel-development
+benchmark you also need git and make.
+
 USAGE AND OUTPUT OF THE SCRIPTS
 
 The steps should be:
