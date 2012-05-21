@@ -19,6 +19,9 @@ agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
 	At the end of the test, the min, max, avg, std deviation,
 	confidence interval of the read/write/total aggregated throughput
 	values sampled during the run is reported.
+agg_thr-with-copy: aggthr-with-copy.sh
+	Similar to the previous benchmark, but measures aggregated
+	throughput with parallel file copies.
 comm_startup_lat: comm_startup_lat.sh
 	Measures the cold-cache startup latency of the given command,
 	launched while the same configurable workload used in the agg_thr
