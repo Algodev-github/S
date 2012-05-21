@@ -99,11 +99,10 @@ echo Switched to $sched
 # setup a quick shutdown for Ctrl-C 
 trap "shutdwn; exit" sigint
 
-flush_caches
-
 init_tracing
 
 if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
+	flush_caches
 	start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
 
 	# wait for reader/writer start-up transitory to terminate
@@ -128,4 +127,4 @@ compute_statistics
 cd ..
 
 # rm work dir
-#rm -rf results-${sched}
+rm -rf results-${sched}
