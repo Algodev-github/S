@@ -35,14 +35,18 @@ echo /etc/init.d/cron stop
 rm -rf $RES_DIR
 mkdir -p $RES_DIR
 
-(echo ${NCQ_QUEUE_DEPTH} > /sys/block/${HD}/device/queue_depth) &> /dev/null
-ret=$?
-if [[ "$ret" -eq "0" ]]; then
-	echo "Set queue depth to ${NCQ_QUEUE_DEPTH} on ${HD}"
-elif [[ "$(id -u)" -ne "0" ]]; then
-	echo "You are currently executing this script as the $(whoami) user."
-	echo "Please run the script as root."
-	exit 1
+if [ "${NCQ_QUEUE_DEPTH}" != "" ];
+if
+	(echo ${NCQ_QUEUE_DEPTH} > /sys/block/${HD}/device/queue_depth)\
+		 &> /dev/null
+	ret=$?
+	if [[ "$ret" -eq "0" ]]; then
+		echo "Set queue depth to ${NCQ_QUEUE_DEPTH} on ${HD}"
+	elif [[ "$(id -u)" -ne "0" ]]; then
+		echo "You are currently executing this script as $(whoami)."
+		echo "Please run the script as root."
+		exit 1
+	fi
 fi
 
 for sched in ${schedulers[*]}; do

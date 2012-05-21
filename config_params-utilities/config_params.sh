@@ -35,5 +35,5 @@ KERN_DIR=$BASE_DIR/fake_tree/linux-2.6
 #	tree contains a valid .config for these kernels (a valid .config
 #	for any of the three will do also for the others).
 
-# NCQ queue depth
-NCQ_QUEUE_DEPTH=1
+# NCQ queue depth, if undefined then no script will change the current value
+NCQ_QUEUE_DEPTH=
