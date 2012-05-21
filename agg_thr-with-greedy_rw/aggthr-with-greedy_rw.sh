@@ -12,7 +12,7 @@ DURATION=${6-60}
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
 Usage:\n\
-sh aggthr_of_greedy_rw.sh [bfq | cfq | ...] [num_readers] [num_writers]\n\
+sh aggthr-with-greedy_rw.sh [bfq | cfq | ...] [num_readers] [num_writers]\n\
 [seq | rand] [stat_dest_dir] [duration]\n\
 \n\
 For example:\n\
