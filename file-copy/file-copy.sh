@@ -10,10 +10,10 @@ SYNC=${4-yes}
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
 Usage:\n\
-./aggthr-with-copies.sh [\"\" | bfq | cfq | ...] [num_copies] [num_iterations]\n\
+./file-copy.sh [\"\" | bfq | cfq | ...] [num_copies] [num_iterations]\n\
 \n\
 For example:\n\
-./aggthr-with_copies.sh bfq 10 3 \n\
+./file-copy.sh bfq 10 3 \n\
 switches to bfq and launches, for 3 times, 10 copies in parallel,\n\
 with each copy reading/writing from/to the same file.\n\
 \n\
