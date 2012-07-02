@@ -1,13 +1,15 @@
 Small collection of programs to measure disk IO performance.
 
-These scripts have been written just for internal use, and are more
-a yard than a well-finished work. Browse them at your own risk :)
+These benchmarks have been written just for internal use, and are more
+a yard than a well-finished work. In particular,  we did not spend time in
+guaranteeing that the programs have a homogeneous interface, or in
+automating the installation of the suite, so you have to manually install every
+dependency (see MAIN DEPENDENCIES).
 
 CONTENT
 
-There is a bash script for each type of test, plus some utilities.
-To execute each script, it is better to first cd to the dir that contains it.
-Here is the list of the directories and of the stuff they contain:
+Each benchmark is implemented by a bash script, stored in a separate directory.
+Here is the list of the directories and of the main scripts they contain:
 agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
 	Measures the aggregated throughput with parallel, greedy (i.e.,
 	continuously issuing disk requests readers and/or writers. Both
@@ -69,7 +71,6 @@ interleaved_io: interleaved_io.sh
 	values sampled during the run is reported.
 	By default, the script won't create any file, but read directly
 	from the device on which the root directory is mounted.
-
 run_multiple_tests
 	Scripts to execute subsets of the above tests. For example,
 	there is the script run_all_tests_1.sh, which repeatedly
@@ -100,21 +101,24 @@ config_params-utilities: several files here
 		(hence it computes statistics over multiple repetitions of
 		the same test).
 
-MAIN DEPENDENCY
+MAIN DEPENDENCIES
 
 You need at least fio, iostat and awk installed. For the kernel-development
 benchmark you also need git and make.
 
-USAGE AND OUTPUT OF THE SCRIPTS
+USAGE AND OUTPUT OF THE BENCHMARKS
 
 The steps should be:
 
 1) edit config_params-utilities/config_params.sh to fit your system
 
-2) run each test manually or run multiple tests automatically through a script
-   like run_multiple_tests/run_all_tests_1.sh. Each test script produces a
-   result file that contains statistics on the quantities of interest
-   (throughput, latency, number of lines produced by make, ...).
+2) run each benchmark manually or run multiple benchmarks automatically
+   through a general script like run_multiple_tests/run_all_tests_1.sh.
+   To execute each script, first cd to the dir that contains it.
+   Most scripts invoke commands that require root privileges.
+   Each benchmark produces a result file that contains statistics on the
+   quantities of interest (throughput, latency, number of lines produced by
+   make, ...).
 
 3) if you repeat a test more than once and store the result files in a
    given directory or in its subdirs, then you may use
