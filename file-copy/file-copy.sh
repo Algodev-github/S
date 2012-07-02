@@ -6,18 +6,21 @@ sched=$1
 NUM_COPIERS=${2-1}
 ITERATIONS=${3-10}
 SYNC=${4-yes}
+MAXRATE=${5-16500}
 
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
 Usage:\n\
 ./file-copy.sh [\"\" | bfq | cfq | ...] [num_copies] [num_iterations]\n\
+  [max_kBs]\n\
 \n\
 For example:\n\
-./file-copy.sh bfq 10 3 \n\
+./file-copy.sh bfq 10 3 10000\n\
 switches to bfq and launches, for 3 times, 10 copies in parallel,\n\
-with each copy reading/writing from/to the same file.\n\
+with each copy reading from/writing to a distinct file, at a maximum rate\n\
+equal to 10000 kB/sec.\n\
 \n\
-Default parameter values are \"\", ${NUM_COPIERS} and $ITERATIONS\n"
+Default parameter values are \"\", ${NUM_COPIERS}, $ITERATIONS and $MAXRATE\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
@@ -47,31 +50,38 @@ trap "shutdwn dd; exit" sigint
 
 echo Flushing caches
 if [ "$SYNC" != "yes" ]; then
-	echo not syncing
 	echo 3 > /proc/sys/vm/drop_caches
 else
-	echo syncing
 	flush_caches
 fi
 
 init_tracing
 set_tracing 1
 
-for ((iter = 1 ; $iter <= $ITERATIONS ; iter++))
+if [[ $NUM_COPIERS -gt 1 ]]; then
+    $MAXRATE=$(( $MAXRATE / 2 ))
+fi
+
+for ((iter = 1 ; $ITERATIONS == 0 || $iter <= $ITERATIONS ; iter++))
 do
-    echo Iteration $iter / $ITERATIONS
+    if [[ $ITERATIONS -gt 0 ]]; then
+	echo Iteration $iter / $ITERATIONS
+    fi
     # start $NUM_COPIES copiers
     for ((i = 0 ; $i < $NUM_COPIERS ; i++))
     do
-	#COM="dd if=${BASE_SEQ_FILE_PATH}$SUFFIX$i of=${BASE_SEQ_FILE_PATH}-copy$i"
-	echo cp ${BASE_SEQ_FILE_PATH}$SUFFIX$i ${BASE_SEQ_FILE_PATH}-copy$i
-	dd if=${BASE_SEQ_FILE_PATH}$SUFFIX$i | pv -L 10m | dd of=${BASE_SEQ_FILE_PATH}-copy$i &
+	dd if=${BASE_SEQ_FILE_PATH}$SUFFIX$i 2>&1 | \
+	    pv -q -L $(($MAXRATE / $NUM_COPIERS))k 2>&1 | dd of=${BASE_SEQ_FILE_PATH}-copy$i \
+	    > /dev/null 2>&1 &
     done
+    echo "Copying $NUM_COPIERS file(s)"
+    echo
     wait
     flush_caches
 done
 
-killall -9 dd
+shutdwn dd
+clear
 
 cd ..
 

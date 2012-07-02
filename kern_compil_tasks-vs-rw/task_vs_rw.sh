@@ -103,7 +103,7 @@ echo Switching to $sched
 echo $sched > /sys/block/$HD/queue/scheduler
 
 # setup a quick shutdown for Ctrl-C 
-trap "shutdwn; exit" sigint
+trap "shutdwn 'fio iostat make git' ; exit" sigint
 
 curr_dir=$PWD
 

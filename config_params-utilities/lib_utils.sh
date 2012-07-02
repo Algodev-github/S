@@ -32,7 +32,7 @@ function flush_caches
 function shutdwn
 {
 	set_tracing 0
-	killall dd fio iostat make git 2> /dev/null
+	killall $1 2> /dev/null
 
 	# fio does not handle SIGTERM, and hence does not destroy
 	# the shared memory segments on this signal
@@ -45,13 +45,13 @@ function create_files
 {
 	NUM_READERS=$1
 	RW_TYPE=$2
+	SUFFIX=$3
 	mkdir -p ${BASE_DIR}
 
 	if [ "$RW_TYPE" == "seq" ]; then
-		echo Creating files to seq read ...
 		for ((i = 0 ; $i < $NUM_READERS ; i++))
 		do
-			fname=${BASE_SEQ_FILE_PATH}$i
+			fname=${BASE_SEQ_FILE_PATH}$SUFFIX$i
 			test -f ${fname}
 			file_absent=$?
 			wrong_size=0
@@ -72,7 +72,6 @@ function create_files
         		fi
 		done
 	else
-		echo Creating file to rand read ...
 		fname=${FILE_TO_RAND_READ}
 		test -f ${fname}
 		file_absent=$?
@@ -92,7 +91,6 @@ function create_files
 				of=${fname}
 		fi
 	fi
-	echo done
 }
 
 function start_readers_writers
@@ -101,31 +99,42 @@ function start_readers_writers
 	NUM_WRITERS=$2
 	RW_TYPE=$3
 
-	echo Starting $NUM_READERS readers, $NUM_WRITERS writers \($RW_TYPE\)
+	printf "Starting "
+
+	if [[ $NUM_READERS -gt 0 ]]; then
+	    printf "$NUM_READERS reader(s)"
+	fi
+	if [[ $NUM_WRITERS -gt 0 ]]; then
+	    printf " $NUM_WRITERS writer(s)"
+	fi
+	echo
+
 	if [ "$RW_TYPE" == "seq" ]; then
 		for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 		do
 			$FIO --name=seqreader$i -rw=read --numjobs=1 \
-				--filename=${BASE_SEQ_FILE_PATH}$i &
+				--filename=${BASE_SEQ_FILE_PATH}$i > /dev/null &
 		done
 		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 		do
 			rm -f ${BASE_SEQ_FILE_PATH}_write$i
 			$FIO --name=seqwriter$i -rw=write \
 				--numjobs=1 --size=${NUM_BLOCKS_CREATE_SEQ}M\
-				--filename=${BASE_SEQ_FILE_PATH}_write$i &
+				--filename=${BASE_SEQ_FILE_PATH}_write$i \
+				> /dev/null &
 		done
 	else
 		if [ $NUM_READERS -gt 0 ] ; then
 		        $FIO --name=writers --rw=randread \
-       	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ &
+       	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ \
+			> /dev/null &
 		fi
 		if [ $NUM_WRITERS -gt 0 ] ; then
 			rm -f $FILE_TO_RAND_WRITE
 			$FIO --name=readers --rw=randwrite \
 				--size=${NUM_BLOCKS_CREATE_RAND}M \
 				--numjobs=$NUM_WRITERS \
-				--filename=$FILE_TO_RAND_WRITE &
+				--filename=$FILE_TO_RAND_WRITE > /dev/null &
 		fi
 	fi
 }

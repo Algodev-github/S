@@ -2,18 +2,21 @@
 . ../config_params-utilities/config_params.sh
 . ../config_params-utilities/lib_utils.sh
 
-sched=${1-bfq}
+sched=$1
 NUM_READERS=${2-1}
-NUM_WRITERS=${3-1}
+NUM_WRITERS=${3-0}
 RW_TYPE=${4-seq}
 STAT_DEST_DIR=${5-.}
-DURATION=${6-60}
+DURATION=${6-2000}
+SYNC=${6-yes}
 
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
 Usage:\n\
-sh aggthr-with-greedy_rw.sh [bfq | cfq | ...] [num_readers] [num_writers]\n\
+sh aggthr-with-greedy_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
 [seq | rand] [stat_dest_dir] [duration]\n\
+\n\
+first parameter equal to \"\" -> do not change scheduler\n\
 \n\
 For example:\n\
 sh aggthr-with_greedy_rw.sh bfq 10 0 rand ..\n\
@@ -21,7 +24,8 @@ switches to bfq and launches 10 rand readers and 10 rand writers\n\
 with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
 \n\
-Default parameter values are bfq, 1, 1, seq, . and $DURATION\n"
+Default parameter values are \"\", $NUM_WRITERS, $NUM_WRITERS, \
+$RW_TYPE, . and $DURATION\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
@@ -41,14 +45,25 @@ rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
 
-# switch to the desired scheduler
-echo Switching to $sched
-echo $sched > /sys/block/$HD/queue/scheduler
+if [ "$sched" != "" ] ; then
+	# switch to the desired scheduler
+	echo Switching to $sched
+	echo $sched > /sys/block/$HD/queue/scheduler
+else
+	sched=`cat /sys/block/$HD/queue/scheduler`
+fi
 
 # setup a quick shutdown for Ctrl-C 
-trap "shutdwn; exit" sigint
+trap "shutdwn 'fio iostat'; exit" sigint
 
-flush_caches
+echo Flushing caches
+if [ "$SYNC" != "yes" ]; then
+	echo not syncing
+	echo 3 > /proc/sys/vm/drop_caches
+else
+	echo syncing
+	flush_caches
+fi
 
 init_tracing
 set_tracing 1
@@ -61,9 +76,16 @@ start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
 sleep 2
 
 # start logging aggthr
-iostat -tmd /dev/$HD 2 | tee iostat.out &
+iostat -tmd /dev/$HD 2 > iostat.out &
 
-echo Test duration: $DURATION secs
+printf "Reading $NUM_READERS file(s)"
+if [[ $NUM_WRITERS -gt 0 ]]; then
+    echo ", writing $NUM_WRITERS file(s)"
+else
+    echo
+fi
+echo
+
 sleep $DURATION
 
 shutdwn 
