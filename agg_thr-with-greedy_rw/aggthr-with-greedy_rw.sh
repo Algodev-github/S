@@ -14,9 +14,13 @@ SYNC=${6-yes}
 usage_msg="\
 Usage:\n\
 sh aggthr-with-greedy_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
-[seq | rand] [stat_dest_dir] [duration]\n\
+[seq | rand | raw_seq | raw_rand ] [stat_dest_dir] [duration] [sync] \n\
 \n\
 first parameter equal to \"\" -> do not change scheduler\n\
+\n\
+raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
+\n\
+sync parameter equal to yes -> invoke sync before starting readers/writers\n\
 \n\
 For example:\n\
 sh aggthr-with_greedy_rw.sh bfq 10 0 rand ..\n\
@@ -25,7 +29,7 @@ with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
 \n\
 Default parameter values are \"\", $NUM_WRITERS, $NUM_WRITERS, \
-$RW_TYPE, . and $DURATION\n"
+$RW_TYPE, $STAT_DEST_DIR, $DURATION and $SYNC\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
@@ -36,8 +40,15 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-create_files $NUM_READERS $RW_TYPE
-echo
+if [[ "$RW_TYPE" != "raw_seq" && "$RW_TYPE" != "raw_rand" ]]; then
+    create_files $NUM_READERS $RW_TYPE
+    echo
+else
+    NUM_WRITERS=0 # only raw readers allowed for the moment (we use
+		  # raw readers basically for testing SSDs without
+		  # causing them to wear out quickly)
+fi
+
 
 rm -f $FILE_TO_WRITE
 # create and enter work dir
@@ -46,7 +57,7 @@ mkdir -p results-$sched
 cd results-$sched
 
 if [ "$sched" != "" ] ; then
-	# switch to the desired scheduler
+	# Switch to the desired scheduler
 	echo Switching to $sched
 	echo $sched > /sys/block/$HD/queue/scheduler
 else
@@ -68,23 +79,28 @@ fi
 init_tracing
 set_tracing 1
 
-start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
+if [[ "$RW_TYPE" != "raw_seq" && "$RW_TYPE" != "raw_rand" ]]; then
+    start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
+else
+    start_raw_readers $NUM_READERS $RW_TYPE
+fi
 
 # wait just a little for reader start-up transitory to terminate:
 # we do not want to wait too much, because we want to get
 # also the effects of the transitory
 sleep 2
 
-# start logging aggthr
-iostat -tmd /dev/$HD 2 > iostat.out &
-
 printf "Reading $NUM_READERS file(s)"
 if [[ $NUM_WRITERS -gt 0 ]]; then
-    echo ", writing $NUM_WRITERS file(s)"
+    printf ", writing $NUM_WRITERS file(s) "
 else
-    echo
+    printf " "
 fi
-echo
+
+echo for $DURATION seconds
+
+# start logging aggthr
+iostat -tmd /dev/$HD 2 | tee iostat.out &
 
 sleep $DURATION
 
@@ -102,4 +118,3 @@ cd ..
 
 # rm work dir
 rm -rf results-${sched}
-

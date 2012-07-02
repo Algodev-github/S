@@ -62,7 +62,8 @@ function create_files
 					wrong_size=1
 				fi
 			fi
-			if [[ "${file_absent}" -eq "1" || "${wrong_size}" -eq "1" ]]; then
+			if [[ "${file_absent}" -eq "1" ||\
+                              "${wrong_size}" -eq "1" ]]; then
 				echo dd if=/dev/zero bs=1M \
 					count=$NUM_BLOCKS_CREATE_SEQ \
 					of=${fname}
@@ -93,6 +94,27 @@ function create_files
 	fi
 }
 
+function start_raw_readers
+{
+    NUM_READERS=$1
+    R_TYPE=$2
+    
+    echo Starting $NUM_READERS $R_TYPE readers on /dev/${HD}
+    if [ "$R_TYPE" == "raw_seq" ]; then
+        for ((i = 0 ; $i < ${NUM_READERS} ; i++))
+        do
+            $FIO --name=seqreader$i -rw=read --size=${NUM_BLOCKS_CREAT_SEQ}M \
+                --offset=$[$i*$NUM_BLOCKS_CREATE_SEQ]M --numjobs=1 \
+                --filename=/dev/${HD} > /dev/null &
+        done
+    else
+        if [ $NUM_READERS -gt 0 ]; then
+            $FIO --name=randreader$i -rw=randread --numjobs=$NUM_READERS \
+                --filename=/dev/${HD} > /dev/null &
+        fi
+    fi
+}
+
 function start_readers_writers
 {
 	NUM_READERS=$1
@@ -102,10 +124,10 @@ function start_readers_writers
 	printf "Starting "
 
 	if [[ $NUM_READERS -gt 0 ]]; then
-	    printf "$NUM_READERS reader(s)"
+	    printf "$NUM_READERS $RW_TYPE reader(s)"
 	fi
 	if [[ $NUM_WRITERS -gt 0 ]]; then
-	    printf " $NUM_WRITERS writer(s)"
+	    printf " $NUM_WRITERS $RW_TYPE writer(s)"
 	fi
 	echo
 

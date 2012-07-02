@@ -4,7 +4,7 @@ LC_NUMERIC=C
 . ../config_params-utilities/lib_utils.sh
 UTIL_DIR=`cd ../config_params-utilities; pwd` 
 # Set to yes if you want also iostat to be executed in parallel
-IOSTAT=no
+IOSTAT=yes
 
 sched=$1
 NUM_READERS=${2-0}
@@ -98,7 +98,7 @@ ${sched}-${NUM_READERS}r${NUM_WRITERS}w_${RW_TYPE}-lat_thr_stat.txt
 
 	calc_latency $file_name
 
-	if [ $IOSTAT == "yes" ]; then
+	if [ "$IOSTAT" == "yes" ]; then
 		print_save_agg_thr $file_name
 	fi
 }
@@ -142,7 +142,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 fi
 
 # start logging aggthr
-if [ $IOSTAT == "yes" ]; then
+if [ "$IOSTAT" == "yes" ]; then
 	iostat -tmd /dev/$HD 3 | tee iostat.out &
 fi
 
