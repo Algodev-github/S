@@ -17,14 +17,13 @@ MAXRATE=${7-16500} # maximum value for which the system apparently
 usage_msg="\
 Usage:\n\
 sh ./aggthr-with-greedy_rw.sh [\"\" | bfq | cfq | ...]\n\
-[num_readers] [num_writers]\n\
-[seq | rand | raw_seq | raw_rand ]\n\
-[stat_dest_dir] [duration] [sync] [max_write-kB-per-sec] \n\
+                              [num_readers] [num_writers]\n\
+                              [seq | rand | raw_seq | raw_rand ]\n\
+                              [stat_dest_dir] [duration] [sync]\n\
+                              [max_write-kB-per-sec] \n\
 \n\
 first parameter equal to \"\" -> do not change scheduler\n\
-\n\
 raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
-\n\
 sync parameter equal to yes -> invoke sync before starting readers/writers\n\
 \n\
 For example:\n\
@@ -45,29 +44,16 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-if [[ "$RW_TYPE" != "raw_seq" && "$RW_TYPE" != "raw_rand" ]]; then
-    create_files $NUM_READERS $RW_TYPE
-    echo
-else
-    NUM_WRITERS=0 # only raw readers allowed for the moment (we use
-		  # raw readers basically for testing SSDs without
-		  # causing them to wear out quickly)
-fi
-
+create_files_rw_type $NUM_READERS $RW_TYPE
 
 rm -f $FILE_TO_WRITE
+
+set_scheduler
+
 # create and enter work dir
 rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
-
-if [ "$sched" != "" ] ; then
-	# Switch to the desired scheduler
-	echo Switching to $sched
-	echo $sched > /sys/block/$HD/queue/scheduler
-else
-	sched=`cat /sys/block/$HD/queue/scheduler`
-fi
 
 # setup a quick shutdown for Ctrl-C 
 trap "shutdwn 'fio iostat'; exit" sigint
@@ -84,11 +70,7 @@ fi
 init_tracing
 set_tracing 1
 
-if [[ "$RW_TYPE" != "raw_seq" && "$RW_TYPE" != "raw_rand" ]]; then
-    start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
-else
-    start_raw_readers $NUM_READERS $RW_TYPE
-fi
+start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
 # wait just a little for reader start-up transitory to terminate:
 # we do not want to wait too much, because we want to get

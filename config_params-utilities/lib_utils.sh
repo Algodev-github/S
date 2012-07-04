@@ -29,6 +29,19 @@ function flush_caches
 	echo 3 > /proc/sys/vm/drop_caches
 }
 
+function set_scheduler
+{
+	if [ "$sched" != "" ] ; then
+		# Switch to the desired scheduler
+		echo Switching to $sched
+		echo $sched > /sys/block/$HD/queue/scheduler
+	else
+		sched=`cat /sys/block/${HD}/queue/scheduler`
+		sched=`echo $sched | sed 's/.*\[//'`
+		sched=`echo $sched | sed 's/\].*//'`
+	fi
+}
+
 function shutdwn
 {
 	set_tracing 0
@@ -91,6 +104,20 @@ function create_files
         		dd if=/dev/zero bs=1M count=$NUM_BLOCKS_CREATE_RAND \
 				of=${fname}
 		fi
+	fi
+}
+
+function create_files_rw_type
+{
+	NUM_READERS=$1
+	R_TYPE=$2
+	if [[ "$R_TYPE" != "raw_seq" && "$R_TYPE" != "raw_rand" ]]; then
+		create_files $NUM_READERS $R_TYPE
+		echo
+	else
+		NUM_WRITERS=0 # only raw readers allowed for the moment (we use
+			      # raw readers basically for testing SSDs without
+			      # causing them to wear out quickly)
 	fi
 }
 
@@ -160,6 +187,19 @@ function start_readers_writers
 			    --numjobs=$NUM_WRITERS \
 			    --filename=$FILE_TO_RAND_WRITE > /dev/null &
 		fi
+	fi
+}
+
+function start_readers_writers_rw_type
+{
+	NUM_READERS=$1
+	NUM_WRITERS=$2
+	R_TYPE=$3
+	MAXRATE=$4
+	if [[ "$R_TYPE" != "raw_seq" && "$R_TYPE" != "raw_rand" ]]; then
+		start_readers_writers $NUM_READERS $NUM_WRITERS $R_TYPE $MAXRATE
+	else
+		start_raw_readers $NUM_READERS $R_TYPE
 	fi
 }
 

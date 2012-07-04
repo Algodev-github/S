@@ -5,10 +5,14 @@ UTIL_DIR=`cd ../config_params-utilities; pwd`
 
 function show_usage {
 	echo "\
-Usage: sh video_play_vs_comms.sh [bfq | cfq | ...] [num_readers] [num_writers]
-	[seq | rand] [num_iter] [real | fake] [stat_dest_dir]
+Usage: sh video_play_vs_comms.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]
+				 [seq | rand | raw_seq | raw_rand] [num_iter]
+				 [real | fake] [stat_dest_dir]
+				 [max_write-kB-per-sec]
 
 fake implies that \"-vo null\" and \"-ao null\" are passed to mplayer.
+first parameter equal to \"\" -> do not change scheduler
+raw_seq/raw_rand -> read directly from device (no writers allowed)
 
 For example:
 sh video_play_vs_comms.sh bfq 5 5 seq 20 real mydir
@@ -17,7 +21,7 @@ writers, runs mplayer for 20 times. During each run
 \"bash -c exit\" is executed every 3 seconds. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
-Default parameter values are: bfq, 5, 5, seq, 10, real .
+Default parameter values are: bfq, 5, 5, seq, 10, real, . and 16500
 "
 }
 
@@ -28,6 +32,9 @@ RW_TYPE=${4-seq}
 NUM_ITER=${5-10}
 TYPE=${6-real}
 STAT_DEST_DIR=${7-.}
+MAXRATE=${8-16500} # maximum value for which the system apparently
+                   # does not risk to become unresponsive under bfq
+                   # with a 90 MB/s hard disk
 
 COMMAND="bash -c exit"
 PLAYER_CMD="mplayer"
@@ -125,18 +132,17 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-create_files $NUM_READERS $RW_TYPE
+create_files_rw_type $NUM_READERS $RW_TYPE
 echo
 
 rm -f $FILE_TO_WRITE
+
+set_scheduler
+
 # create and enter work dir
 rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
-
-# switch to the desired scheduler
-echo Switching to $sched
-echo $sched > /sys/block/$HD/queue/scheduler
 
 # setup a quick shutdown for Ctrl-C 
 trap "shutdwn 'fio iostat' ; exit" sigint
@@ -146,7 +152,7 @@ flush_caches
 init_tracing
 set_tracing 1
 
-start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
+start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
 # wait for reader/writer start-up transitory to terminate
 echo sleep $((6 + $NUM_READERS + $NUM_WRITERS))

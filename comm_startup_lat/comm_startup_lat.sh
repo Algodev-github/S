@@ -11,16 +11,22 @@ NUM_READERS=${2-0}
 NUM_WRITERS=${3-0}
 RW_TYPE=${4-seq}
 NUM_ITER=${5-0}
-COMMAND=${6-gnome-terminal}
+COMMAND=${6-"gnome-terminal -e /bin/true"}
 STAT_DEST_DIR=${7-.}
 IDLE_DISK_LAT=$8
+MAXRATE=${9-16500} # maximum value for which the system apparently
+                   # does not risk to become unresponsive under bfq
+                   # with a 90 MB/s hard disk
 
 function show_usage {
 	echo "\
-Usage: sh comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]
-	[seq | rand] [num_iter] [command] [stat_dest_dir] [ilde-disk-lat]
+Usage: sh comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers]
+			      [num_writers] [seq | rand | raw_seq | raw_rand]
+			      [num_iter] [command] [stat_dest_dir]
+			      [idle-disk-lat] [max_write-kB-per-sec]
 
 first parameter equal to \"\" -> do not change scheduler
+raw_seq/raw_rand -> read directly from device (no writers allowed)
 num_iter == 0 -> infinite iterations
 idle_disk_lat == 0 -> do not print any reference latency
 
@@ -31,7 +37,7 @@ writers, runs \"bash -c exit\" for 20 times. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
 Default parameter values are: \"\", $NUM_READERS, $NUM_WRITERS, $RW_TYPE, \
-$NUM_ITER, \"$COMMAND\" and $STAT_DEST_DIR
+$NUM_ITER, \"$COMMAND\", $STAT_DEST_DIR, \"\" and $MAXRATE
 
 Other commands you may want to test:
 \"bash -c exit\", \"xterm /bin/true\", \"ssh localhost exit\""
@@ -109,30 +115,24 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-create_files $NUM_READERS $RW_TYPE
+create_files_rw_type $NUM_READERS $RW_TYPE
 
 rm -f $FILE_TO_WRITE
+
+set_scheduler
+
 # create and enter work dir
 rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
-
-if [ "$sched" != "" ] ; then
-	# switch to the desired scheduler
-	echo Switching to $sched
-	echo $sched > /sys/block/$HD/queue/scheduler
-else
-	sched=`cat /sys/block/$HD/queue/scheduler`
-	sched=`echo $sched | sed 's/.*\[//'`
-	sched=`echo $sched | sed 's/\].*//'`
-fi
 
 if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 	# setup a quick shutdown for Ctrl-C 
 	trap "shutdwn 'fio iostat' ; exit" sigint
 
 	flush_caches
-	start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
+	start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE \
+				      $MAXRATE
 
 	# wait for reader/writer start-up transitory to terminate
 	SLEEP=$(($NUM_READERS + $NUM_WRITERS))

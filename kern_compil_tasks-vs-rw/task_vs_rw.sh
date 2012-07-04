@@ -5,8 +5,12 @@
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
 Usage:\n\
-task_vs_rw.sh [bfq | cfq | ...] [num_readers] [num_writers] [seq | rand]\n\
-   [make | checkout | merge] [results_dir]\n\
+task_vs_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
+              [seq | rand | raw_seq | raw_rand]\n\
+              [make | checkout | merge] [results_dir] [max_write-kB-per-sec]\n\
+\n\
+first parameter equal to \"\" -> do not change scheduler\n\
+raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
 \n\
 For example:\n\
 sh task_vs_rw.sh bfq 10 rand checkout ..\n\
@@ -15,7 +19,7 @@ aganinst a kernel checkout,\n\
 with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
 \n\
-Default parameters values are bfq, 1, 1, seq, make and .\n"
+Default parameters values are bfq, 1, 1, seq, make, . and 16500\n"
 
 sched=${1-bfq}
 NUM_READERS=${2-1}
@@ -23,6 +27,9 @@ NUM_WRITERS=${3-1}
 RW_TYPE=${4-seq}
 TASK=${5-make}
 STAT_DEST_DIR=${6-.}
+MAXRATE=${7-16500} # maximum value for which the system apparently
+                   # does not risk to become unresponsive under bfq
+                   # with a 90 MB/s hard disk
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
@@ -33,7 +40,7 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-create_files $NUM_READERS $RW_TYPE
+create_files_rw_type $NUM_READERS $RW_TYPE
 echo
 
 if [[ -d ${KERN_DIR}/.git ]]; then
@@ -94,13 +101,12 @@ case $TASK in
 esac
 echo Prologue finished
 
+set_scheduler
+
 # create and enter work dir
 rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
-
-echo Switching to $sched
-echo $sched > /sys/block/$HD/queue/scheduler
 
 # setup a quick shutdown for Ctrl-C 
 trap "shutdwn 'fio iostat make git' ; exit" sigint
@@ -158,7 +164,7 @@ if grep "Switched" $TASK.out > /dev/null ; then
 	exit
 fi
 
-start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
+start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
 # wait for reader start-up transitory to terminate
 sleep `expr $NUM_READERS + $NUM_WRITERS + 6`
