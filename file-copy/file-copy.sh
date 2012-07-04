@@ -6,9 +6,11 @@ sched=$1
 NUM_COPIERS=${2-1}
 ITERATIONS=${3-10}
 SYNC=${4-yes}
-MAXRATE=${5-16500}
+MAXRATE=${5-16500} # maximum value for which the system apparently
+		   # does not risk to become unresponsive under bfq
+		   # with a 90 MB/s hard disk
 
-# see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
+# see the following string for usage, or invoke file-copy.sh -h
 usage_msg="\
 Usage:\n\
 ./file-copy.sh [\"\" | bfq | cfq | ...] [num_copies] [num_iterations]\n\
@@ -57,10 +59,6 @@ fi
 
 init_tracing
 set_tracing 1
-
-if [[ $NUM_COPIERS -gt 1 ]]; then
-    $MAXRATE=$(( $MAXRATE / 2 ))
-fi
 
 for ((iter = 1 ; $ITERATIONS == 0 || $iter <= $ITERATIONS ; iter++))
 do
