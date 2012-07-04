@@ -14,7 +14,7 @@ MAXRATE=${5-16500} # maximum value for which the system apparently
 usage_msg="\
 Usage:\n\
 ./file-copy.sh [\"\" | bfq | cfq | ...] [num_copies] [num_iterations]\n\
-  [max_kBs]\n\
+  [max_kB-per-sec]\n\
 \n\
 For example:\n\
 ./file-copy.sh bfq 10 3 10000\n\
