@@ -157,7 +157,7 @@ iostat -tmd /dev/$HD 3 | tee iostat.out &
 
 invoke_player_plus_commands
 
-shutdwn
+shutdwn 'fio iostat'
 
 compute_statistics
 

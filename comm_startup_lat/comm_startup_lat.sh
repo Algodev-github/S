@@ -151,7 +151,7 @@ init_tracing
 set_tracing 1
 invoke_commands
 
-shutdwn
+shutdwn 'fio iostat'
 
 compute_statistics
 

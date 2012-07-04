@@ -143,7 +143,7 @@ while ! grep -E "$waited_pattern" $TASK.out > /dev/null 2>&1 ; do
 	count=$(($count+1))
 	if [ $count -eq 120 ]; then
 		echo $TASK timed out, shutting down and removing all files
-		shutdwn
+		shutdwn 'fio iostat make git'
 		cd ..
 		rm -rf results-${sched}
 		exit
@@ -152,7 +152,7 @@ done
 
 if grep "Switched" $TASK.out > /dev/null ; then
 	echo $TASK already finished, shutting down and removing all files
-	shutdwn
+	shutdwn 'fio iostat make git'
 	cd ..
 	rm -rf results-${sched}
 	exit
@@ -185,7 +185,7 @@ set_tracing 1
 sleep $test_dur
 
 # test finished, shutdown what needs to
-shutdwn
+shutdwn 'fio iostat make git'
 
 file_name=$STAT_DEST_DIR/\
 /${sched}-${TASK}_vs_${NUM_READERS}r${NUM_WRITERS}w_${RW_TYPE}-stat.txt

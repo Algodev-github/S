@@ -109,7 +109,7 @@ iostat -tmd /dev/$HD 2 | tee iostat.out &
 
 sleep $DURATION
 
-shutdwn 
+shutdwn 'fio iostat'
 
 mkdir -p $STAT_DEST_DIR
 file_name=$STAT_DEST_DIR/\

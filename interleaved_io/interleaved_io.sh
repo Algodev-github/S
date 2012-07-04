@@ -59,7 +59,7 @@ iostat -tmd /dev/$HD 2 | tee iostat.out &
 echo Test duration: $DURATION secs
 sleep $DURATION
 
-shutdwn
+shutdwn 'fio iostat'
 
 mkdir -p $STAT_DEST_DIR
 file_name=$STAT_DEST_DIR/\
