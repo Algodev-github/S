@@ -9,12 +9,17 @@ RW_TYPE=${4-seq}
 STAT_DEST_DIR=${5-.}
 DURATION=${6-2000}
 SYNC=${6-yes}
+MAXRATE=${7-16500} # maximum value for which the system apparently
+		   # does not risk to become unresponsive under bfq
+		   # with a 90 MB/s hard disk
 
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
 Usage:\n\
-sh aggthr-with-greedy_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
-[seq | rand | raw_seq | raw_rand ] [stat_dest_dir] [duration] [sync] \n\
+sh ./aggthr-with-greedy_rw.sh [\"\" | bfq | cfq | ...]\n\
+[num_readers] [num_writers]\n\
+[seq | rand | raw_seq | raw_rand ]\n\
+[stat_dest_dir] [duration] [sync] [max_write-kB-per-sec] \n\
 \n\
 first parameter equal to \"\" -> do not change scheduler\n\
 \n\
@@ -29,7 +34,7 @@ with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
 \n\
 Default parameter values are \"\", $NUM_WRITERS, $NUM_WRITERS, \
-$RW_TYPE, $STAT_DEST_DIR, $DURATION and $SYNC\n"
+$RW_TYPE, $STAT_DEST_DIR, $DURATION, $SYNC and $MAXRATE\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
@@ -80,7 +85,7 @@ init_tracing
 set_tracing 1
 
 if [[ "$RW_TYPE" != "raw_seq" && "$RW_TYPE" != "raw_rand" ]]; then
-    start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE
+    start_readers_writers $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 else
     start_raw_readers $NUM_READERS $RW_TYPE
 fi
