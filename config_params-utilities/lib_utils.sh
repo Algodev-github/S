@@ -103,7 +103,7 @@ function start_raw_readers
     if [ "$R_TYPE" == "raw_seq" ]; then
         for ((i = 0 ; $i < ${NUM_READERS} ; i++))
         do
-            $FIO --name=seqreader$i -rw=read --size=${NUM_BLOCKS_CREAT_SEQ}M \
+            $FIO --name=seqreader$i -rw=read --size=${NUM_BLOCKS_CREATE_SEQ}M \
                 --offset=$[$i*$NUM_BLOCKS_CREATE_SEQ]M --numjobs=1 \
                 --filename=/dev/${HD} > /dev/null &
         done
