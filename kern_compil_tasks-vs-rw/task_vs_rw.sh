@@ -2,6 +2,16 @@
 . ../config_params-utilities/config_params.sh
 . ../config_params-utilities/lib_utils.sh
 
+sched=$1
+NUM_READERS=${2-1}
+NUM_WRITERS=${3-1}
+RW_TYPE=${4-seq}
+TASK=${5-make}
+STAT_DEST_DIR=${6-.}
+MAXRATE=${7-16500} # maximum value for which the system apparently
+                   # does not risk to become unresponsive under bfq
+                   # with a 90 MB/s hard disk
+
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
 Usage:\n\
@@ -19,17 +29,8 @@ aganinst a kernel checkout,\n\
 with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
 \n\
-Default parameters values are bfq, 1, 1, seq, make, . and 16500\n"
-
-sched=${1-bfq}
-NUM_READERS=${2-1}
-NUM_WRITERS=${3-1}
-RW_TYPE=${4-seq}
-TASK=${5-make}
-STAT_DEST_DIR=${6-.}
-MAXRATE=${7-16500} # maximum value for which the system apparently
-                   # does not risk to become unresponsive under bfq
-                   # with a 90 MB/s hard disk
+Default parameters values are \"\", $NUM_READERS, $NUM_WRITERS, \
+$RW_TYPE, $TASK, $STAT_DEST_DIR and $MAXRATE\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"

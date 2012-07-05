@@ -3,6 +3,17 @@
 . ../config_params-utilities/lib_utils.sh
 UTIL_DIR=`cd ../config_params-utilities; pwd` 
 
+sched=${1-bfq}
+NUM_READERS=${2-5}
+NUM_WRITERS=${3-5}
+RW_TYPE=${4-seq}
+NUM_ITER=${5-10}
+TYPE=${6-real}
+STAT_DEST_DIR=${7-.}
+MAXRATE=${8-16500} # maximum value for which the system apparently
+                   # does not risk to become unresponsive under bfq
+                   # with a 90 MB/s hard disk
+
 function show_usage {
 	echo "\
 Usage: sh video_play_vs_comms.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]
@@ -21,20 +32,9 @@ writers, runs mplayer for 20 times. During each run
 \"bash -c exit\" is executed every 3 seconds. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
-Default parameter values are: bfq, 5, 5, seq, 10, real, . and 16500
-"
+Default parameters values are \"\", $NUM_READERS, $NUM_WRITERS, \
+$RW_TYPE, $TYPE, $STAT_DEST_DIR and $MAXRATE\n"
 }
-
-sched=${1-bfq}
-NUM_READERS=${2-5}
-NUM_WRITERS=${3-5}
-RW_TYPE=${4-seq}
-NUM_ITER=${5-10}
-TYPE=${6-real}
-STAT_DEST_DIR=${7-.}
-MAXRATE=${8-16500} # maximum value for which the system apparently
-                   # does not risk to become unresponsive under bfq
-                   # with a 90 MB/s hard disk
 
 COMMAND="bash -c exit"
 PLAYER_CMD="mplayer"

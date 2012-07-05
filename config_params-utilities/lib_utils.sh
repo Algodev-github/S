@@ -110,9 +110,9 @@ function create_files
 function create_files_rw_type
 {
 	NUM_READERS=$1
-	R_TYPE=$2
-	if [[ "$R_TYPE" != "raw_seq" && "$R_TYPE" != "raw_rand" ]]; then
-		create_files $NUM_READERS $R_TYPE
+	RW_TYPE=$2
+	if [[ "$RW_TYPE" != "raw_seq" && "$RW_TYPE" != "raw_rand" ]]; then
+		create_files $NUM_READERS $RW_TYPE
 		echo
 	else
 		NUM_WRITERS=0 # only raw readers allowed for the moment (we use
