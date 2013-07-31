@@ -94,7 +94,10 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 		dd if=$f of=/dev/null bs=1M \
 			count=$(((${NUM_BLOCKS}*${WEIGHT[$idx]})/$max_w)) \
 			2>&1 | tee iter-$i/singles-dd/dd-$idx &
-		echo $! > /cgroup/test$idx/tasks
+		# the just-started reader is the last one listed in the sorted
+		# output of the ps command, as it has the highest PID
+		echo $(ps | grep "dd$" | awk '{print $1}' | sort | tail -n 1) \
+			> /cgroup/test$idx/tasks
 		idx=$(($idx+1))
 	done
 
