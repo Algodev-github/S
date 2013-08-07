@@ -103,8 +103,9 @@ config_params-utilities: several files here
 
 MAIN DEPENDENCIES
 
-You need at least fio, iostat and awk installed. For the kernel-development
-benchmark you also need git and make.
+You need at least fio, iostat (from the sysstat package), awk and time
+installed. For the kernel-development benchmark you also need git and
+make.
 
 USAGE AND OUTPUT OF THE BENCHMARKS
 
