@@ -1,4 +1,4 @@
-Small collection of programs to measure disk IO performance.
+Small collection of programs to measure storage I/O performance.
 
 These benchmarks have been written just for internal use, and are more
 a yard than a well-finished work. In particular,  we did not spend time in
@@ -7,6 +7,11 @@ automating the installation of the suite, so you have to manually install every
 dependency (see MAIN DEPENDENCIES).
 
 CONTENT
+
+In the root directory:
+. config_params.sh
+	(Hopefully all and only the) parameters that need to be set
+	to let the test scripts run smoothly on your system
 
 Each benchmark is implemented by a bash script, stored in a separate directory.
 Here is the list of the directories and of the main scripts they contain:
@@ -78,10 +83,7 @@ run_multiple_tests
 	with several workloads. It can be configured
 	only by changing its code (you may want to change the number of
 	repetitions of each test, the schedulers used, ...)
-config_params-utilities: several files here
-	. config_params.sh
-		(Hopefully all and only the) parameters that need to be set
-		to let the test scripts run smoothly on your system
+utilities: several files here
 	. lib_utils.sh
 		Common functions used by the test scripts
 	. calc_avg_and_co.sh
