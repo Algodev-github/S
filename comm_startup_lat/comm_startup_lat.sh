@@ -136,8 +136,12 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 
 	# wait for reader/writer start-up transitory to terminate
 	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
-	MAX_RAIS_SEC=$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000))
-	echo "Maximum raising time is $MAX_RAIS_SEC"
+	if [[ $sched == "bfq" ]]; then
+		MAX_RAIS_SEC=$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000))
+		echo "Maximum raising time is $MAX_RAIS_SEC"
+	else
+		MAX_RAIS_SEC=7
+	fi
 	SLEEP=$(( $MAX_RAIS_SEC + ($SLEEP / 2 ) ))
 	echo sleep $SLEEP
 	sleep $SLEEP
