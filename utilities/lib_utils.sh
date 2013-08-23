@@ -1,4 +1,4 @@
-CALC_AVG_AND_CO=`cd ../config_params-utilities; pwd`/calc_avg_and_co.sh
+CALC_AVG_AND_CO=`cd ../utilities; pwd`/calc_avg_and_co.sh
 FIO="fio --minimal --loops=100"
 
 function init_tracing {

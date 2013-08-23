@@ -7,8 +7,8 @@
 # to the username you prefer
 
 . conf.sh
-. ../config_params-utilities/config_params.sh
-. ../config_params-utilities/lib_utils.sh
+. ../config_params.sh
+. ../utilities/lib_utils.sh
 
 # PARAMS: size budget nfiles sched
 function start_noise() {

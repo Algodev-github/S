@@ -113,7 +113,7 @@ USAGE AND OUTPUT OF THE BENCHMARKS
 
 The steps should be:
 
-1) edit config_params-utilities/config_params.sh to fit your system
+1) edit config_params.sh to fit your system
 
 2) run each benchmark manually or run multiple benchmarks automatically
    through a general script like run_multiple_tests/run_all_tests_1.sh.
@@ -125,7 +125,7 @@ The steps should be:
 
 3) if you repeat a test more than once and store the result files in a
    given directory or in its subdirs, then you may use
-   config_params-utilities/calc_overall_stats.sh to further aggregate the
+   utilities/calc_overall_stats.sh to further aggregate the
    results and compute statistics on the avg values across the repetitions.
 
 For examples and brief help just invoke the desired script with the
