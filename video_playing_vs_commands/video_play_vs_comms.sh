@@ -1,7 +1,7 @@
 #!/bin/bash
-. ../config_params-utilities/config_params.sh
-. ../config_params-utilities/lib_utils.sh
-UTIL_DIR=`cd ../config_params-utilities; pwd` 
+. ../config_params.sh
+. ../utilities/lib_utils.sh
+UTIL_DIR=`cd ../utilities; pwd` 
 
 sched=${1-bfq}
 NUM_READERS=${2-5}

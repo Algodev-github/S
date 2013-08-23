@@ -1,5 +1,5 @@
 #!/bin/bash
-. ../config_params-utilities/config_params.sh
+. ../config_params.sh
 
 TYPE=${1-real}
 cur_date=`date +%y%m%d_%H%M`

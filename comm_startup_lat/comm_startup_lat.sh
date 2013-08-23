@@ -1,8 +1,8 @@
 #!/bin/bash
 LC_NUMERIC=C
-. ../config_params-utilities/config_params.sh
-. ../config_params-utilities/lib_utils.sh
-UTIL_DIR=`cd ../config_params-utilities; pwd` 
+. ../config_params.sh
+. ../utilities/lib_utils.sh
+UTIL_DIR=`cd ../utilities; pwd` 
 # Set to yes if you want also iostat to be executed in parallel
 IOSTAT=yes
 

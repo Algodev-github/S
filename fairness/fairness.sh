@@ -1,7 +1,7 @@
 #!/bin/bash
-. ../config_params-utilities/config_params.sh
-. ../config_params-utilities/lib_utils.sh
-CALC_AVG_AND_CO=`cd ../config_params-utilities; pwd`/calc_avg_and_co.sh
+. ../config_params.sh
+. ../utilities/lib_utils.sh
+CALC_AVG_AND_CO=`cd ../utilities; pwd`/calc_avg_and_co.sh
 
 # see the following string for usage, or invoke fairness -h
 usage_msg="\

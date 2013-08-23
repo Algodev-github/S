@@ -1,6 +1,6 @@
 #!/bin/bash
-. ../config_params-utilities/config_params.sh
-. ../config_params-utilities/lib_utils.sh
+. ../config_params.sh
+. ../utilities/lib_utils.sh
 
 sched=$1
 NUM_READERS=${2-1}
