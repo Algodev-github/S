@@ -1,11 +1,11 @@
 #!/bin/bash
-res_type=${1:-aggthr}
-results_dir=`cd $2; pwd`
+results_dir=`cd $1; pwd`
+res_type=$2
 
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
 Usage:\n\
-calc_overall_stats.sh [aggthr | startup_lat | kern_task] test_result_dir\n\
+calc_overall_stats.sh test_result_dir [aggthr | startup_lat | kern_task]\n\
    \n\
    Use aggthr as first param for the results of agg_thr-with-greedy_rw.sh and\n\
    interleaved_io.sh., startup_lat for the results of comm_startup_lat.sh,\n\
@@ -61,7 +61,7 @@ function quant_loops
 function file_loop
 {
 	n=0
-	for in_file in `find $results_dir -name "*$sched*$file_filter"`; do
+	for in_file in `find $1 -name "*$sched*$file_filter"`; do
 
 		if ((`cat $in_file | wc -l` < $record_lines)); then
 			continue
@@ -78,9 +78,12 @@ function file_loop
 	fi
 }
 
-#main
+function per_directory_loop
+{
+    single_test_res_dir=$1
+    set_res_type $2
 
-case $res_type in
+    case $res_type in
 	aggthr)
 		num_quants=3
 		record_lines=$((1 + $num_quants * 3))
@@ -94,44 +97,91 @@ case $res_type in
 		record_lines=$((1 + ($num_quants - 1) * 3 + 2))
 		;;
 	*)
-		echo Wrong number of quantities
+		echo Wrong or undefined result type
 		;;
-esac
+    esac
 
-out_file=overall_stats-`basename $results_dir`.txt
-rm -f $out_file
+    out_file=overall_stats-`basename $single_test_res_dir`.txt
+    rm -f $out_file
 
-# create and enter work dir
-rm -rf work_dir
-mkdir -p work_dir
-cd work_dir
+    # create and enter work dir
+    mkdir -p work_dir
+    cd work_dir
 
-for file_filter in "*[-_]1r0w_seq*" "*[-_]1r0w_rand*" "*[-_]0r0w_seq*" \
-"*10*seq*" "*10*rand*" "*5*seq*" "*5*rand*" \
-"*3r-int_io*" "*5r-int_io*" "*6r-int_io*" "*7r-int_io*" "*9r-int_io*"; do
+    for file_filter in "*[-_]1r0w_seq*" "*[-_]1r0w_rand*" "*[-_]0r0w_seq*" \
+	"*10*seq*" "*10*rand*" "*5*seq*" "*5*rand*" \
+	"*3r-int_io*" "*5r-int_io*" "*6r-int_io*" "*7r-int_io*" "*9r-int_io*"; do
 	for sched in bfq cfq; do
-		file_loop
-		if [ ! -f line_file0 ]; then
-			continue
-		fi
+	    file_loop $single_test_res_dir
+	    if [ ! -f line_file0 ]; then
+		continue
+	    fi
 
-		for ((cur_quant = 0 ; cur_quant < $num_quants ; cur_quant++));
-		do
-			cat line_file$cur_quant | tee -a ../$out_file
-			second_field=`tail -n 1 ../$out_file |\
+	    for ((cur_quant = 0 ; cur_quant < $num_quants ; cur_quant++));
+	    do
+		cat line_file$cur_quant | tee -a ../$out_file
+		second_field=`tail -n 1 ../$out_file |\
 		       		awk '{print $2}'`
-			cat number_file$cur_quant |\
+		cat number_file$cur_quant |\
 				$CALC_AVG_AND_CO 99 |\
 				tee -a ../$out_file
-			rm line_file$cur_quant number_file$cur_quant
-		done
+		rm line_file$cur_quant number_file$cur_quant
+	    done
 	done
 	if (($n > 0)); then
-	echo ------------------------------------------------------------------
+	    echo ------------------------------------------------------------------
 	fi
+    done
+
+    cd ..
+    rm -rf work_dir
+}
+
+function set_res_type
+{
+    case $1 in
+	aggthr)
+	    res_type=aggthr
+	    ;;
+	startup)
+	    res_type=startup_lat
+	    ;;
+	make | checkout | merge)
+	    res_type=kern_task
+	    ;;
+	*)
+	    ;;
+    esac
+}
+
+# main
+
+res_dirname=`basename $results_dir`
+
+num_dir_visited=0
+for filter in "aggthr" "make" "checkout" "merge" "startup"; do
+    echo $filter
+    for single_test_res_dir in `find $results_dir -name "*$filter*" -type d`; do
+	per_directory_loop $single_test_res_dir $filter
+	num_dir_visited=$(($num_dir_visited+1))
+    done
 done
 
+if (($num_dir_visited > 0)); then
+    exit
+fi
 
-cd ..
-rm -rf work_dir
+# if we get here the result directory is a candidate to contain the
+# results of just one test
+for filter in "aggthr" "make" "checkout" "merge" "startup"; do
+    echo $filter
+    if [[ `echo $res_dirname | grep $filter` != "" ]]; then
+	per_directory_loop $results_dir $filter
+	exit
+    fi
+done
 
+# the direcory name contains no hint;
+# the next attempt may be successful only if a result type has been
+# passed as second argument to the script
+per_directory_loop $results_dir
