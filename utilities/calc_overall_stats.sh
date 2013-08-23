@@ -104,7 +104,8 @@ function per_directory_loop
     out_file=overall_stats-`basename $single_test_res_dir`.txt
     rm -f $out_file
 
-    # create and enter work dir
+    # remove, create and enter work dir
+    rm -rf work_dir
     mkdir -p work_dir
     cd work_dir
 
