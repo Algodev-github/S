@@ -5,7 +5,7 @@
 # INPUT: one column of data
 # OUTPUT: min max mean std_dev conf
 #
-
+export LC_ALL=C
 awk ' BEGIN {
 	n=0; 
 	sum=0; 
