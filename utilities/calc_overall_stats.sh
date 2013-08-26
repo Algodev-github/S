@@ -7,17 +7,19 @@ usage_msg="\
 Usage:\n\
 calc_overall_stats.sh test_result_dir [aggthr | startup_lat | kern_task]\n\
    \n\
-   Use aggthr as first param for the results of agg_thr-with-greedy_rw.sh and\n\
+   The second param is neede only if the type of the results cannot be
+   inferred from the name of the test-result directory.
+   Use aggthr for the results of agg_thr-with-greedy_rw.sh and\n\
    interleaved_io.sh., startup_lat for the results of comm_startup_lat.sh,\n\
    and kern_task for the results of task_vs_rw.sh. \n\
+   The computation of kern_task statistics is still to be tested.\n\
 \n\
    For example:\n\
-   calc_overall_stats.sh startup_lat ../results/kons_startup\n\
+   calc_overall_stats.sh ../results/kons_startup\n\
    computes the min, max, avg, std_dev and 99%conf of the avg values\n\
    reported in each of the output files found in the ../results/kons_startup\n\
    dir and in its subdirs.\n\
-   \n\
-   The default value of the type is $res_type\n"
+   \n"
 
 CALC_AVG_AND_CO=`pwd`/calc_avg_and_co.sh
 
@@ -61,24 +63,30 @@ function quant_loops
 function file_loop
 {
 	n=0
-	for in_file in `find $1 -name "*$sched*$file_filter"`; do
+	for in_file in `find $1 -name "*$sched*[-_]$workload*"`; do
 
 		if ((`cat $in_file | wc -l` < $record_lines)); then
 			continue
 		fi
 		if (($n == 0)); then
-			head -n 1 $in_file | tee -a ../$out_file
+			head -n 1 $in_file | tee -a $out_file
 		fi
 		n=$(($n + 1))
 
 		quant_loops
 	done
 	if (($n > 0)); then
-		echo $n repetitions | tee -a ../$out_file
+		echo $n repetitions | tee -a $out_file
 	fi
 }
 
-function per_directory_loop
+function write_header
+{
+    echo "# Table automatically created by calc_overall_stats" > $1
+    echo -e "# Workload\tbfq\tcfq" >> $1
+}
+
+function per_subdirectory_loop
 {
     single_test_res_dir=$1
     set_res_type $2
@@ -87,31 +95,46 @@ function per_directory_loop
 	aggthr)
 		num_quants=3
 		record_lines=$((1 + $num_quants * 3))
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-table.txt
 		;;
 	startup_lat)
 		num_quants=4
 		record_lines=$((1 + ($num_quants) * 3))
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-thr-table.txt
+		target_quantity_table_file=\
+`pwd`/`basename $single_test_res_dir`-lat-table.txt
 		;;
 	kern_task)
 		num_quants=4
 		record_lines=$((1 + ($num_quants - 1) * 3 + 2))
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-thr-table.txt
+		target_quantity_table_file=\
+`pwd`/`basename $single_test_res_dir`-progress-table.txt
 		;;
 	*)
 		echo Wrong or undefined result type
 		;;
     esac
 
-    out_file=overall_stats-`basename $single_test_res_dir`.txt
+    out_file=`pwd`/overall_stats-`basename $single_test_res_dir`.txt
     rm -f $out_file
+
+    write_header $thr_table_file
+    if [[ $res_type != aggthr ]]; then
+	write_header $target_quantity_table_file
+    fi
 
     # remove, create and enter work dir
     rm -rf work_dir
     mkdir -p work_dir
     cd work_dir
 
-    for file_filter in "*[-_]1r0w_seq*" "*[-_]1r0w_rand*" "*[-_]0r0w_seq*" \
-	"*10*seq*" "*10*rand*" "*5*seq*" "*5*rand*" \
-	"*3r-int_io*" "*5r-int_io*" "*6r-int_io*" "*7r-int_io*" "*9r-int_io*"; do
+    for workload in "1r0w-seq" "1r0w-rand" "0r0w-seq" \
+	"10r0w-seq" "10r0w-rand" "5r5w-seq" "5r5w-rand" \
+	"3r-int_io" "5r-int_io" "6r-int_io" "7r-int_io" "9r-int_io"; do
+
+	line_created=False
+
 	for sched in bfq cfq; do
 	    file_loop $single_test_res_dir
 	    if [ ! -f line_file0 ]; then
@@ -120,18 +143,59 @@ function per_directory_loop
 
 	    for ((cur_quant = 0 ; cur_quant < $num_quants ; cur_quant++));
 	    do
-		cat line_file$cur_quant | tee -a ../$out_file
-		second_field=`tail -n 1 ../$out_file |\
+
+		cat line_file$cur_quant | tee -a $out_file
+		second_field=`tail -n 1 $out_file |\
 		       		awk '{print $2}'`
 		cat number_file$cur_quant |\
 				$CALC_AVG_AND_CO 99 |\
-				tee -a ../$out_file
+				tee -a $out_file
+
+		if [[ $line_created != True ]] ; then
+		    echo -n $workload >> $thr_table_file
+		    echo -n $workload >> $target_quantity_table_file
+		    line_created=True
+		    echo Line created
+		fi
+
+		if [[ $cur_quant -eq 0 && $res_type != aggthr ]] ; then
+
+		    if [[ $res_type == startup_lat ]]; then
+			field_num=3
+		    elif [[ $res_type == kern_task ]]; then
+			field_num=1
+		    fi
+		    
+		    field=$(tail -n 1 $out_file |\
+		       		awk '{print $'$field_num'}')
+		    
+		    echo -ne "\t$field" >> $target_quantity_table_file
+		elif ((cur_quant == 0)) ||
+		    ( (( cur_quant == 1)) && [[ $res_type != aggthr ]] ) ; then
+		    field=`tail -n 1 $out_file |\
+		       		awk '{print $3}'`
+
+		    echo -ne "\t$field" >> $thr_table_file
+		    echo Last line written to $thr_table_file
+		else
+		    echo nothing written
+		fi
+
 		rm line_file$cur_quant number_file$cur_quant
+
 	    done
 	done
+	if [[ $line_created == True ]]; then
+	    printf "\n" >> $thr_table_file
+
+	    if [[ $res_type != aggthr ]]; then
+		printf "\n" >> $target_quantity_table_file
+	    fi
+	fi
 	if (($n > 0)); then
 	    echo ------------------------------------------------------------------
 	fi
+
     done
 
     cd ..
@@ -163,7 +227,7 @@ num_dir_visited=0
 for filter in "aggthr" "make" "checkout" "merge" "startup"; do
     echo $filter
     for single_test_res_dir in `find $results_dir -name "*$filter*" -type d`; do
-	per_directory_loop $single_test_res_dir $filter
+	per_subdirectory_loop $single_test_res_dir $filter
 	num_dir_visited=$(($num_dir_visited+1))
     done
 done
@@ -177,7 +241,7 @@ fi
 for filter in "aggthr" "make" "checkout" "merge" "startup"; do
     echo $filter
     if [[ `echo $res_dirname | grep $filter` != "" ]]; then
-	per_directory_loop $results_dir $filter
+	per_subdirectory_loop $results_dir $filter
 	exit
     fi
 done
@@ -185,4 +249,4 @@ done
 # the direcory name contains no hint;
 # the next attempt may be successful only if a result type has been
 # passed as second argument to the script
-per_directory_loop $results_dir
+per_subdirectory_loop $results_dir
