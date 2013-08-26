@@ -96,7 +96,7 @@ shutdwn 'fio iostat'
 mkdir -p $STAT_DEST_DIR
 file_name=$STAT_DEST_DIR/\
 ${sched}-${NUM_READERS}r${NUM_WRITERS}\
-w_${RW_TYPE}-${DURATION}sec-aggthr_stat.txt
+w-${RW_TYPE}-${DURATION}sec-aggthr_stat.txt
 echo "Results for $sched, $NUM_READERS $RW_TYPE readers and \
 $NUM_WRITERS $RW_TYPE writers" | tee $file_name
 print_save_agg_thr $file_name

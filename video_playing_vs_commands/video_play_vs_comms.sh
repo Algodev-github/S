@@ -115,7 +115,7 @@ function calc_latency {
 function compute_statistics {
 	mkdir -p $STAT_DEST_DIR
 	file_name=$STAT_DEST_DIR/\
-${sched}-${NUM_READERS}r${NUM_WRITERS}w_${RW_TYPE}-lat_thr_stat.txt
+${sched}-${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-lat_thr_stat.txt
 
 	echo Results for $sched, $NUM_ITER $COMMAND, $NUM_READERS $RW_TYPE\
 		readers	and $NUM_WRITERS $RW_TYPE writers | tee $file_name
