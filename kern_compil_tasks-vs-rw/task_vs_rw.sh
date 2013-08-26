@@ -198,7 +198,6 @@ file_name=$STAT_DEST_DIR/\
 /${sched}-${TASK}_vs_${NUM_READERS}r${NUM_WRITERS}w_${RW_TYPE}-stat.txt
 echo "Results for $sched, $NUM_READERS $RW_TYPE readers and $NUM_WRITERS\
  $RW_TYPE against a kernel $TASK" | tee $file_name
-print_save_agg_thr $file_name
 
 if [ "$TASK" == "make" ]; then
 	final_completion_level=`cat $TASK.out | wc -l`
@@ -219,6 +218,8 @@ if [ "$TASK" == "make" ]; then
 else
 	printf "%%\n" | tee -a $file_name
 fi
+
+print_save_agg_thr $file_name
 
 cd ..
 
