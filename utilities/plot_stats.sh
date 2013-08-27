@@ -3,6 +3,11 @@ LC_NUMERIC=C
 dirname=plots
 mode=${2:-"x11"}
 plot_id=1
+usage_msg="\
+Usage:
+plot_stats.sh table_file [mode]
+    Mode may be x11, gif or eps.
+"
 
 if [ $mode == "eps" ] ; then
 	lw=3
@@ -178,6 +183,13 @@ function get_max_value
 {
     echo $1 $2 | awk '{if ($1 > $2) print $1; else print $2}'
 }
+
+# main
+
+if [[ "$1" == "-h" || "$1" == "" ]]; then
+        printf "$usage_msg"
+        exit
+fi
 
 in_filename=$1
 out_filename=`basename $in_filename`
