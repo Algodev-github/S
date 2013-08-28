@@ -3,24 +3,40 @@
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
 Usage:\n\
-calc_overall_stats.sh test_result_dir [aggthr | startup_lat | kern_task]\n\
+calc_overall_stats.sh test_result_dir \
+[Scheduler array] [Reference case] [aggthr | startup_lat | kern_task]\n\
    \n\
-   The second param is neede only if the type of the results cannot be
+   The last param is needed only if the type(s) of the results cannot be
    inferred from the name of the test-result directory.
    Use aggthr for the results of agg_thr-with-greedy_rw.sh and\n\
    interleaved_io.sh., startup_lat for the results of comm_startup_lat.sh,\n\
    and kern_task for the results of task_vs_rw.sh. \n\
    The computation of kern_task statistics is still to be tested.\n\
 \n\
-   For example:\n\
-   calc_overall_stats.sh ../results/kons_startup\n\
+   Simplest-use example:\n\
+   calc_overall_stats.sh ../results/\n\
    computes the min, max, avg, std_dev and 99%conf of the avg values\n\
-   reported in each of the output files found in the ../results/kons_startup\n\
-   dir and in its subdirs.\n\
-   \n"
+   reported in each of the output files found, recursively, in each of\n\
+   the subdirs of ../results/ that contains the results of some benchmark.\n\
+
+   Passing the array of schedulers of interest explicitly is instead a
+   way to select only part of the results (e.g., \"bfq noop\"), and
+   not the default schedulers (${schedulers[@]}). There is no
+   constraint on the possible values of each item, hence this array
+   can be used to select files whose names do not begin with the usual
+   "bfq-" or "cfq-". For example, suppose that the results are about
+   the same scheduler, used in a guest, while different workloads are
+   run in the host. The array to select the different result files may
+   be: \"no-host-wl 1r-seq 5r-seq\".
+
+   Finally, it is possible to change the reference case with respect
+   to the default cases, which otherwise vary with the type of benchmark.
+ "
+
+SCHEDULERS=${2:-"bfq cfq"}
+reference_case=$3
 
 CALC_AVG_AND_CO=`pwd`/calc_avg_and_co.sh
-SCHEDULERS="bfq cfq"
 
 function quant_loops
 {
@@ -137,11 +153,11 @@ function per_subdirectory_loop
     out_file=`pwd`/overall_stats-`basename $single_test_res_dir`.txt
     rm -f $out_file
 
-    write_header $thr_table_file "Aggregate throughput [MB/sec]" 1r0w-seq\
-        "$reference_value_label"
+    write_header $thr_table_file "Aggregate throughput [MB/sec]" \
+        $thr_reference_case "$reference_value_label"
     if [[ $res_type != aggthr ]]; then
-	write_header $target_quantity_table_file "$target_quantity_type" 0r0w-seq\
-        "$reference_value_label"
+	write_header $target_quantity_table_file "$target_quantity_type" \
+        $target_reference_case "$reference_value_label"
     fi
 
     # remove, create and enter work dir
@@ -227,8 +243,16 @@ if [[ "$1" == "-h" || "$1" == "" ]]; then
 fi
 
 results_dir=`cd $1; pwd`
-res_type=$2
+res_type=$4
 res_dirname=`basename $results_dir`
+
+if [[ "$reference_case" == "" ]]; then
+    thr_reference_case=1r0w-seq
+    target_reference_case=0r0w-seq
+else
+    thr_reference_case=$reference_case
+    target_reference_case=$reference_case
+fi
 
 cd $results_dir
 num_dir_visited=0
