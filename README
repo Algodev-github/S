@@ -131,7 +131,7 @@ MAIN DEPENDENCIES
 
 You need at least fio, iostat (from the sysstat package), awk and time
 installed. For the kernel-development benchmark you also need git and
-make.
+make, whereas gnuplot is needed to generate plots through plot_stats.sh.
 
 USAGE AND OUTPUT OF THE BENCHMARKS
 
