@@ -7,7 +7,7 @@ NUM_READERS=${2-1}
 NUM_WRITERS=${3-0}
 RW_TYPE=${4-seq}
 STAT_DEST_DIR=${5-.}
-DURATION=${6-2000}
+DURATION=${6-60}
 SYNC=${6-yes}
 MAXRATE=${7-16500} # maximum value for which the system apparently
 		   # does not risk to become unresponsive under bfq
