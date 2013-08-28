@@ -16,8 +16,10 @@ function init_tracing {
 
 function set_tracing {
 	if [ "$TRACE" == "1" ] ; then
-		echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
-		echo $1 > /sys/kernel/debug/tracing/tracing_enabled
+		if test -a /sys/kernel/debug/tracing/tracing_enabled; then
+			echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
+			echo $1 > /sys/kernel/debug/tracing/tracing_enabled
+		fi
 		echo "echo $1 > /sys/block/$HD/trace/enable"
 		echo $1 > /sys/block/$HD/trace/enable
 	fi
