@@ -38,7 +38,7 @@ function create_label_positions()
 	FONT_SIZE=15
     fi
 
-    label_y_offset=`echo "$max_y/100 * 6" | bc -l`
+    label_y_offset=`echo "$max_y/100 * 4" | bc -l`
 
     case "$1" in
 	2)
@@ -110,7 +110,7 @@ function write_basic_plot_conf()
     set pointsize 4
     set key right samplen 1
     set auto fix
-    set offset graph 0,0,3,0
+    set offset graph 0,0,4,0
     set yrange [0:]
     " >> tmp.txt
 }
