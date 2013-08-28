@@ -139,18 +139,28 @@ The steps should be:
 
 1) edit config_params.sh to fit your system
 
-2) run each benchmark manually or run multiple benchmarks automatically
-   through a general script like run_multiple_tests/run_all_tests_1.sh.
-   To execute each script, first cd to the dir that contains it.
-   Most scripts invoke commands that require root privileges.
-   Each benchmark produces a result file that contains statistics on the
-   quantities of interest (throughput, latency, number of lines produced by
-   make, ...).
+2) Follow one of the two following paths:
 
-3) if you repeat a test more than once and store the result files in a
-   given directory or in its subdirs, then you may use
-   utilities/calc_overall_stats.sh to further aggregate the
-   results and compute statistics on the avg values across the repetitions.
+Path A:
+i) run each benchmark manually. To execute each script, first cd to
+   the dir that contains it.  Most scripts invoke commands that
+   require root privileges.  Each benchmark produces a result file
+   that contains statistics on the quantities of interest (throughput,
+   latency, number of lines produced by make, ...).
+
+ii) if you repeat a test more than once manually and store the result
+   files in a given directory or in its subdirs then you may use,
+   first, utilities/calc_overall_stats.sh to further aggregate the
+   results and compute statistics on the avg values across the
+   repetitions, and then utilities/plot_stats.sh to generate plots
+   from the table files produced by calc_overall_stats.sh
+
+Path B:
+i) run multiple benchmarks automatically through a general script like
+   run_multiple_tests/run_all_tests_1.sh. After executing the
+   benchmarks, this script also invoke calc_overall_stats.sh and
+   plot_stats.sh to generate both global statistics and plots
+   automatically.
 
 For examples and brief help just invoke the desired script with the
 -h option (apart from the scripts in run_multiple_tests, which provide no help).
