@@ -156,5 +156,14 @@ done
 cd ../run_multiple_tests
 ./run_all_video_playing_tests.sh real $RES_DIR
 
+cd ../utilities
+./calc_overall_stats.sh $RES_DIR
+script_dir=`pwd`
+
+cd $RES_DIR
+for table_file in *-table.txt; do
+    $script_dir/plot_stats.sh $table_file
+done
+
 cur_date=`date +%y%m%d_%H%M`
 echo All test finished on $cur_date
