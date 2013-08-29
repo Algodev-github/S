@@ -1,0 +1,50 @@
+* Extend benchmarks to run correctly also in a virtualized environment:
+
+  . add a "guest mode" to the benchmarks, for which the following
+    functionalities are provided
+
+  . choice of the host I/O scheduler
+
+  . possibility to start a background workload on the host
+    before starting the benchmark in the guest
+
+    . the script executed in the host may send sowmehow a signal (for
+      example by creating a file in some shared folder, or by executing
+      a kill with the proper signal in the guest, ...) when the workload
+      has settled in the host, i.e., after the usual initial sleep
+
+	. after invoking the host script, the script executed in the guest
+	  blocks until the above signal is received
+	
+	. at the end of the bechmark, the guest script sends somehow a
+	  signal to the host script (for example by executing a kill
+	  with the right signal in the host), which shuts down the
+	  workload (hence the host script must run the workload
+	  indefinitely, till it receives the stop signal)
+
+  . sync&drop or just drop caches also on the host when appropriate
+
+  . make sure that also the host-related actions are logged on stdout,
+    so that the guest log contains all the information one may need to
+    check whether the benchmark has been correctly executed
+
+  . automatically add an extra tag just after the scheduler name in
+    the name of the output stat file, for example with the following
+    format, where <SCHED> is the name of the host scheduler in
+    uppercase (to help back-end scripts not get confused with the
+    guest scheduler):
+
+      . host_no_wl-<SCHED>		If no workload is run on the host
+
+      . host-<n>r<m>w_<type>-<SCHED>	If n readers and n writers of soem type
+      					are run in the host
+
+* Using the above new functionalities of the benchamrk scripts, define
+  a new run_all_test script for virtualized environments
+
+  . for each benchmark, run consecutively the benchmark script for all
+    possible guest and host configurations, and, for each repetition,
+    put all output stat files in the same folder
+
+  . possibily merge this run_all_tests script with the existing
+    run_all_tests script
