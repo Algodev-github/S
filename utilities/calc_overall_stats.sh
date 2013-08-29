@@ -4,7 +4,8 @@
 usage_msg="\
 Usage:\n\
 calc_overall_stats.sh test_result_dir \
-[Scheduler array] [Reference case] [aggthr | startup_lat | kern_task]\n\
+[Scheduler array] [Reference case]
+   [aggthr | startup_lat | kern_task]\n\
    \n\
    The last param is needed only if the type(s) of the results cannot be
    inferred from the name of the test-result directory.
@@ -73,7 +74,7 @@ function quant_loops
 function file_loop
 {
 	n=0
-	for in_file in `find $1 -name "*$sched*[-_]$workload*"`; do
+	for in_file in `find $1 -name "*$sched[-]$workload*"`; do
 
 		if ((`cat $in_file | wc -l` < $record_lines)); then
 			continue
