@@ -43,6 +43,8 @@
 						_<type> is added only if it is
 						not seq
 
+  . write the above tag and not just the scheduler name in the output stat file
+
 * Using the above new functionalities of the benchamrk scripts, define
   a new run_all_test script for virtualized environments
 
