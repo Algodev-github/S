@@ -1,15 +1,18 @@
 #!/bin/bash
-LC_NUMERIC=C
+export LC_NUMERIC=C
+export LC_ALL=C
 dirname=plots
-mode=${2:-"x11"}
+ref_mode=${2:-"ref"}
+term_mode=${3:-"x11"}
 plot_id=1
 usage_msg="\
 Usage:
-plot_stats.sh table_file [mode]
-    Mode may be x11, gif or eps.
+plot_stats.sh table_file [ref_mode] [term_mode]
+    ref_mode may be ref or noref
+    term_mode may be x11, gif or eps.
 "
 
-if [ $mode == "eps" ] ; then
+if [ $term_mode == "eps" ] ; then
 	lw=3
 else
 	lw=1
@@ -23,8 +26,16 @@ function create_label_file
     y_offset=$4
     label_file=$5
 
-    perl -ane 'if ( "$F[0]" ne "#" )
-        { print "set label sprintf(\"%.3g\", $F['$col_idx']) at $F[0]'$x_offset',$F['$col_idx']+'$y_offset' center font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > $label_file
+    awk '{ if ($'$col_idx' < 100) \
+        printf "set label \"%.2g\" at %g,%g center font \"arial,'$FONT_SIZE'\""\
+        " front\n",\
+        $'$col_idx', (row++)'$x_offset$GIF_OFFSET', $'$col_idx'+'$y_offset'; \
+        else \
+        printf "set label \"%.3g\" at %g,%g center font \"arial,'$FONT_SIZE'\""\
+        " front\n",\
+        $'$col_idx', (row++)'$x_offset$GIF_OFFSET', $'$col_idx'+'$y_offset'}' \
+	< $in_file_name	> $label_file
+
 }
 
 # create files (loaded by gnuplot) containing the relative positions
@@ -32,65 +43,46 @@ function create_label_file
 function create_label_positions()
 {
 
-    if [ "$mode" == "gif" ] ; then
+    if [ "$term_mode" == "gif" ] ; then
     	FONT_SIZE=10
+	GIF_OFFSET=+.02
     else
 	FONT_SIZE=15
     fi
 
-    label_y_offset=`echo "$max_y/100 * 4" | bc -l`
+    label_y_offset=`echo "$max_y/100 * 3" | bc -l`
 
     case "$1" in
+	1)
+	    create_label_file $in_file_name 2 -.0 $label_y_offset label_1.plt
+	    ;;
 	2)
 	    create_label_file $in_file_name 2 -.14 $label_y_offset label_1.plt
 	    create_label_file $in_file_name 3 +.20 $label_y_offset label_2.plt
 	    ;;
-	# next cases are to be refactored using create_label_file
 	3)
-	    perl -ane 'if ( "$F[0]" ne "#" ) { print "set label \"$F[2]\" at $F[0]-.47,$F[2]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_1.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) { print "set label \"$F[3]\" at $F[0]-.12,$F[3]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_2.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) { print "set label \"$F[4]\" at $F[0]+.15,$F[4]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_3.plt
+	    create_label_file $in_file_name 2 -.14 $label_y_offset label_1.plt
+	    create_label_file $in_file_name 3 +.20 $label_y_offset label_2.plt
+	    create_label_file $in_file_name 4 +.30 $label_y_offset label_3.plt
 	    ;;
 	4)
-
-	    perl -ane 'if ( "$F[0]" ne "#" ) { print "set label \"$F[2]\" at $F[0]-.47,$F[2]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_1.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) {print "set label \"$F[3]\" at $F[0]-.21,$F[3]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_2.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) {print "set label \"$F[4]\" at $F[0]+.01,$F[4]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_3.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) {print "set label \"$F[5]\" at $F[0]+.21,$F[5]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_4.plt
+	    create_label_file $in_file_name 2 -.30 $label_y_offset label_1.plt
+	    create_label_file $in_file_name 3 -.11 $label_y_offset label_2.plt
+	    create_label_file $in_file_name 4 +.10 $label_y_offset label_3.plt
+	    create_label_file $in_file_name 5 +.31 $label_y_offset label_4.plt
 	    ;;
 	5)
-
-	    perl -ane 'if ( "$F[0]" ne "#" ) { print "set label \"$F[2]\" at $F[0]-.47,$F[2]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_1.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) {print "set label \"$F[3]\" at $F[0]-.22,$F[3]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_2.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) {print "set label \"$F[4]\" at $F[0]-.06,$F[4]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_3.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) {print "set label \"$F[5]\" at $F[0]+.13,$F[5]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_4.plt
-	    perl -ane 'if ( "$F[0]" ne "#" ) {print "set label \"$F[6]\" at $F[0]+.35,$F[6]+'$label_y_offset' font \"arial,'$FONT_SIZE'\"\n"}' $in_file_name > label_5.plt
+	    create_label_file $in_file_name 2 -.14 $label_y_offset label_1.plt
+	    create_label_file $in_file_name 3 +.20 $label_y_offset label_2.plt
+	    create_label_file $in_file_name 4 +.30 $label_y_offset label_3.plt
+	    create_label_file $in_file_name 5 +.40 $label_y_offset label_4.plt
+	    create_label_file $in_file_name 5 +.50 $label_y_offset label_5.plt
 	    ;;
 	*)
 	    echo $1 bars not supported
 	    exit
 	    ;;
     esac
-}
-
-# tentative, not yet working properly and not used
-function load_labels()
-{
-    num_bars=$1
-    headlines=${2:-10}
-    taillines=${3:-10}
-
-    create_label_positions $num_bars
-    for ((i = 1; i <= $num_bars; i++))
-    do
-	head -n $headlines label_${i}.plt > head_labels
-	tail -n $taillines head_labels >\
-            restr_labels_${i}_${headlines}_${taillines}
-	echo load \"restr_labels_${i}_${headlines}_${taillines}\" >> tmp.txt
-	cat restr_labels_${i}_${headlines}_${taillines}
-	rm head_labels
-    done
-    echo >> tmp.txt
 }
 
 function write_basic_plot_conf()
@@ -108,10 +100,9 @@ function write_basic_plot_conf()
     set bars 3.0
     set boxwidth 1
     set pointsize 4
-    set key right samplen 1
+    set key samplen 1
     set auto fix
-    set offset graph 0,0,4,0
-    set yrange [0:]
+    set yrange [0:$max_y]
     " >> tmp.txt
 }
 
@@ -141,7 +132,7 @@ function plot_histograms()
 	echo load \"label_${i}.plt\" >> tmp.txt
     done
 
-    case $mode in
+    case $term_mode in
 	eps)
 	printf "
         set style fill pattern 1
@@ -167,7 +158,7 @@ function plot_histograms()
 
     printf "plot " >> tmp.txt
  
-    if [ "$ref_value" != "" ] ; then
+    if [[ "$ref_value" != "" ]] ; then
 	printf "%f t \"$ref_label\" lw $lw, " $ref_value >> tmp.txt
     fi
 
@@ -196,12 +187,12 @@ out_filename=`basename $in_filename`
 out_filename="${out_filename%.*}"
 
 lines=()
+max_value=0
 while read line; do
     lines+=("$line")
-    max_value=0
     if [[ $(echo $line | grep ^#) == "" ]] ; then
-	first_words=$(echo $line | awk '{printf "%s %s", $1, $2}')
-	rest_of_line=$(echo $line | sed 's/'"$first_words"' //')
+	first_word=$(echo $line | awk '{printf $1}')
+	rest_of_line=$(echo $line | sed 's/'$first_word' //')
 
 	for number in $rest_of_line; do
 	    tmp_max=`get_max_value $number $max_value`
@@ -213,35 +204,53 @@ while read line; do
     fi
 done < $in_filename
 
-y_label=$(echo ${lines[1]} | sed 's/# //')
+echo $max_value
 
-reference_case=$(echo ${lines[2]} | sed 's/# Reference case: //')
-reference_case_value=$(grep ^$reference_case $in_filename | tail -n 1 | \
-    awk '{print $2}')
+max_value=$(echo "$max_value * 1.40" | bc -l)
 
-reference_case_label=$(echo ${lines[3]} | sed 's/# Reference-case label: //')
-x_label=$(echo ${lines[4]} | sed 's/# //' | awk '{print $1}')
-scheduler_string=$(echo ${lines[4]} | sed 's/# '"$x_label"' //')
+line_idx=1 # second line
+
+x_label=$(echo ${lines[$line_idx]} | sed 's/# X-Axis: //')
+((line_idx++))
+
+y_label=$(echo ${lines[$line_idx]} | sed 's/# Y-Axis: //')
+((line_idx++))
+
+if [[ $ref_mode == ref ]]; then
+    reference_case=$(echo ${lines[$line_idx]} | sed 's/# Reference case: //')
+
+    reference_case_value=$(grep "^$reference_case" $in_filename | tail -n 1 | \
+	awk '{print $2}')
+    
+    reference_case_label=$(echo ${lines[$(($line_idx + 1))]} | \
+	sed 's/# Reference-case label: //')
+else
+    reference_case=none
+fi
+((line_idx += 2))
+
+first_word=$(echo ${lines[$line_idx]} | sed 's/# //' | awk '{print $1}')
+scheduler_string=$(echo ${lines[$line_idx]} | sed 's/# '"$first_word"' //')
 
 schedulers=()
 for sched in $scheduler_string; do
     schedulers+=($sched)
 done
 
-grep -v ^$reference_case $in_filename > tmp_file
+grep -v "^$reference_case\|^#" $in_filename > tmp_file
 
-curves="\"tmp_file\" using 3:xticlabels(2) t \"${schedulers[0]}\""
+curves="\"tmp_file\" using 2:xticlabels(1) t \"${schedulers[0]}\""
 
 for ((i = 1 ; i < ${#schedulers[@]} ; i++)); do
-    curves=$curves", \"\" using 4 t \"${schedulers[$i]}\""
+    curves=$curves", \"\" using $((i+2)) t \"${schedulers[$i]}\""
 done
 
 plot_histograms tmp_file $out_filename \
 	"$x_label" 0 "$y_label" ${#schedulers[@]} \
 	 "$curves" "$reference_case_label" "$reference_case_value" $max_value
     
-if [ $mode != "x11" ] ; then
-    echo Wrote $out_file_name.$mode
+if [ $term_mode != "x11" ] ; then
+    echo Wrote $out_file_name.$term_mode
 fi
 
 rm tmp_file

@@ -94,10 +94,11 @@ function file_loop
 function write_header
 {
     echo "# Table automatically created by calc_overall_stats" > $1
-    echo "# $2" >> $1
+    echo "# X-Axis: Guest workload" >> $1
+    echo "# Y-Axis: $2" >> $1
     echo "# Reference case: $3" >> $1
     echo "# Reference-case label: $4" >> $1
-    echo -e "# Workload\tbfq\tcfq" >> $1
+    echo -e "# Workload\t${SCHEDULERS[@]}" >> $1
 }
 
 function set_res_type
@@ -127,6 +128,7 @@ function per_subdirectory_loop
 		num_quants=3
 		record_lines=$((1 + $num_quants * 3))
 		thr_table_file=`pwd`/`basename $single_test_res_dir`-table.txt
+		reference_value_label="Disk peak rate"
 		;;
 	startup_lat)
 		num_quants=4
@@ -154,11 +156,15 @@ function per_subdirectory_loop
     out_file=`pwd`/overall_stats-`basename $single_test_res_dir`.txt
     rm -f $out_file
 
-    write_header $thr_table_file "Aggregate throughput [MB/sec]" \
-        $thr_reference_case "$reference_value_label"
-    if [[ $res_type != aggthr ]]; then
+    if [[ $res_type == aggthr ]]; then
+	write_header $thr_table_file "Aggregate throughput [MB/sec]" \
+            $thr_reference_case "$reference_value_label"
+    else
+	write_header $thr_table_file "Aggregate throughput [MB/sec]" \
+            none ""
+	
 	write_header $target_quantity_table_file "$target_quantity_type" \
-        $target_reference_case "$reference_value_label"
+            $target_reference_case "$reference_value_label"
     fi
 
     # remove, create and enter work dir
@@ -166,7 +172,6 @@ function per_subdirectory_loop
     mkdir -p work_dir
     cd work_dir
 
-    num_workloads=0
     for workload in "1r0w-seq" "1r0w-rand" "0r0w-seq" \
 	"10r0w-seq" "10r0w-rand" "5r5w-seq" "5r5w-rand" \
 	"5r0w-seq" "5r0w-rand" "2r2w-seq" "2r2w-rand" \
@@ -186,14 +191,16 @@ function per_subdirectory_loop
 		cat line_file$cur_quant | tee -a $out_file
 		second_field=`tail -n 1 $out_file | awk '{print $2}'`
 
-		cat number_file$cur_quant |\
-				$CALC_AVG_AND_CO 99 | tee -a $out_file
+		cat number_file$cur_quant | $CALC_AVG_AND_CO 99 | tee -a $out_file
 
 		if [[ "$line_created" != True ]] ; then
-		    echo -n $num_workloads $workload >> $thr_table_file
-		    echo -n $num_workloads $workload >> $target_quantity_table_file
+		    echo -n $workload >> $thr_table_file
+
+		    if [[ $res_type != aggthr ]]; then
+			echo -n $workload \
+			    >> $target_quantity_table_file
+		    fi
 		    line_created=True
-		    ((num_workloads++))
 		fi
 
 		if [[ $cur_quant -eq 0 && "$res_type" != aggthr ]] ; then
