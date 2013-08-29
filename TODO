@@ -34,10 +34,14 @@
     uppercase (to help back-end scripts not get confused with the
     guest scheduler):
 
-      . host_no_wl-<SCHED>		If no workload is run on the host
+      . no_host_wl-<SCHED>			If no workload is run on the host
 
-      . host-<n>r<m>w_<type>-<SCHED>	If n readers and n writers of soem type
-      					are run in the host
+      . host-<n>r[<m>w][_<type>]-<SCHED>- 	If n readers and m writers
+      						of some type are run in the
+      						host, in particular <m>w- is
+						added only if m>0, and 
+						_<type> is added only if it is
+						not seq
 
 * Using the above new functionalities of the benchamrk scripts, define
   a new run_all_test script for virtualized environments
