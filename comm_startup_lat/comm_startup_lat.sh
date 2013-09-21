@@ -13,21 +13,24 @@ RW_TYPE=${4-seq}
 NUM_ITER=${5-0}
 COMMAND=${6-"gnome-terminal -e /bin/true"}
 STAT_DEST_DIR=${7-.}
-IDLE_DISK_LAT=$8
-MAXRATE=${9-16500} # maximum value for which the system apparently
-                   # does not risk to become unresponsive under bfq
-                   # with a 90 MB/s hard disk
+MAX_ITER_DURATION=${8-60}
+IDLE_DISK_LAT=$9
+MAXRATE=${10-16500} # maximum value for which the system apparently
+                    # does not risk to become unresponsive under bfq
+                    # with a 90 MB/s hard disk
 
 function show_usage {
 	echo "\
 Usage: sh comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers]
 			      [num_writers] [seq | rand | raw_seq | raw_rand]
 			      [num_iter] [command] [stat_dest_dir]
-			      [idle-disk-lat] [max_write-kB-per-sec]
+			      [max_iter_duration] [idle-disk-lat]
+			      [max_write-kB-per-sec]
 
 first parameter equal to \"\" -> do not change scheduler
 raw_seq/raw_rand -> read directly from device (no writers allowed)
 num_iter == 0 -> infinite iterations
+max_iter_duration == 0 -> each iteration has no maximum duration
 idle_disk_lat == 0 -> do not print any reference latency
 
 For example:
@@ -36,8 +39,8 @@ switches to bfq and, after launching 5 sequential readers and 5 sequential
 writers, runs \"bash -c exit\" for 20 times. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
-Default parameter values are: \"\", $NUM_READERS, $NUM_WRITERS, $RW_TYPE, \
-$NUM_ITER, \"$COMMAND\", $STAT_DEST_DIR, \"\" and $MAXRATE
+Default parameter values are: \"\", $NUM_READERS, $NUM_WRITERS, $RW_TYPE,
+$NUM_ITER, \"$COMMAND\", $STAT_DEST_DIR, $MAX_ITER_DURATION, \"\" and $MAXRATE
 
 Other commands you may want to test:
 \"bash -c exit\", \"xterm /bin/true\", \"ssh localhost exit\""
@@ -68,7 +71,16 @@ function invoke_commands {
 		echo 3 > /proc/sys/vm/drop_caches
 		SHORTNAME=`echo $COMMAND | awk '{print $1}'`
 		printf "Starting \"$SHORTNAME\" with cold cache ... "
+		if [[ "$MAX_ITER_DURATION" != "0" ]]; then
+			bash -c "sleep $MAX_ITER_DURATION && killall -q $COMMAND" &
+			KILLPROC=$!
+		fi
 		COM_TIME=`(/usr/bin/time -f %e $COMMAND) 2>&1`
+		if [[ "$MAX_ITER_DURATION" != "0" ]]; then
+			if [[ "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
+				kill -9 $KILLPROC
+			fi
+		fi
 		echo done
 		TIME=`echo "$COM_TIME + $TIME - 2" | bc -l`
 		echo "$TIME" >> lat-${sched}
