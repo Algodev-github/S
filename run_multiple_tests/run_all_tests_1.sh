@@ -13,13 +13,17 @@ function repeat
 	do
 		echo bash $2 $3 $RES_DIR/$1/repetition$i
 		echo Warning: there are running tests. > msg
-		echo Next test: bash $2 "$3" $RES_DIR/$1/repetition$i>>msg
+		echo Next test: bash $2 "$3" $RES_DIR/$1/repetition$i >> msg
 		cat msg | wall
 		rm msg
 		if [ ! "$3" == "" ] ; then
 			bash $2 "$3" $RES_DIR/$1/repetition$i
 		else
 			bash $2 $RES_DIR/$1/repetition$i
+		fi
+		if [[ ! -d $RES_DIR/$1/repetition$i ]] ; then
+		    echo No stats produced: aborting repetitions for $2 \"$3\"
+		    break
 		fi
 	done
 }
@@ -63,6 +67,7 @@ function comm_startup_lat
 	# 0 readers/writers
 	repeat oowriter_startup "comm_startup_lat.sh $1 0 0 seq 5"\
 		"oowriter --terminate_after_init"
+
 	repeat kons_startup "comm_startup_lat.sh $1 0 0 seq 10"\
 		"konsole -e /bin/true"
 	repeat xterm_startup "comm_startup_lat.sh $1 0 0 seq 10"\
