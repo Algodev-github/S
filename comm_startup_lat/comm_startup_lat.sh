@@ -13,11 +13,9 @@ RW_TYPE=${4-seq}
 NUM_ITER=${5-0}
 COMMAND=${6-"gnome-terminal -e /bin/true"}
 STAT_DEST_DIR=${7-.}
-MAX_ITER_DURATION=${8-60}
+MAX_STARTUP=${8-30}
 IDLE_DISK_LAT=$9
-MAXRATE=${10-16500} # maximum value for which the system apparently
-                    # does not risk to become unresponsive under bfq
-                    # with a 90 MB/s hard disk
+MAXRATE=${10-16500}
 
 function show_usage {
 	echo "\
@@ -28,19 +26,33 @@ Usage: sh comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers]
 			      [max_write-kB-per-sec]
 
 first parameter equal to \"\" -> do not change scheduler
-raw_seq/raw_rand -> read directly from device (no writers allowed)
-num_iter == 0 -> infinite iterations
-max_iter_duration == 0 -> each iteration has no maximum duration
-idle_disk_lat == 0 -> do not print any reference latency
 
-For example:
+max_iter_duration ->  maximum duration allowed for each command
+		      invocation, in seconds; if the command does not
+                      start within the maximum duration, then: the command
+                      is killed, no other iteration is performed and
+                      no output file is created. If max_iter_duration
+                      is set to 0, then no control is performed
+                      
+idle_disk_lat -> reference command start-up time to print in each iteration,
+                 nothing is printed if this parameter is equal to \"\" 
+
+max_write-kB-per-sec -> maximum write rate [kB/s] for which the system
+		        apparently does not risk to become unresponsive,
+		        (at least) under bfq, with a 90 MB/s hard disk
+
+raw_seq/raw_rand -> read directly from device (no writers allowed)
+
+num_iter == 0 -> infinite iterations
+
+Example:
 sh comm_startup_lat.sh bfq 5 5 seq 20 \"xterm /bin/true\" mydir
 switches to bfq and, after launching 5 sequential readers and 5 sequential
 writers, runs \"bash -c exit\" for 20 times. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
 Default parameter values are: \"\", $NUM_READERS, $NUM_WRITERS, $RW_TYPE,
-$NUM_ITER, \"$COMMAND\", $STAT_DEST_DIR, $MAX_ITER_DURATION, \"\" and $MAXRATE
+$NUM_ITER, \"$COMMAND\", $STAT_DEST_DIR, $MAX_STARTUP, \"\" and $MAXRATE
 
 Other commands you may want to test:
 \"bash -c exit\", \"xterm /bin/true\", \"ssh localhost exit\""
@@ -50,6 +62,13 @@ if [ "$1" == "-h" ]; then
         show_usage
         exit
 fi
+
+function clean_and_exit {
+    shutdwn 'fio iostat'
+    cd ..
+    rm -rf results-$sched
+    exit
+}
 
 function invoke_commands {
         TIME=2 # time to execute sleep 2
@@ -69,16 +88,24 @@ function invoke_commands {
 		# every scheduler (and however latencies
 		# are independent of whether we sync)
 		echo 3 > /proc/sys/vm/drop_caches
-		SHORTNAME=`echo $COMMAND | awk '{print $1}'`
 		printf "Starting \"$SHORTNAME\" with cold cache ... "
-		if [[ "$MAX_ITER_DURATION" != "0" ]]; then
-			bash -c "sleep $MAX_ITER_DURATION && killall -q $COMMAND" &
+		if [[ "$MAX_STARTUP" != "0" ]]; then
+			bash -c "sleep $MAX_STARTUP && \
+                                 echo Timeout: killing command ;\
+                                 killall -q $COMMAND ; touch Stop-iterations" &
 			KILLPROC=$!
+			disown
 		fi
 		COM_TIME=`(/usr/bin/time -f %e $COMMAND) 2>&1`
-		if [[ "$MAX_ITER_DURATION" != "0" ]]; then
+		if [[ "$MAX_STARTUP" != "0" ]]; then
 			if [[ "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
-				kill -9 $KILLPROC
+				kill -9 $KILLPROC > /dev/null 2>&1
+			else
+			    if [[ -f Stop-iterations ]]; then
+				echo Stopping iterations
+				rm Stop-iterations
+				clean_and_exit
+			    fi
 			fi
 		fi
 		echo done
@@ -123,9 +150,15 @@ ${sched}-${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-lat_thr_stat.txt
 
 ## Main ##
 
-mkdir -p $STAT_DEST_DIR
+SHORTNAME=`echo $COMMAND | awk '{print $1}'`
+
+if [[ $(which $SHORTNAME) == "" ]] ; then
+    echo Command to invoke not found
+    exit
+fi
+
 # turn to an absolute path (needed later)
-STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
+STAT_DEST_DIR=`pwd`/$STAT_DEST_DIR
 
 create_files_rw_type $NUM_READERS $RW_TYPE
 
@@ -138,9 +171,10 @@ rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
 
+# setup a quick shutdown for Ctrl-C 
+trap "clean_and_exit" sigint
+
 if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
-	# setup a quick shutdown for Ctrl-C 
-	trap "shutdwn 'fio iostat' ; exit" sigint
 
 	flush_caches
 	start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE \
@@ -149,8 +183,9 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 	# wait for reader/writer start-up transitory to terminate
 	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
 	if [[ $sched == "bfq" ]]; then
-		MAX_RAIS_SEC=$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000))
-		echo "Maximum raising time is $MAX_RAIS_SEC"
+		MAX_RAIS_SEC=\
+$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000))
+		echo "Maximum raising time: $MAX_RAIS_SEC seconds"
 	else
 		MAX_RAIS_SEC=7
 	fi
