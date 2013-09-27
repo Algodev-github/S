@@ -53,6 +53,7 @@ SKIP_LENGTH="00:00:30"
 WEIGHT_DEBOOST_TIMEOUT=10
 PLAYER_OUT_FNAME=${sched}-player_out.txt
 DROP_DATA_FNAME=${sched}-drop_data_points.txt
+DROP_RATE_FNAME=${sched}-drop_rate_points.txt
 
 if [ "$1" == "-h" ]; then
         show_usage
@@ -91,9 +92,17 @@ function invoke_player_plus_commands {
 			fi
 		done
 
-		grep -n "^BENCHMARKn:" ${PLAYER_OUT_FNAME} | tr -s " " | \
-			cut -f7 -d" " >> ${DROP_DATA_FNAME}
+		drop=`grep -n "^BENCHMARKn:" ${PLAYER_OUT_FNAME} | tr -s " " | \
+			cut -f7 -d" "`
+		total=`grep -n "^BENCHMARKn:" ${PLAYER_OUT_FNAME} | tr -s " " | \
+			cut -f10 -d" "`
+		echo $drop >> ${DROP_DATA_FNAME}
+		echo $(echo "$drop $total" | awk '{printf "%f", $1/$2*100}') >> \
+			${DROP_RATE_FNAME}
+		echo "--- DROP DATA ---"
 		cat ${DROP_DATA_FNAME}
+		echo "--- DROP RATE ---"
+		cat ${DROP_RATE_FNAME}
 		rm -f ${PLAYER_OUT_FNAME}
 	done
 }
@@ -101,6 +110,11 @@ function invoke_player_plus_commands {
 function calc_frame_drops {
 	echo "Frame drops:" | tee -a $1
 	sh $CALC_AVG_AND_CO 99 < ${DROP_DATA_FNAME} | tee -a $1
+}
+
+function calc_frame_drop_rate {
+	echo "Frame drop rate:" | tee -a $1
+	sh $CALC_AVG_AND_CO 99 < ${DROP_RATE_FNAME} | tee -a $1
 }
 
 function calc_latency {
@@ -121,6 +135,7 @@ ${sched}-${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-lat_thr_stat.txt
 		readers	and $NUM_WRITERS $RW_TYPE writers | tee $file_name
 
 	calc_frame_drops $file_name
+	calc_frame_drop_rate $file_name
 	calc_latency $file_name
 
 	print_save_agg_thr $file_name
