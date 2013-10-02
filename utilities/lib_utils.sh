@@ -1,3 +1,5 @@
+# Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
+#                    Arianna Avanzini <avanzini.arianna@gmail.com>
 CALC_AVG_AND_CO=`cd ../utilities; pwd`/calc_avg_and_co.sh
 FIO="fio --minimal --loops=100"
 

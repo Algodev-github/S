@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (C) 2013 Mauro Andreolini <maro.andreolini@unimore.it>
+#                    Arianna Avanzini <avanzini.arianna@gmail.com>
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 

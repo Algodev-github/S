@@ -1,3 +1,6 @@
+# Copyright (C) 2013 Fabio Checconi <fchecconi@gmail.com>
+#                    Paolo Valente <paolo.valente@unimore.it>
+#
 # start both vlc server and fake clients, automatically called by vlc_test.sh
 
 . conf.sh

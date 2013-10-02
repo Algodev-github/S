@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 

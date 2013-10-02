@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
+#                    Arianna Avanzini <avanzini.arianna@gmail.com>
 LC_NUMERIC=C
 . ../config_params.sh
 . ../utilities/lib_utils.sh

@@ -1,5 +1,7 @@
 #!/bin/bash
-
+# Copyright (C) 2013 Fabio Checconi <fchecconi@gmail.com>
+#                    Paolo Valente <paolo.valente@unimore.it>
+#
 # main script, run me as super-user to run the whole test
 # super-user privilegese are needed to switch between schedulers and the like,
 # the other tasks, as e.g., the vlc server itself, are executed as

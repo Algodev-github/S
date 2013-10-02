@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (C) 2013 Mauro Andreolini <mauro.andreolini@unimore.it>
+#                    Paolo Valente <paolo.valente@unimore.it>
+#                    Arianna Avanzini <avanzini.arianna@gmail.com>
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 UTIL_DIR=`cd ../utilities; pwd` 

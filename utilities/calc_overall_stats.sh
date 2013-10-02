@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
+#                    Arianna Avanzini <avanzini.arianna@gmail.com>
 
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
