@@ -50,8 +50,12 @@ NOCACHE_OPTS="-nocache"
 SKIP_START_OPTS="-ss"
 SKIP_LENGTH_OPTS="-endpos"
 VIDEO_FNAME="/data/movie.avi"
-SKIP_START="00:01:00"
-SKIP_LENGTH="00:00:30"
+
+# The following parameters let the playback of trailer available at
+# http://www.youtube.com/watch?v=8-_9n5DtKOc
+# start a few seconds before the most demanding portion of the video.
+SKIP_START="00:01:32"
+SKIP_LENGTH="00:00:40"
 
 WEIGHT_DEBOOST_TIMEOUT=10
 PLAYER_OUT_FNAME=${sched}-player_out.txt
