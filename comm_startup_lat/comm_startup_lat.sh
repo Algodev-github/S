@@ -94,11 +94,12 @@ function invoke_commands {
 		if [[ "$MAX_STARTUP" != "0" ]]; then
 			bash -c "sleep $MAX_STARTUP && \
                                  echo Timeout: killing command ;\
-                                 killall -q $COMMAND ; touch Stop-iterations" &
+                                 cat current-pid | xargs -I pid kill -9 -pid ;\
+				 touch Stop-iterations" &
 			KILLPROC=$!
 			disown
 		fi
-		COM_TIME=`(/usr/bin/time -f %e $COMMAND) 2>&1`
+		COM_TIME=`setsid bash -c 'echo $BASHPID > current-pid; /usr/bin/time -f %e '"$COMMAND" 2>&1`
 		if [[ "$MAX_STARTUP" != "0" ]]; then
 			if [[ "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
 				kill -9 $KILLPROC > /dev/null 2>&1
@@ -172,6 +173,8 @@ set_scheduler
 rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
+
+rm -f Stop-iterations current-pid
 
 # setup a quick shutdown for Ctrl-C 
 trap "clean_and_exit" sigint
