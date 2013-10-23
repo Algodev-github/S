@@ -15,7 +15,7 @@ RW_TYPE=${4-seq}
 NUM_ITER=${5-0}
 COMMAND=${6-"gnome-terminal -e /bin/true"}
 STAT_DEST_DIR=${7-.}
-MAX_STARTUP=${8-30}
+MAX_STARTUP=${8-60}
 IDLE_DISK_LAT=$9
 MAXRATE=${10-16500}
 
@@ -65,7 +65,7 @@ if [ "$1" == "-h" ]; then
         exit
 fi
 
-SLEEPTIME_ITER=2
+SLEEPTIME_ITER=4
 
 function clean_and_exit {
     if [[ "$KILLPROC" != "" ]]; then
