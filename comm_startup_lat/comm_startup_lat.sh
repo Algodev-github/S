@@ -65,6 +65,8 @@ if [ "$1" == "-h" ]; then
         exit
 fi
 
+SLEEPTIME_ITER=2
+
 function clean_and_exit {
     if [[ "$KILLPROC" != "" ]]; then
         kill -9 $KILLPROC > /dev/null 2>&1
@@ -76,7 +78,7 @@ function clean_and_exit {
 }
 
 function invoke_commands {
-        TIME=2 # time to execute sleep 2
+        TIME=$SLEEPTIME_ITER # time to execute sleep 2
 	if [[ "$IDLE_DISK_LAT" != "" ]]; then
 	    REF_TIME=$IDLE_DISK_LAT
 	else
@@ -116,7 +118,7 @@ function invoke_commands {
 			fi
 		fi
 		echo done
-		TIME=`echo "$COM_TIME + $TIME - 2" | bc -l`
+		TIME=`echo "$COM_TIME + $TIME - $SLEEPTIME_ITER" | bc -l`
 		echo "$TIME" >> lat-${sched}
 		printf "          Start-up time: "
 		NUM=`echo "( $TIME / $REF_TIME) * 2" | bc -l`
@@ -130,7 +132,7 @@ function invoke_commands {
 		    echo Idle-disk start-up time: \#\# $IDLE_DISK_LAT sec
 		fi
 		# printf "Sleeping for 2 seconds ... "
-		TIME=`(/usr/bin/time -f %e sleep 2) 2>&1`
+		TIME=`(/usr/bin/time -f %e sleep $SLEEPTIME_ITER) 2>&1`
 	done
 }
 
