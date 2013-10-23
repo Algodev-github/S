@@ -172,13 +172,14 @@ trap "shutdwn 'fio iostat' ; exit" sigint
 flush_caches
 
 init_tracing
-set_tracing 1
 
 start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
 # wait for reader/writer start-up transitory to terminate
 echo sleep $((6 + $NUM_READERS + $NUM_WRITERS))
 sleep $((6 + $NUM_READERS + $NUM_WRITERS))
+
+set_tracing 1
 
 # start logging aggthr
 iostat -tmd /dev/$HD 3 | tee iostat.out &
