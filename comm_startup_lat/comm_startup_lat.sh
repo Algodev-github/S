@@ -66,6 +66,9 @@ if [ "$1" == "-h" ]; then
 fi
 
 function clean_and_exit {
+    if [[ "$KILLPROC" != "" ]]; then
+        kill -9 $KILLPROC > /dev/null 2>&1
+    fi
     shutdwn 'fio iostat'
     cd ..
     rm -rf results-$sched
@@ -101,8 +104,9 @@ function invoke_commands {
 		fi
 		COM_TIME=`setsid bash -c 'echo $BASHPID > current-pid; /usr/bin/time -f %e '"$COMMAND" 2>&1`
 		if [[ "$MAX_STARTUP" != "0" ]]; then
-			if [[ "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
+			if [[ "$KILLPROC" != "" && "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
 				kill -9 $KILLPROC > /dev/null 2>&1
+				KILLPROC=
 			else
 			    if [[ -f Stop-iterations ]]; then
 				echo Stopping iterations
