@@ -6,7 +6,7 @@ cur_date=`date +%y%m%d_%H%M`
 RES_DIR=../results/run_all_tests_1/$cur_date
 schedulers=(bfq cfq)
 
-function send_message_target_reached
+function send_email
 {
 	if [ "$MAIL_REPORTS" == "1" ]; then
 		if [ "$MAIL_REPORTS_RECIPIENT" == "" ]; then
@@ -165,30 +165,30 @@ if [ "${NCQ_QUEUE_DEPTH}" != "" ]; then
     fi
 fi
 
-send_message_target_reached "benchmark suite run started"
+send_email "benchmark suite run started"
 
 for sched in ${schedulers[*]}; do
 	echo Running tests on $sched \($HD\)
-	send_message_target_reached "comm_startup_lat tests beginning"
+	send_email "comm_startup_lat tests beginning"
 	comm_startup_lat $sched
-	send_message_target_reached "comm_startup_lat tests finished"
-	send_message_target_reached "agg_thr tests beginning"
+	send_email "comm_startup_lat tests finished"
+	send_email "agg_thr tests beginning"
 	agg_thr_with_greedy_rw $sched
-	send_message_target_reached "agg_thr tests finished"
-	send_message_target_reached "kern_compil_tasks tests beginning"
+	send_email "agg_thr tests finished"
+	send_email "kern_compil_tasks tests beginning"
 	kern_compil_tasks_vs_rw $sched
-	send_message_target_reached "kern_compil_tasks tests finished"
-	send_message_target_reached "interleaved_io tests beginning"
+	send_email "kern_compil_tasks tests finished"
+	send_email "interleaved_io tests beginning"
 	interleaved_io $sched
-	send_message_target_reached "interleaved_io tests finished"
+	send_email "interleaved_io tests finished"
 done
 
 cd ../run_multiple_tests
-send_message_target_reached "video_playing tests beginning"
+send_email "video_playing tests beginning"
 ./run_all_video_playing_tests.sh real $RES_DIR
-send_message_target_reached "video_playing tests finished"
+send_email "video_playing tests finished"
 
-send_message_target_reached "benchmark suite run ended"
+send_email "benchmark suite run ended"
 
 cd ../utilities
 ./calc_overall_stats.sh $RES_DIR

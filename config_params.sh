@@ -38,9 +38,9 @@ KERN_DIR=$BASE_DIR/fake_tree/linux-2.6
 # NCQ queue depth, if undefined then no script will change the current value
 NCQ_QUEUE_DEPTH=
 
-# Mail reports parameters. A mail transfer agent (such as msmtp) and a mail
+# Mail-report parameters. A mail transfer agent (such as msmtp) and a mail
 # client (such as mailx) must be installed to be able to send mail reports.
-# The sender e-mail address will be the one configures as default in the
+# The sender e-mail address will be the one configured as default in the
 # mail client itself.
 MAIL_REPORTS=0
 MAIL_REPORTS_RECIPIENT=

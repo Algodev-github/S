@@ -79,22 +79,21 @@ interleaved_io: interleaved_io.sh
 run_multiple_tests
 	Scripts to execute subsets of the above tests. For example,
 	there is the script run_all_tests_1.sh, which repeatedly
-	executes all the tests, apart from the video playing/streaming ones,
-	with several workloads. It can be configured
-	only by changing its code (you may want to change the number of
+	executes all the tests, apart from the video playing/streaming
+	ones, with several workloads. It can be configured only by
+	changing its code (you may want to change the number of
 	repetitions of each test, the schedulers used, ...).
-	The run_all_tests_1.sh sends mail reports to let the tests progress
-	be checked without having to login to the machine where the tests
-	are running (which would invalidate the results of the tests). This
-	behavior can be configured by changing the related parameters,
-	defined in the previously-described config_params.sh file.
+	run_all_tests_1.sh sends mail reports to let the test progress
+	be checked without accessing the machine (and possibly
+	perturbing the tests themselves). This service can be
+	configured by changing some related parameters in
+	config_params.sh.
 utilities: several files here
 	. lib_utils.sh
 		Common functions used by the test scripts
 	. calc_avg_and_co.sh
 		Support script used by the other scripts to compute stats
 	. calc_overall_stats.sh
-
 		Takes as input a directory and, if the directory
 		contains at least one subdirectory containing, in its
 		turn, the results of one of the benchmarks, then, for
@@ -136,12 +135,12 @@ MAIN DEPENDENCIES
 
 You need at least fio, iostat (from the sysstat package), awk and time
 installed. For the kernel-development benchmark you also need git and
-make, whereas gnuplot is needed to generate plots through plot_stats.sh,
-and mplayer is needed for the video-playing benchmark. To have the
-run_all_tests_1.sh script send mail reports about the tests progress,
-you must be sure to have a mail transfer agent (such as, e.g., msmtp)
-and a mail client (such as, e.g., mailx) installed and correctly
-configured to send e-mails.
+make, whereas gnuplot is needed to generate plots through
+plot_stats.sh, and mplayer is needed for the video-playing
+benchmark. To let the run_all_tests_1.sh script send mail reports
+about the test progress, you must have a mail transfer agent (such as,
+e.g., msmtp) and a mail client (such as, e.g., mailx) installed and
+correctly configured to send e-mails.
 
 USAGE AND OUTPUT OF THE BENCHMARKS
 
