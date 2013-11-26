@@ -49,11 +49,14 @@ fi
 NOCACHE_OPTS="-nocache"
 SKIP_START_OPTS="-ss"
 SKIP_LENGTH_OPTS="-endpos"
-VIDEO_FNAME="/data/movie.avi"
 
-# The following parameters let the playback of trailer available at
+# The following filename is the one assigned as a default to the
+# trailer available at
 # http://www.youtube.com/watch?v=8-_9n5DtKOc
-# start a few seconds before the most demanding portion of the video.
+# when it is downloaded.
+VIDEO_FNAME="WALL-E HD 1080p Trailer.mp4"
+# The following parameters let the playback of the trailer start a
+# few seconds before the most demanding portion of the video.
 SKIP_START="00:01:32"
 SKIP_LENGTH="00:00:40"
 
