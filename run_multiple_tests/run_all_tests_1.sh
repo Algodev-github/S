@@ -1,7 +1,7 @@
 #!/bin/bash
 . ../config_params.sh
 
-NUM_REPETITIONS=10
+NUM_REPETITIONS=5
 cur_date=`date +%y%m%d_%H%M`
 RES_DIR=../results/run_all_tests_1/$cur_date
 schedulers=(bfq cfq)
@@ -90,9 +90,9 @@ function comm_startup_lat
 	repeat bash_startup "comm_startup_lat.sh $1 0 0 seq 10" "bash -c exit"
 
 	# 10 readers
-	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 seq 5"\
+	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 seq 10"\
 		"oowriter --terminate_after_init"
-	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 rand 5"\
+	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 rand 10"\
 		"oowriter --terminate_after_init"
 
 	repeat kons_startup "comm_startup_lat.sh $1 10 0 seq 10"\
@@ -110,9 +110,9 @@ function comm_startup_lat
 
 	# 5 readers and 5 writers
 
-	repeat oowriter_startup "comm_startup_lat.sh $1 5 5 seq 5"\
+	repeat oowriter_startup "comm_startup_lat.sh $1 5 5 seq 10"\
 		"oowriter --terminate_after_init"
-	repeat oowriter_startup "comm_startup_lat.sh $1 5 5 rand 5"\
+	repeat oowriter_startup "comm_startup_lat.sh $1 5 5 rand 10"\
 		"oowriter --terminate_after_init"
 
 	repeat kons_startup "comm_startup_lat.sh $1 5 5 seq 10"\
