@@ -115,6 +115,9 @@ function set_res_type
 	make | checkout | merge)
 	    res_type=kern_task
 	    ;;
+	video_playing)
+	    res_type=video_playing
+	    ;;
 	*)
 	    ;;
     esac
@@ -149,6 +152,15 @@ function per_subdirectory_loop
 `pwd`/`basename $single_test_res_dir`-progress-table.txt
 		target_quantity_type="Completion percentage"
 		reference_value_label="Completion percentage on idle disk"
+		;;
+	video_playing)
+		num_quants=6
+		record_lines=$((1 + $num_quants * 3))
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-drop_rate-table.txt
+		target_quantity_table_file=\
+`pwd`/`basename $single_test_res_dir`-drop_rate-table.txt
+		target_quantity_type="Drop rate"
+		reference_value_label="Drop rate with no greedy background workload"
 		;;
 	*)
 		echo Wrong or undefined result type
@@ -205,9 +217,11 @@ function per_subdirectory_loop
 		    line_created=True
 		fi
 
-		if [[ $cur_quant -eq 0 && "$res_type" != aggthr ]] ; then
+		if [[ $cur_quant -eq 0 && "$res_type" != aggthr && "$res_type" != video_playing ]] ||
+		   [[ $cur_quant -eq 1 && "$res_type" == video_playing ]] ; then
 
-		    if [[ "$res_type" == startup_lat ]]; then
+		    if (("$res_type" == startup_lat)) ||
+		       (("$res_type" == video_playing)); then
 			field_num=3
 		    elif [[ $res_type == kern_task ]]; then
 			field_num=1
@@ -217,8 +231,8 @@ function per_subdirectory_loop
 		       		awk '{print $'$field_num'}')
 		    
 		    echo -ne "\t$target_field" >> $target_quantity_table_file
-		elif ((cur_quant == 0)) ||
-		    ( (( cur_quant == 1)) && [[ $res_type != aggthr ]] ) ; then
+		elif (((cur_quant == 0)) && [[ "$res_type" != video_playing ]]) ||
+		     ( (( cur_quant == 1)) && [[ $res_type != aggthr ]] && [[ $res_type != video_playing ]] ) ; then
 		    target_field=`tail -n 1 $out_file | awk '{print $3}'`
 
 		    echo -ne "\t$target_field" >> $thr_table_file
@@ -266,7 +280,7 @@ fi
 
 cd $results_dir
 num_dir_visited=0
-for filter in "aggthr" "make" "checkout" "merge" "startup"; do
+for filter in "aggthr" "make" "checkout" "merge" "startup" "video_playing"; do
     echo $filter
     for single_test_res_dir in `find $results_dir -name "*$filter*" -type d`; do
 	per_subdirectory_loop $single_test_res_dir $filter
@@ -280,7 +294,7 @@ fi
 
 # if we get here, then the result directory is a candidate to contain the
 # results of just one test
-for filter in "aggthr" "make" "checkout" "merge" "startup"; do
+for filter in "aggthr" "make" "checkout" "merge" "startup" "video_playing"; do
     echo $filter
     if [[ `echo $res_dirname | grep $filter` != "" ]]; then
 	per_subdirectory_loop $results_dir $filter

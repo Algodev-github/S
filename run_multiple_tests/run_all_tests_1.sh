@@ -142,6 +142,17 @@ function interleaved_io
 	repeat interleaved_io "interleaved_io.sh $1 9"
 }
 
+function video_playing
+{
+	cd ../video_playing_vs_commands
+	type=real
+	repeat video_playing "video_play_vs_comms.sh $1 0 0 seq 10 $type"
+	repeat video_playing "video_play_vs_comms.sh $1 10 0 seq 10 $type"
+	repeat video_playing "video_play_vs_comms.sh $1 10 0 rand 10 $type"
+	repeat video_playing "video_play_vs_comms.sh $1 5 5 seq 10 $type"
+	repeat video_playing "video_play_vs_comms.sh $1 5 5 rand 10 $type"
+}
+
 # fairness tests to be added ...
 
 echo Tests beginning on $cur_date
@@ -181,12 +192,10 @@ for sched in ${schedulers[*]}; do
 	send_email "interleaved_io tests beginning"
 	interleaved_io $sched
 	send_email "interleaved_io tests finished"
+	send_email "video_playing tests beginning"
+	video_playing $sched
+	send_email "video_playing tests finished"
 done
-
-cd ../run_multiple_tests
-send_email "video_playing tests beginning"
-./run_all_video_playing_tests.sh real $RES_DIR
-send_email "video_playing tests finished"
 
 send_email "benchmark suite run ended"
 
