@@ -191,7 +191,7 @@ send_email "video_playing tests finished"
 send_email "benchmark suite run ended"
 
 cd ../utilities
-./calc_overall_stats.sh $RES_DIR
+./calc_overall_stats.sh $RES_DIR "${schedulers[@]}"
 script_dir=`pwd`
 
 cd $RES_DIR
