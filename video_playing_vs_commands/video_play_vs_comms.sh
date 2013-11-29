@@ -78,8 +78,8 @@ function invoke_player_plus_commands {
 		M_CMD="${M_CMD} ${NOCACHE_OPTS}"
 		M_CMD="${M_CMD} ${SKIP_START_OPTS} ${SKIP_START}"
 		M_CMD="${M_CMD} ${SKIP_LENGTH_OPTS} ${SKIP_LENGTH}"
-		M_CMD="${M_CMD} ${VIDEO_FNAME}"
-		${M_CMD} 2>&1 | tee -a ${PLAYER_OUT_FNAME} &
+		M_CMD="${M_CMD} \"${VIDEO_FNAME}\""
+		eval ${M_CMD} 2>&1 | tee -a ${PLAYER_OUT_FNAME} &
 		echo "Started ${M_CMD}"
 
 		echo sleep ${WEIGHT_DEBOOST_TIMEOUT}
