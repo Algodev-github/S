@@ -196,6 +196,13 @@ function per_subdirectory_loop
 	for sched in $SCHEDULERS; do
 	    file_loop $single_test_res_dir
 	    if [ ! -f line_file0 ]; then
+		if [[ "$line_created" == True ]]; then
+		    printf "\tX" >> $thr_table_file
+
+		    if [[ $res_type != aggthr ]]; then
+			printf "\tX" >> $target_quantity_table_file
+		    fi
+		fi
 		continue
 	    fi
 
@@ -229,12 +236,19 @@ function per_subdirectory_loop
 		    
 		    target_field=$(tail -n 1 $out_file |\
 		       		awk '{print $'$field_num'}')
+		
+		    if [[ "$target_field" == "" ]]; then
+			target_field=X
+		    fi
 		    
 		    echo -ne "\t$target_field" >> $target_quantity_table_file
 		elif (((cur_quant == 0)) && [[ "$res_type" != video_playing ]]) ||
 		     ( (( cur_quant == 1)) && [[ $res_type != aggthr ]] && [[ $res_type != video_playing ]] ) ; then
 		    target_field=`tail -n 1 $out_file | awk '{print $3}'`
 
+		    if [[ "$target_field" == "" ]]; then
+			target_field=X
+		    fi
 		    echo -ne "\t$target_field" >> $thr_table_file
 		fi
 
