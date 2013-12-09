@@ -74,6 +74,7 @@ function clean_and_exit {
     shutdwn 'fio iostat'
     cd ..
     rm -rf results-$sched
+    rm -f Stop-iterations current-pid # remove possible garbage
     exit
 }
 
@@ -85,6 +86,7 @@ function invoke_commands {
 	    REF_TIME=1
 	fi
 
+	rm -f Stop-iterations current-pid # remove possible garbage
 	for ((i = 0 ; $NUM_ITER == 0 || i < $NUM_ITER ; i++)) ; do
 		echo
 		if (($NUM_ITER > 0)); then
@@ -105,20 +107,18 @@ function invoke_commands {
 			disown
 		fi
 		COM_TIME=`setsid bash -c 'echo $BASHPID > current-pid; /usr/bin/time -f %e '"$COMMAND" 2>&1`
+		TIME=`echo "$COM_TIME + $TIME - $SLEEPTIME_ITER" | bc -l`
 		if [[ "$MAX_STARTUP" != "0" ]]; then
 			if [[ "$KILLPROC" != "" && "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
 				kill -9 $KILLPROC > /dev/null 2>&1
 				KILLPROC=
-			else
-			    if [[ -f Stop-iterations ]]; then
+			fi
+			if [[ -f Stop-iterations || "$TIME" == "" || `echo $TIME '>' $MAX_STARTUP | bc -l` == "1" ]]; then
 				echo Stopping iterations
-				rm Stop-iterations
 				clean_and_exit
-			    fi
 			fi
 		fi
 		echo done
-		TIME=`echo "$COM_TIME + $TIME - $SLEEPTIME_ITER" | bc -l`
 		echo "$TIME" >> lat-${sched}
 		printf "          Start-up time: "
 		NUM=`echo "( $TIME / $REF_TIME) * 2" | bc -l`
