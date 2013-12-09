@@ -16,7 +16,7 @@ function send_email
 		HNAME=`uname -n`
 		KVER=`uname -r`
 		TSTAMP=`date +%y%m%d_%H%M%S`
-		echo "$1 on $HNAME with kernel $KVER at $TSTAMP" | \
+		echo "$1 on $HNAME with scheduler $sched and kernel $KVER at $TSTAMP" | \
 			mail -s "$1 on $HNAME" $MAIL_REPORTS_RECIPIENT
 	fi
 }
@@ -176,10 +176,9 @@ if [ "${NCQ_QUEUE_DEPTH}" != "" ]; then
     fi
 fi
 
-send_email "benchmark suite run started"
-
 for sched in ${schedulers[*]}; do
 	echo Running tests on $sched \($HD\)
+	send_email "benchmark suite run started"
 	send_email "comm_startup_lat tests beginning"
 	comm_startup_lat $sched
 	send_email "comm_startup_lat tests finished"
@@ -195,9 +194,8 @@ for sched in ${schedulers[*]}; do
 	send_email "video_playing tests beginning"
 	video_playing $sched
 	send_email "video_playing tests finished"
+	send_email "benchmark suite run ended"
 done
-
-send_email "benchmark suite run ended"
 
 cd ../utilities
 ./calc_overall_stats.sh $RES_DIR "${schedulers[@]}"
