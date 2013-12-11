@@ -195,7 +195,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
 	if [[ $sched == "bfq" ]]; then
 		MAX_RAIS_SEC=\
-$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000))
+$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000 + 1))
 		echo "Maximum raising time: $MAX_RAIS_SEC seconds"
 	else
 		MAX_RAIS_SEC=7
