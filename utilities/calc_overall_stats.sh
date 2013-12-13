@@ -186,7 +186,7 @@ function per_subdirectory_loop
     mkdir -p work_dir
     cd work_dir
 
-    for workload in "1r0w-seq" "1r0w-rand" "0r0w-seq" \
+    for workload in "0r0w-seq" "1r0w-seq" "1r0w-rand"  \
 	"10r0w-seq" "10r0w-rand" "5r5w-seq" "5r5w-rand" \
 	"5r0w-seq" "5r0w-rand" "2r2w-seq" "2r2w-rand" \
 	"3r-int_io" "5r-int_io" "6r-int_io" "7r-int_io" "9r-int_io"; do
