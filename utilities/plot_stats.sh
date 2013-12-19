@@ -271,6 +271,4 @@ if [ $term_mode != "x11" ] ; then
     echo Wrote $out_file_name.$term_mode
 fi
 
-echo mv $out_file_name.$term_mode $dir_name
-
 rm tmp_file
