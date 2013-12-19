@@ -26,7 +26,12 @@ function create_label_file
     y_offset=$4
     label_file=$5
 
-    awk '{ if ($'$col_idx' < 100) \
+    # use two different width depending on whether the value is lower than 100
+    awk '{ if ($'$col_idx' < 0) \
+        printf "set label \"X\" at %g,%g center font \"arial,'$((FONT_SIZE+3))'\""\
+        " front\n",\
+        (row++)'$x_offset$GIF_OFFSET', '$y_offset'*0.75; \
+        else if ($'$col_idx' < 100) \
         printf "set label \"%.2g\" at %g,%g center font \"arial,'$FONT_SIZE'\""\
         " front\n",\
         $'$col_idx', (row++)'$x_offset$GIF_OFFSET', $'$col_idx'+'$y_offset'; \
@@ -48,6 +53,13 @@ function create_label_positions()
 	GIF_OFFSET=+.02
     else
 	FONT_SIZE=15
+    fi
+
+    if [[ "$1" -gt 5 ]] ; then
+	FONT_SIZE=$(($FONT_SIZE - 3))
+	if [ "$term_mode" == "eps" ] ; then
+	    FONT_SIZE=$(($FONT_SIZE - 2))
+	fi
     fi
 
     label_y_offset=`echo "$max_y/100 * 3" | bc -l`
@@ -76,7 +88,15 @@ function create_label_positions()
 	    create_label_file $in_file_name 3 +.20 $label_y_offset label_2.plt
 	    create_label_file $in_file_name 4 +.30 $label_y_offset label_3.plt
 	    create_label_file $in_file_name 5 +.40 $label_y_offset label_4.plt
-	    create_label_file $in_file_name 5 +.50 $label_y_offset label_5.plt
+	    create_label_file $in_file_name 6 +.50 $label_y_offset label_5.plt
+	    ;;
+	6) # good for four clusters
+	    create_label_file $in_file_name 2 -.39 $label_y_offset label_1.plt
+	    create_label_file $in_file_name 3 -.23 $label_y_offset label_2.plt
+	    create_label_file $in_file_name 4 -.07 $label_y_offset label_3.plt
+	    create_label_file $in_file_name 5 +.08 $label_y_offset label_4.plt
+	    create_label_file $in_file_name 6 +.20 $label_y_offset label_5.plt
+	    create_label_file $in_file_name 7 +.35 $label_y_offset label_6.plt
 	    ;;
 	*)
 	    echo $1 bars not supported
@@ -183,7 +203,7 @@ if [[ "$1" == "-h" || "$1" == "" ]]; then
 fi
 
 in_filename=$1
-out_filename=`basename $in_filename`
+out_filename=$in_filename
 out_filename="${out_filename%.*}"
 
 lines=()
@@ -204,9 +224,7 @@ while read line; do
     fi
 done < $in_filename
 
-echo $max_value
-
-max_value=$(echo "$max_value * 1.40" | bc -l)
+max_value=$(echo "$max_value * 1.55" | bc -l)
 
 line_idx=1 # second line
 
@@ -252,5 +270,7 @@ plot_histograms tmp_file $out_filename \
 if [ $term_mode != "x11" ] ; then
     echo Wrote $out_file_name.$term_mode
 fi
+
+echo mv $out_file_name.$term_mode $dir_name
 
 rm tmp_file
