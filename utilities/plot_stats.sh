@@ -123,6 +123,7 @@ function write_basic_plot_conf()
     set key samplen 1
     set auto fix
     set yrange [0:$max_y]
+    # set size 1.4 #-> useful if the legend overlaps with some bar
     " >> tmp.txt
 }
 
