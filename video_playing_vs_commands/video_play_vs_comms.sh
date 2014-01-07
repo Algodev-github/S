@@ -58,7 +58,9 @@ VIDEO_FNAME="WALL-E HD 1080p Trailer.mp4"
 # The following parameters let the playback of the trailer start a
 # few seconds before the most demanding portion of the video.
 SKIP_START="00:01:32"
-SKIP_LENGTH="00:00:40"
+SKIP_LENGTH_SEC=40
+SKIP_LENGTH="00:00:${SKIP_LENGTH_SEC}"
+STOP_ITER_TOLERANCE_SEC=10
 
 WEIGHT_DEBOOST_TIMEOUT=10
 PLAYER_OUT_FNAME=${sched}-player_out.txt
@@ -79,6 +81,14 @@ $(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000 + 1))
 	fi
 }
 
+function clean_and_exit {
+	shutdwn 'fio iostat mplayer'
+	cd ..
+	# rm work dir
+	rm -rf results-${sched}
+	exit
+}
+
 function invoke_player_plus_commands {
 
 	rm -f ${DROP_DATA_FNAME}
@@ -93,12 +103,17 @@ function invoke_player_plus_commands {
 		M_CMD="${M_CMD} \"${VIDEO_FNAME}\""
 		eval ${M_CMD} 2>&1 | tee -a ${PLAYER_OUT_FNAME} &
 		echo "Started ${M_CMD}"
+		ITER_START_TIMESTAMP=`date +%s`
 
 		RAIS_SEC=$(get_max_rais_sec)
 		echo sleep $RAIS_SEC
 		sleep $RAIS_SEC
 
 		while true ; do
+			if [ `date +%s` -gt $(($ITER_START_TIMESTAMP+$SKIP_LENGTH_SEC+$STOP_ITER_TOLERANCE_SEC)) ]; then
+				echo Stopping iterations
+				clean_and_exit
+			fi
 			# we just invalidate caches but do not sync here,
 			# otherwise writes stall everything with
 			# any scheduler (and however latencies
@@ -180,7 +195,7 @@ mkdir -p results-$sched
 cd results-$sched
 
 # setup a quick shutdown for Ctrl-C 
-trap "shutdwn 'fio iostat' ; exit" sigint
+trap "clean_and_exit" sigint
 
 flush_caches
 
