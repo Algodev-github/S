@@ -70,6 +70,15 @@ if [ "$1" == "-h" ]; then
         exit
 fi
 
+function get_max_rais_sec {
+	if [[ $sched == "bfq" ]]; then
+		echo \
+$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000 + 1))
+	else
+		echo $WEIGHT_DEBOOST_TIMEOUT
+	fi
+}
+
 function invoke_player_plus_commands {
 
 	rm -f ${DROP_DATA_FNAME}
@@ -85,8 +94,9 @@ function invoke_player_plus_commands {
 		eval ${M_CMD} 2>&1 | tee -a ${PLAYER_OUT_FNAME} &
 		echo "Started ${M_CMD}"
 
-		echo sleep ${WEIGHT_DEBOOST_TIMEOUT}
-		sleep ${WEIGHT_DEBOOST_TIMEOUT}
+		RAIS_SEC=$(get_max_rais_sec)
+		echo sleep $RAIS_SEC
+		sleep $RAIS_SEC
 
 		while true ; do
 			# we just invalidate caches but do not sync here,
@@ -174,18 +184,23 @@ trap "shutdwn 'fio iostat' ; exit" sigint
 
 flush_caches
 
-init_tracing
+if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
+	start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
-start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
-
-# wait for reader/writer start-up transitory to terminate
-echo sleep $((6 + $NUM_READERS + $NUM_WRITERS))
-sleep $((6 + $NUM_READERS + $NUM_WRITERS))
-
-set_tracing 1
+	# wait for reader/writer start-up transitory to terminate
+	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
+	MAX_RAIS_SEC=$(get_max_rais_sec)
+	echo "Maximum raising time: $MAX_RAIS_SEC seconds"
+	SLEEP=$(( $MAX_RAIS_SEC + ($SLEEP / 2 ) ))
+	echo sleep $SLEEP
+	sleep $SLEEP
+fi
 
 # start logging aggthr
 iostat -tmd /dev/$HD 3 | tee iostat.out &
+
+init_tracing
+set_tracing 1
 
 invoke_player_plus_commands
 
