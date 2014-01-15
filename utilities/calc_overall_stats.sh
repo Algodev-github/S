@@ -214,13 +214,16 @@ function per_subdirectory_loop
 		cat line_file$cur_quant | tee -a $out_file
 		second_field=`tail -n 1 $out_file | awk '{print $2}'`
 
-		cat number_file$cur_quant | $CALC_AVG_AND_CO 99 | tee -a $out_file
+		cat number_file$cur_quant | $CALC_AVG_AND_CO 99 | \
+		    tee -a $out_file
 
 		if [[ "$line_created" != True ]] ; then
-		    echo -n $workload >> $thr_table_file
+		    wl_improved_name=`echo $workload | sed 's/0w//'`
+
+		    echo -n $wl_improved_name >> $thr_table_file
 
 		    if [[ $res_type != aggthr ]]; then
-			echo -n $workload \
+			echo -n $wl_improved_name \
 			    >> $target_quantity_table_file
 		    fi
 		    line_created=True
@@ -293,8 +296,8 @@ res_type=$4
 res_dirname=`basename $results_dir`
 
 if [[ "$reference_case" == "" ]]; then
-    thr_reference_case=1r0w-seq
-    target_reference_case=0r0w-seq
+    thr_reference_case=1r-seq
+    target_reference_case=0r-seq
 else
     thr_reference_case=$reference_case
     target_reference_case=$reference_case
