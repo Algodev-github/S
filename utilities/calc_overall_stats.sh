@@ -188,7 +188,9 @@ function per_subdirectory_loop
 
     for workload in "0r0w-seq" "1r0w-seq" "5r0w-seq" "10r0w-seq" \
 	"1r0w-rand" "5r0w-rand" "10r0w-rand"   \
-	 "2r2w-seq" "5r5w-seq" "2r2w-rand" "5r5w-rand" \
+	"2r2w-seq" "5r5w-seq" "2r2w-rand" "5r5w-rand" \
+	"0r0w-raw_seq" "1r0w-raw_seq" "10r0w-raw_seq" \
+	"1r0w-raw_rand" "10r0w-raw_rand" \
 	"3r-int_io" "5r-int_io" "6r-int_io" "7r-int_io" "9r-int_io"; do
 
 	line_created=False
