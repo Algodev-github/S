@@ -226,8 +226,10 @@ function per_subdirectory_loop
 		    line_created=True
 		fi
 
-		if [[ $cur_quant -eq 0 && "$res_type" != aggthr && "$res_type" != video_playing ]] ||
-		   [[ $cur_quant -eq 1 && "$res_type" == video_playing ]] ; then
+		if [[ $cur_quant -eq 0 && "$res_type" != aggthr && \
+		      "$res_type" != video_playing ]] ||
+		   [[ $cur_quant -eq 1 && \
+		      "$res_type" == video_playing ]] ; then
 
 		    if (("$res_type" == startup_lat)) ||
 		       (("$res_type" == video_playing)); then
@@ -244,9 +246,12 @@ function per_subdirectory_loop
 		    fi
 		    
 		    echo -ne "\t$target_field" >> $target_quantity_table_file
-		elif (((cur_quant == 0)) && [[ "$res_type" != video_playing ]]) ||
-		     ( (( cur_quant == 1)) && [[ $res_type != aggthr ]] && [[ $res_type != video_playing ]] ) ||
-		     ( (( cur_quant == 3)) && [[ $res_type == video_playing ]] ); then
+		elif (((cur_quant == 0)) && \
+		      [[ "$res_type" != video_playing ]]) ||
+		     ((( cur_quant == 1)) && [[ $res_type != aggthr ]] && \
+		      [[ $res_type != video_playing ]]) ||
+		     ((( cur_quant == 3)) && \
+		      [[ $res_type == video_playing ]]); then
 		    target_field=`tail -n 1 $out_file | awk '{print $3}'`
 
 		    if [[ "$target_field" == "" ]]; then
