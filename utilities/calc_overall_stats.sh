@@ -156,7 +156,7 @@ function per_subdirectory_loop
 	video_playing)
 		num_quants=6
 		record_lines=$((1 + $num_quants * 3))
-		thr_table_file=`pwd`/`basename $single_test_res_dir`-drop_rate-table.txt
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-thr-table.txt
 		target_quantity_table_file=\
 `pwd`/`basename $single_test_res_dir`-drop_rate-table.txt
 		target_quantity_type="Drop rate"
@@ -245,7 +245,8 @@ function per_subdirectory_loop
 		    
 		    echo -ne "\t$target_field" >> $target_quantity_table_file
 		elif (((cur_quant == 0)) && [[ "$res_type" != video_playing ]]) ||
-		     ( (( cur_quant == 1)) && [[ $res_type != aggthr ]] && [[ $res_type != video_playing ]] ) ; then
+		     ( (( cur_quant == 1)) && [[ $res_type != aggthr ]] && [[ $res_type != video_playing ]] ) ||
+		     ( (( cur_quant == 3)) && [[ $res_type == video_playing ]] ); then
 		    target_field=`tail -n 1 $out_file | awk '{print $3}'`
 
 		    if [[ "$target_field" == "" ]]; then
