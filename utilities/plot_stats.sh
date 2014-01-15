@@ -204,6 +204,11 @@ if [[ "$1" == "-h" || "$1" == "" ]]; then
 fi
 
 in_filename=$1
+
+sed 's/X/-1/g' $in_filename > $in_filename.tmp1
+sed 's/-1-Axis/X-Axis/g' $in_filename.tmp1 > $in_filename.tmp
+
+in_filename=$in_filename.tmp
 out_filename=$in_filename
 out_filename="${out_filename%.*}"
 
@@ -240,6 +245,12 @@ if [[ $ref_mode == ref ]]; then
 
     reference_case_value=$(grep "^$reference_case" $in_filename | tail -n 1 | \
 	awk '{print $2}')
+
+    if [[ "$reference_case_value" == "" ]]; then
+	reference_case=`echo $reference_case | sed 's/seq/raw_seq/'`
+	reference_case_value=$(grep "^$reference_case" $in_filename |\
+           tail -n 1 | awk '{print $2}')
+    fi
     
     reference_case_label=$(echo ${lines[$(($line_idx + 1))]} | \
 	sed 's/# Reference-case label: //')
@@ -272,4 +283,4 @@ if [ $term_mode != "x11" ] ; then
     echo Wrote $out_file_name.$term_mode
 fi
 
-rm tmp_file
+rm tmp_file $in_filename $in_filename1
