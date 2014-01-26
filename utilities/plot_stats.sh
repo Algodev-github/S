@@ -4,6 +4,7 @@ export LC_ALL=C
 dirname=plots
 ref_mode=${2:-"ref"}
 term_mode=${3:-"x11"}
+scaling_factor=${4:-"1.55"}
 plot_id=1
 usage_msg="\
 Usage:
@@ -41,6 +42,8 @@ function create_label_file
         $'$col_idx', (row++)'$x_offset$GIF_OFFSET', $'$col_idx'+'$y_offset'}' \
 	< $in_file_name	> $label_file
 
+    # remove leading zeros
+    sed -i 's/\"0\./\"\./' $label_file
 }
 
 # create files (loaded by gnuplot) containing the relative positions
@@ -95,7 +98,7 @@ function create_label_positions()
 	    create_label_file $in_file_name 3 -.23 $label_y_offset label_2.plt
 	    create_label_file $in_file_name 4 -.07 $label_y_offset label_3.plt
 	    create_label_file $in_file_name 5 +.08 $label_y_offset label_4.plt
-	    create_label_file $in_file_name 6 +.20 $label_y_offset label_5.plt
+	    create_label_file $in_file_name 6 +.21 $label_y_offset label_5.plt
 	    create_label_file $in_file_name 7 +.35 $label_y_offset label_6.plt
 	    ;;
 	*)
@@ -230,7 +233,7 @@ while read line; do
     fi
 done < $in_filename
 
-max_value=$(echo "$max_value * 1.55" | bc -l)
+max_value=$(echo "$max_value * $scaling_factor" | bc -l)
 
 line_idx=1 # second line
 
