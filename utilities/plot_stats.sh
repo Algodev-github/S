@@ -208,9 +208,9 @@ in_filename=$1
 sed 's/X/-1/g' $in_filename > $in_filename.tmp1
 sed 's/-1-Axis/X-Axis/g' $in_filename.tmp1 > $in_filename.tmp
 
-in_filename=$in_filename.tmp
 out_filename=$in_filename
 out_filename="${out_filename%.*}"
+in_filename=$in_filename.tmp
 
 lines=()
 max_value=0
@@ -283,4 +283,4 @@ if [ $term_mode != "x11" ] ; then
     echo Wrote $out_file_name.$term_mode
 fi
 
-rm tmp_file $in_filename $in_filename1
+rm tmp_file $in_filename ${in_filename}1
