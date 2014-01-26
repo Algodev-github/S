@@ -194,6 +194,7 @@ function per_subdirectory_loop
 	"3r-int_io" "5r-int_io" "6r-int_io" "7r-int_io" "9r-int_io"; do
 
 	line_created=False
+	numX=0
 
 	for sched in $SCHEDULERS; do
 	    file_loop $single_test_res_dir
@@ -205,6 +206,7 @@ function per_subdirectory_loop
 			printf "\tX" >> $target_quantity_table_file
 		    fi
 		fi
+		numX=$((numX + 1))
 		continue
 	    fi
 
@@ -221,10 +223,17 @@ function per_subdirectory_loop
 		    wl_improved_name=`echo $workload | sed 's/0w//'`
 
 		    echo -n $wl_improved_name >> $thr_table_file
+		    
+		    for ((i = 0 ; i < numX ; i++)) ; do
+			echo -n "\tX\t" >> $thr_table_file
+		    done
 
 		    if [[ $res_type != aggthr ]]; then
 			echo -n $wl_improved_name \
 			    >> $target_quantity_table_file
+			for ((i = 0 ; i < numX ; i++)) ; do
+			    echo -n " X " >> $target_quantity_table_file
+			done
 		    fi
 		    line_created=True
 		fi
