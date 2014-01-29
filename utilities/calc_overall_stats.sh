@@ -96,7 +96,7 @@ function file_loop
 function write_header
 {
     echo "# Table automatically created by calc_overall_stats" > $1
-    echo "# X-Axis: Guest workload" >> $1
+    echo "# X-Axis: Workload" >> $1
     echo "# Y-Axis: $2" >> $1
     echo "# Reference case: $3" >> $1
     echo "# Reference-case label: $4" >> $1
