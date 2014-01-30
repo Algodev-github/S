@@ -43,7 +43,8 @@ function create_label_file
 	< $in_file_name	> $label_file
 
     # remove leading zeros
-    sed -i 's/\"0\./\"\./' $label_file
+    sed 's/\"0\./\"\./' $label_file > $label_file.tmp
+    mv $label_file.tmp $label_file
 }
 
 # create files (loaded by gnuplot) containing the relative positions
