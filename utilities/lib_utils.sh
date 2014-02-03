@@ -250,6 +250,7 @@ function print_save
 function print_save_agg_thr
 {
 	sed -i 's/,/\./g' iostat.out
+	sed -i '3,6d' iostat.out
 	print_save $1 "Aggregated throughput:" 'print $3 + $4'
 	print_save $1 "Read throughput:" 'print $3'
 	print_save $1 "Write throughput:" 'print $4'
