@@ -179,13 +179,13 @@ function start_readers_writers
 		done
 	else
 		if [ $NUM_READERS -gt 0 ] ; then
-		        $FIO --name=writers --rw=randread \
+		        $FIO --name=readers --rw=randread \
        	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ \
 			> /dev/null &
 		fi
 		if [ $NUM_WRITERS -gt 0 ] ; then
 			rm -f $FILE_TO_RAND_WRITE
-			$FIO --name=readers --rw=randwrite \
+			$FIO --name=writers --rw=randwrite \
 			    --rate=$(($MAXRATE / $NUM_WRITERS))k \
 			    --size=${NUM_BLOCKS_CREATE_RAND}M \
 			    --numjobs=$NUM_WRITERS \
