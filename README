@@ -133,9 +133,9 @@ utilities: several files here
 
 MAIN DEPENDENCIES
 
-You need at least fio, iostat (from the sysstat package), awk and time
-installed. For the kernel-development benchmark you also need git and
-make, whereas gnuplot is needed to generate plots through
+You need at least fio, iostat (from the sysstat package), awk, time
+and bc installed. For the kernel-development benchmark you also need
+git and make, whereas gnuplot is needed to generate plots through
 plot_stats.sh, and mplayer is needed for the video-playing
 benchmark. To let the run_all_tests_1.sh script send mail reports
 about the test progress, you must have a mail transfer agent (such as,
