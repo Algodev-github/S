@@ -77,7 +77,7 @@ echo Switching to $SCHED
 echo $SCHED > /sys/block/$HD/queue/scheduler
 
 # setup a quick shutdown for Ctrl-C
-trap "shutdwn; exit" sigint
+trap "shutdwn 'dd iostat'; exit" sigint
 
 # init and turn on tracing if TRACE==1
 init_tracing
