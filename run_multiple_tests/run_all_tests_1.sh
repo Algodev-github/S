@@ -157,8 +157,17 @@ function video_playing
 
 echo Tests beginning on $cur_date
 
-echo /etc/init.d/cron stop
-/etc/init.d/cron stop
+if [[ "$(pgrep systemd)" != "" ]]; then
+	echo systemctl stop crond.service
+	systemctl stop crond.service
+	echo systemctl stop abrtd.service
+	systemctl stop abrtd.service
+else
+	echo /etc/init.d/cron stop
+	/etc/init.d/cron stop
+fi
+echo tracker-control -r
+tracker-control -r
 
 rm -rf $RES_DIR
 mkdir -p $RES_DIR
