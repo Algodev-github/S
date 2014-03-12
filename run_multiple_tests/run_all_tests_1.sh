@@ -103,9 +103,9 @@ function comm_startup_lat
 	cd ../comm_startup_lat
 
 	# 0 readers/writers
-	repeat oowriter_startup "comm_startup_lat.sh $1 0 0 seq 5"\
-		"oowriter --terminate_after_init"
 
+	repeat oowriter_startup "comm_startup_lat.sh $1 0 0 seq 10"\
+		"oowriter --terminate_after_init"
 	repeat kons_startup "comm_startup_lat.sh $1 0 0 seq 10"\
 		"konsole -e /bin/true"
 	repeat xterm_startup "comm_startup_lat.sh $1 0 0 seq 10"\
@@ -113,6 +113,7 @@ function comm_startup_lat
 	repeat bash_startup "comm_startup_lat.sh $1 0 0 seq 10" "bash -c exit"
 
 	# 10 readers
+
 	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 seq 10"\
 		"oowriter --terminate_after_init"
 	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 rand 10"\
