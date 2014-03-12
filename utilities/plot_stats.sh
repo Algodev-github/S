@@ -170,7 +170,7 @@ function plot_histograms()
 	printf "
         #set key horizontal 8000, 30
         set output \"${out_file_name}.gif\"
-        set term gif 14
+        set term gif font \"arial,14\"
         " >> tmp.txt
 	    ;;
 	*)
