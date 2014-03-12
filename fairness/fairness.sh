@@ -81,6 +81,14 @@ cd results-$SCHED
 echo Switching to $SCHED
 echo $SCHED > /sys/block/$HD/queue/scheduler
 
+# if BFQ is the scheduler under test, disable the low_latency
+# heuristics; otherwise, results would be distorted by the
+# initial weight-raising period of the readers
+if [[ "$SCHED" == "bfq" ]]; then
+	echo "Disabling low_latency"
+	echo 0 > /sys/block/$HD/queue/iosched/low_latency
+fi
+
 # setup a quick shutdown for Ctrl-C
 trap "shutdwn 'dd fio iostat'; exit" sigint
 
