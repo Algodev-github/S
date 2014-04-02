@@ -72,15 +72,6 @@ if [ "$1" == "-h" ]; then
         exit
 fi
 
-function get_max_rais_sec {
-	if [[ $sched == "bfq" ]]; then
-		echo \
-$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000 + 1))
-	else
-		echo $WEIGHT_DEBOOST_TIMEOUT
-	fi
-}
-
 function clean_and_exit {
 	shutdwn 'fio iostat mplayer'
 	cd ..
@@ -105,7 +96,7 @@ function invoke_player_plus_commands {
 		echo "Started ${M_CMD}"
 		ITER_START_TIMESTAMP=`date +%s`
 
-		RAIS_SEC=$(get_max_rais_sec)
+		RAIS_SEC=$(transitory_duration $WEIGHT_DEBOOST_TIMEOUT)
 		echo sleep $RAIS_SEC
 		sleep $RAIS_SEC
 
@@ -204,10 +195,9 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 
 	# wait for reader/writer start-up transitory to terminate
 	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
-	MAX_RAIS_SEC=$(get_max_rais_sec)
-	echo "Maximum raising time: $MAX_RAIS_SEC seconds"
-	SLEEP=$(( $MAX_RAIS_SEC + ($SLEEP / 2 ) ))
-	echo sleep $SLEEP
+	MAX_RAIS_SEC=$(transitory_duration $WEIGHT_DEBOOST_TIMEOUT)
+	SLEEP=$(($MAX_RAIS_SEC + ($SLEEP / 2 )))
+	echo "Waiting for transitory to terminate ($SLEEP seconds)"
 	sleep $SLEEP
 fi
 

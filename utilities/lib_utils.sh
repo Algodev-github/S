@@ -46,6 +46,22 @@ function set_scheduler
 	fi
 }
 
+function transitory_duration
+{
+	OTHER_SCHEDULER_DURATION=$1
+	if [[ $sched == "bfq" ]]; then
+		if [ -f /sys/block/$HD/queue/iosched/raising_max_time ]; then
+			FNAME=/sys/block/$HD/queue/iosched/raising_max_time
+		else
+			FNAME=/sys/block/$HD/queue/iosched/wr_max_time
+		fi
+		MAX_RAIS_SEC=$(($(cat $FNAME) / 1000 + 1))
+	else
+		MAX_RAIS_SEC=$OTHER_SCHEDULER_DURATION
+	fi
+	echo $MAX_RAIS_SEC
+}
+
 function shutdwn
 {
 	set_tracing 0
