@@ -175,7 +175,7 @@ function plot_histograms()
 	    ;;
 	*)
 	printf "
-	set term x11 $plot_id font \"arial,12\"
+	set term $term_mode $plot_id font \"arial,12\"
         " >> tmp.txt
 	options="-persist"
 	    ;;
@@ -236,6 +236,10 @@ done < $in_filename
 
 max_value=$(echo "$max_value * $scaling_factor" | bc -l)
 
+if [[ "$max_value" == "0" ]]; then
+    max_value=0.01
+fi
+
 line_idx=1 # second line
 
 x_label=$(echo ${lines[$line_idx]} | sed 's/# X-Axis: //')
@@ -283,7 +287,7 @@ plot_histograms tmp_file $out_filename \
 	"$x_label" 0 "$y_label" ${#schedulers[@]} \
 	 "$curves" "$reference_case_label" "$reference_case_value" $max_value
     
-if [ $term_mode != "x11" ] ; then
+if [[ $term_mode != "x11" && $term_mode != "aqua" ]] ; then
     echo Wrote $out_file_name.$term_mode
 fi
 
