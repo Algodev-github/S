@@ -179,6 +179,10 @@ function start_readers_writers
 	echo
 
 	if [ "$RW_TYPE" == "seq" ]; then
+		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
+		do
+			rm -f ${BASE_SEQ_FILE_PATH}_write$i
+		done
 		for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 		do
 			$FIO --name=seqreader$i -rw=read --numjobs=1 \
@@ -186,7 +190,6 @@ function start_readers_writers
 		done
 		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 		do
-			rm -f ${BASE_SEQ_FILE_PATH}_write$i
 			$FIO --name=seqwriter$i -rw=write \
 			    --rate=$(($MAXRATE / $NUM_WRITERS))k \
 			    --numjobs=1 --size=${NUM_BLOCKS_CREATE_SEQ}M \
@@ -194,13 +197,15 @@ function start_readers_writers
 			    > /dev/null &
 		done
 	else
+		if [ $NUM_WRITERS -gt 0 ] ; then
+			rm -f $FILE_TO_RAND_WRITE
+		fi
 		if [ $NUM_READERS -gt 0 ] ; then
 		        $FIO --name=readers --rw=randread \
        	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ \
 			> /dev/null &
 		fi
 		if [ $NUM_WRITERS -gt 0 ] ; then
-			rm -f $FILE_TO_RAND_WRITE
 			$FIO --name=writers --rw=randwrite \
 			    --rate=$(($MAXRATE / $NUM_WRITERS))k \
 			    --size=${NUM_BLOCKS_CREATE_RAND}M \
