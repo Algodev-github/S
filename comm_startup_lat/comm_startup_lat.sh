@@ -193,15 +193,8 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 
 	# wait for reader/writer start-up transitory to terminate
 	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
-	if [[ $sched == "bfq" ]]; then
-		MAX_RAIS_SEC=\
-$(($(cat /sys/block/$HD/queue/iosched/raising_max_time) / 1000 + 1))
-		echo "Maximum raising time: $MAX_RAIS_SEC seconds"
-	else
-		MAX_RAIS_SEC=7
-	fi
-	SLEEP=$(( $MAX_RAIS_SEC + ($SLEEP / 2 ) ))
-	echo sleep $SLEEP
+	SLEEP=$(($(transitory_duration 7) + ($SLEEP / 2 )))
+	echo "Waiting for transitory to terminate ($SLEEP seconds)"
 	sleep $SLEEP
 fi
 

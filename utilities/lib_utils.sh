@@ -46,6 +46,22 @@ function set_scheduler
 	fi
 }
 
+function transitory_duration
+{
+	OTHER_SCHEDULER_DURATION=$1
+	if [[ $sched == "bfq" ]]; then
+		if [ -f /sys/block/$HD/queue/iosched/raising_max_time ]; then
+			FNAME=/sys/block/$HD/queue/iosched/raising_max_time
+		else
+			FNAME=/sys/block/$HD/queue/iosched/wr_max_time
+		fi
+		MAX_RAIS_SEC=$(($(cat $FNAME) / 1000 + 1))
+	else
+		MAX_RAIS_SEC=$OTHER_SCHEDULER_DURATION
+	fi
+	echo $MAX_RAIS_SEC
+}
+
 function shutdwn
 {
 	set_tracing 0
@@ -163,6 +179,10 @@ function start_readers_writers
 	echo
 
 	if [ "$RW_TYPE" == "seq" ]; then
+		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
+		do
+			rm -f ${BASE_SEQ_FILE_PATH}_write$i
+		done
 		for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 		do
 			$FIO --name=seqreader$i -rw=read --numjobs=1 \
@@ -170,7 +190,6 @@ function start_readers_writers
 		done
 		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 		do
-			rm -f ${BASE_SEQ_FILE_PATH}_write$i
 			$FIO --name=seqwriter$i -rw=write \
 			    --rate=$(($MAXRATE / $NUM_WRITERS))k \
 			    --numjobs=1 --size=${NUM_BLOCKS_CREATE_SEQ}M \
@@ -178,14 +197,16 @@ function start_readers_writers
 			    > /dev/null &
 		done
 	else
+		if [ $NUM_WRITERS -gt 0 ] ; then
+			rm -f $FILE_TO_RAND_WRITE
+		fi
 		if [ $NUM_READERS -gt 0 ] ; then
-		        $FIO --name=writers --rw=randread \
+		        $FIO --name=readers --rw=randread \
        	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ \
 			> /dev/null &
 		fi
 		if [ $NUM_WRITERS -gt 0 ] ; then
-			rm -f $FILE_TO_RAND_WRITE
-			$FIO --name=readers --rw=randwrite \
+			$FIO --name=writers --rw=randwrite \
 			    --rate=$(($MAXRATE / $NUM_WRITERS))k \
 			    --size=${NUM_BLOCKS_CREATE_RAND}M \
 			    --numjobs=$NUM_WRITERS \

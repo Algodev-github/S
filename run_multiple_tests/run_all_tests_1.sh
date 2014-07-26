@@ -6,6 +6,20 @@ cur_date=`date +%y%m%d_%H%M`
 RES_DIR=../results/run_all_tests_1/$cur_date
 schedulers=(bfq cfq)
 
+function send_partial_stats
+{
+	if [ "$MAIL_REPORTS" == "1" ]; then
+		if [ "$MAIL_REPORTS_RECIPIENT" == "" ]; then
+			echo "WARNING: missing recipient name for mail reports"
+			return
+		fi
+		KVER=`uname -r`
+		echo -e "*** Stats for $1 on $HNAME with kernel $KVER ***\n" \
+		     "$(cat $2)" | \
+			mail -s "Stats for $1 on $HNAME" $MAIL_REPORTS_RECIPIENT
+	fi
+}
+
 function send_email
 {
 	if [ "$MAIL_REPORTS" == "1" ]; then
@@ -41,6 +55,15 @@ function repeat
 		    break
 		fi
 	done
+	cur_dir_repetitions=`pwd`
+	cd ../utilities
+	./calc_overall_stats.sh $RES_DIR/$1 "${schedulers[@]}"
+	strid="$2"
+	if [[ "$3" != "" ]]; then
+		strid="$strid $3"
+	fi
+	send_partial_stats "$strid" $RES_DIR/$1/overall_stats-$1.txt
+	cd $cur_dir_repetitions
 }
 
 function agg_thr_with_greedy_rw 
@@ -80,9 +103,9 @@ function comm_startup_lat
 	cd ../comm_startup_lat
 
 	# 0 readers/writers
-	repeat oowriter_startup "comm_startup_lat.sh $1 0 0 seq 5"\
-		"oowriter --terminate_after_init"
 
+	repeat oowriter_startup "comm_startup_lat.sh $1 0 0 seq 10"\
+		"oowriter --terminate_after_init"
 	repeat kons_startup "comm_startup_lat.sh $1 0 0 seq 10"\
 		"konsole -e /bin/true"
 	repeat xterm_startup "comm_startup_lat.sh $1 0 0 seq 10"\
@@ -90,6 +113,7 @@ function comm_startup_lat
 	repeat bash_startup "comm_startup_lat.sh $1 0 0 seq 10" "bash -c exit"
 
 	# 10 readers
+
 	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 seq 10"\
 		"oowriter --terminate_after_init"
 	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 rand 10"\
@@ -157,8 +181,17 @@ function video_playing
 
 echo Tests beginning on $cur_date
 
-echo /etc/init.d/cron stop
-/etc/init.d/cron stop
+if [[ "$(pgrep systemd)" != "" ]]; then
+	echo systemctl stop crond.service
+	systemctl stop crond.service
+	echo systemctl stop abrtd.service
+	systemctl stop abrtd.service
+else
+	echo /etc/init.d/cron stop
+	/etc/init.d/cron stop
+fi
+echo tracker-control -r
+tracker-control -r
 
 rm -rf $RES_DIR
 mkdir -p $RES_DIR
