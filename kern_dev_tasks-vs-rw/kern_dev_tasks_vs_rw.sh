@@ -189,8 +189,8 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
         sleep $SLEEP
 fi
 
-#start logging aggthr
-iostat -tmd /dev/$HD 5 | tee iostat.out &
+#start logging aggthr; use a short interval as the test itself might be brief
+iostat -tmd /dev/$HD 1 | tee iostat.out &
 
 # store the current number of lines to subtract it from the total for make
 if [ "$TASK" == "make" ]; then
