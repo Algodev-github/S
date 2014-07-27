@@ -19,7 +19,7 @@ usage_msg="\
 Usage:\n\
 kern_dev_tasks_vs_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
                         [seq | rand | raw_seq | raw_rand]\n\
-                        [make | checkout | merge] [results_dir]
+                        [make | checkout | merge | grep] [results_dir]
                         [max_write-kB-per-sec]\n\
 \n\
 first parameter equal to \"\" -> do not change scheduler\n\
@@ -36,17 +36,37 @@ Default parameters values are \"\", $NUM_READERS, $NUM_WRITERS, \
 $RW_TYPE, $TASK, $STAT_DEST_DIR and $MAXRATE.\n\
 \n\
 The output of the script depends on the command to be executed and is related\n\
-to the fact that tests have a preset duration. For a kernel make, the output\n\
-is the number of lines given as output by the command, which represent the\n\
-number of files processed during the make; this gives an idea of the completion\n\
-level of the command. A more accurate output is given in case of a git checkout\n\
-or merge, since the output of the command itself gives the completion percentage\n\
-of the command; this is reported in the output of the script.\n\"
+to the fact that some tests have a preset duration. For a kernel make, the\n\
+duration of the test is fixed, and the output is the number of lines given as\n\
+output by the command, which represent the number of files processed during the\n\
+make; this gives an idea of the completion level of the command. A more accurate\n\
+output is given in case of a git checkout or merge, since the output of the command\n\
+itself gives the completion percentage of the command in the fixed amount of time\n\
+of the test; this is reported in the output of the script. In case of a git grep,\n\
+the duration of the test is not fixed, but bounded by a maximum duration. The\n\
+output of the script is the duration of the execution of the command in seconds.\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
         exit
 fi
+
+function cleanup_and_exit {
+	msg=$1
+	shutdwn 'fio iostat make git'
+	cd ..
+	rm -rf results-${sched}
+	exit
+}
+
+function check_timed_out {
+	task=$1
+	cur=$2
+	timeout=$3
+	if [ $cur -eq $timeout ]; then
+		cleanup_and_exit "$task timed out, shutting down and removing all files"
+	fi
+}
 
 mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
@@ -108,6 +128,16 @@ case $TASK in
 			echo Creating second branch to merge &&\
 			git branch test2 v2.6.33)
 		;;
+	grep)
+		(cd $KERN_DIR &&
+		if [ "`git branch | head -n 1`" != "* base_branch" ]; then
+			echo Switching to base_branch &&\
+			git checkout -f base_branch ;\
+		else
+			echo Already on base_branch
+		fi)
+		echo Switched to base_branch
+		;;
 	*)
 		echo Wrong task name $TASK
 		exit
@@ -149,6 +179,12 @@ case $TASK in
 			git merge test2 2>&1 | tee ${curr_dir}/$TASK.out) &
 		waited_pattern="Checking out files"
 		;;
+	grep)
+		echo Executing grep task
+		rm -f ${curr_dir}/timefile
+		(cd $KERN_DIR && /usr/bin/time -f %e git grep foo > ${curr_dir}/$TASK.out 2> ${curr_dir}/timefile) &
+		waited_pattern="Documentation/BUG-HUNTING"
+		;;
 esac
 
 echo Waiting for make to start actual source compilation or for checkout/merge
@@ -161,21 +197,11 @@ count=0
 while ! grep -E "$waited_pattern" $TASK.out > /dev/null 2>&1 ; do
 	sleep 1
 	count=$(($count+1))
-	if [ $count -eq 120 ]; then
-		echo $TASK timed out, shutting down and removing all files
-		shutdwn 'fio iostat make git'
-		cd ..
-		rm -rf results-${sched}
-		exit
-	fi
+	check_timed_out $TASK $count 120
 done
 
 if grep "Switched" $TASK.out > /dev/null ; then
-	echo $TASK already finished, shutting down and removing all files
-	shutdwn 'fio iostat make git'
-	cd ..
-	rm -rf results-${sched}
-	exit
+	cleanup_and_exit "$TASK already finished, shutting down and removing all files"
 fi
 
 if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
@@ -208,7 +234,16 @@ echo Test duration $test_dur secs
 init_tracing
 set_tracing 1
 
-sleep $test_dur
+if [ "$TASK" == "grep" ]; then
+	count=0
+	while pgrep git > /dev/null; do
+		sleep 1
+		count=$((count+1))
+		check_timed_out $TASK $count $test_dur
+	done
+else
+	sleep $test_dur
+fi
 
 # test finished, shutdown what needs to
 shutdwn 'fio iostat make git'
@@ -218,24 +253,35 @@ ${sched}-${TASK}_vs_${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-stat.txt
 echo "Results for $sched, $NUM_READERS $RW_TYPE readers and $NUM_WRITERS\
  $RW_TYPE against a $TASK" | tee $file_name
 
-if [ "$TASK" == "make" ]; then
-	final_completion_level=`cat $TASK.out | wc -l`
-else
-	final_completion_level=`sed 's/\r/\n/g' $TASK.out |\
-		grep "Checking out files" |\
-		tail -n 1 | awk '{printf "%d", $4}'`
-fi
+case $TASK in
+	make)
+		final_completion_level=`cat $TASK.out | wc -l`
+		;;
+	grep)
+		# timefile has been filled with test completion time
+		TIME=`cat timefile`
+		;;
+	*)
+		final_completion_level=`sed 's/\r/\n/g' $TASK.out |\
+			grep "Checking out files" |\
+			tail -n 1 | awk '{printf "%d", $4}'`
+		;;
+esac
 printf "Adding to $file_name -> "
 
-printf "$TASK completion increment during test\n" |\
-	tee -a $file_name
-printf `expr $final_completion_level - $initial_completion_level` |\
-	tee -a $file_name
-
-if [ "$TASK" == "make" ]; then
-	printf " lines\n" | tee -a $file_name
+if [ "$TASK" == "grep" ]; then
+	printf "$TASK completion time\n" | tee -a $file_name
+	printf "$TIME seconds\n" | tee -a $file_name
 else
-	printf "%%\n" | tee -a $file_name
+	printf "$TASK completion increment during test\n" |\
+		tee -a $file_name
+	printf `expr $final_completion_level - $initial_completion_level` |\
+		tee -a $file_name
+	if [ "$TASK" == "make" ]; then
+		printf " lines\n" | tee -a $file_name
+	else
+		printf "%%\n" | tee -a $file_name
+	fi
 fi
 
 print_save_agg_thr $file_name
