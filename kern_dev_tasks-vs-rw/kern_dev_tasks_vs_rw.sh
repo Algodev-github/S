@@ -176,10 +176,16 @@ if grep "Switched" $TASK.out > /dev/null ; then
 	exit
 fi
 
-start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
+if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
+        start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE \
+                                      $MAXRATE
 
-# wait for reader start-up transitory to terminate
-sleep `expr $NUM_READERS + $NUM_WRITERS + 6`
+        # wait for reader/writer start-up transitory to terminate
+        SLEEP=$(($NUM_READERS + $NUM_WRITERS))
+        SLEEP=$(($(transitory_duration 7) + ($SLEEP / 2 )))
+        echo "Waiting for transitory to terminate ($SLEEP seconds)"
+        sleep $SLEEP
+fi
 
 #start logging aggthr
 iostat -tmd /dev/$HD 5 | tee iostat.out &
