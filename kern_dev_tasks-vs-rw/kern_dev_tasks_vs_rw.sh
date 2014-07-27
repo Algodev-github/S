@@ -214,7 +214,7 @@ sleep $test_dur
 shutdwn 'fio iostat make git'
 
 file_name=$STAT_DEST_DIR/\
-/${sched}-${TASK}_vs_${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-stat.txt
+${sched}-${TASK}_vs_${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-stat.txt
 echo "Results for $sched, $NUM_READERS $RW_TYPE readers and $NUM_WRITERS\
  $RW_TYPE against a kernel $TASK" | tee $file_name
 
