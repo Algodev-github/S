@@ -17,15 +17,16 @@ MAXRATE=${7-16500} # maximum value for which the system apparently
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
 Usage:\n\
-task_vs_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
-              [seq | rand | raw_seq | raw_rand]\n\
-              [make | checkout | merge] [results_dir] [max_write-kB-per-sec]\n\
+kern_dev_tasks_vs_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
+                        [seq | rand | raw_seq | raw_rand]\n\
+                        [make | checkout | merge] [results_dir]
+                        [max_write-kB-per-sec]\n\
 \n\
 first parameter equal to \"\" -> do not change scheduler\n\
 raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
 \n\
 For example:\n\
-sh task_vs_rw.sh bfq 10 rand checkout ..\n\
+sh kern_dev_tasks_vs_rw.sh bfq 10 rand checkout ..\n\
 switches to bfq and launches 10 rand readers and 10 rand writers\n\
 aganinst a kernel checkout,\n\
 with each reader reading from the same file. The file containing\n\
@@ -73,7 +74,7 @@ case $TASK in
 		fi
 		make mrproper && make defconfig)
 		echo clean finished
-	   	;;
+		;;
 	checkout)
 		(cd $KERN_DIR &&\
 			echo Switching to base_branch &&\
@@ -82,7 +83,7 @@ case $TASK in
 			git branch -D test1 ;\
 			echo Creating the branch to switch to &&\
 			git branch test1 v2.6.30)
-  	   	;;
+		;;
 	merge)
 		(cd $KERN_DIR &&\
 			echo Renaming the first branch if existing &&\
@@ -95,12 +96,12 @@ case $TASK in
 			echo Removing previous branches &&\
 			git branch -D to_delete test2 ;\
 			echo Creating second branch to merge &&\
-	        	git branch test2 v2.6.33) 
-	   	;;
+			git branch test2 v2.6.33)
+		;;
 	*)
 		echo Wrong task name $TASK
-	   	exit
-	   	;;
+		exit
+		;;
 esac
 echo Prologue finished
 
@@ -111,7 +112,7 @@ rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
 
-# setup a quick shutdown for Ctrl-C 
+# setup a quick shutdown for Ctrl-C
 trap "shutdwn 'fio iostat make git' ; exit" sigint
 
 curr_dir=$PWD
@@ -124,20 +125,20 @@ case $TASK in
 	make)
 		(cd $KERN_DIR && make -j5 | tee ${curr_dir}/$TASK.out) &
 		waited_pattern="arch/x86/kernel/time\.o"
-	   	;;
+		;;
 	checkout)
 		(cd $KERN_DIR && echo git checkout test1 ;\
 			echo\
-			"git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out" 
+			"git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out"
 			git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out) &
 		waited_pattern="(Checking out files)|(Switched)"
-	   	;;
+		;;
 	merge)
 		(cd $KERN_DIR && echo git merge test2 ;\
 			echo "git merge test2 2>&1 | tee ${curr_dir}/$TASK.out"
 			git merge test2 2>&1 | tee ${curr_dir}/$TASK.out) &
 		waited_pattern="Checking out files"
-	   	;;
+		;;
 esac
 
 echo Waiting for make to start actual source compilation or for checkout/merge
@@ -187,7 +188,7 @@ fi
 test_dur=120
 echo Test duration $test_dur secs
 
-# init and turn on tracing if TRACE==1	
+# init and turn on tracing if TRACE==1
 init_tracing
 set_tracing 1
 
@@ -211,7 +212,7 @@ fi
 printf "Adding to $file_name -> "
 
 printf "$TASK completion increment during test\n" |\
-      	tee -a $file_name
+	tee -a $file_name
 printf `expr $final_completion_level - $initial_completion_level` |\
 	tee -a $file_name
 

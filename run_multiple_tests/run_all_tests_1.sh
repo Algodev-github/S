@@ -82,20 +82,20 @@ function agg_thr_with_greedy_rw
 	repeat aggthr "aggthr-with-greedy_rw.sh $1 5 5 rand"
 }
 
-function kern_compil_tasks_vs_rw
+function kern_dev_tasks_vs_rw
 {
-	cd ../kern_compil_tasks-vs-rw
-	repeat make "task_vs_rw.sh $1 0 0 seq make"
-	repeat make "task_vs_rw.sh $1 10 0 seq make"
-	repeat make "task_vs_rw.sh $1 10 0 rand make"
+	cd ../kern_dev_tasks-vs-rw
+	repeat make "kern_dev_tasks_vs_rw.sh $1 0 0 seq make"
+	repeat make "kern_dev_tasks_vs_rw.sh $1 10 0 seq make"
+	repeat make "kern_dev_tasks_vs_rw.sh $1 10 0 rand make"
 
-	repeat checkout "task_vs_rw.sh $1 0 0 seq checkout"
-	repeat checkout "task_vs_rw.sh $1 10 0 seq checkout"
-	repeat checkout "task_vs_rw.sh $1 10 0 rand checkout"
+	repeat checkout "kern_dev_tasks_vs_rw.sh $1 0 0 seq checkout"
+	repeat checkout "kern_dev_tasks_vs_rw.sh $1 10 0 seq checkout"
+	repeat checkout "kern_dev_tasks_vs_rw.sh $1 10 0 rand checkout"
 
-	repeat merge "task_vs_rw.sh $1 0 0 seq merge"
-	repeat merge "task_vs_rw.sh $1 10 0 seq merge"
-	repeat merge "task_vs_rw.sh $1 10 0 rand merge"
+	repeat merge "kern_dev_tasks_vs_rw.sh $1 0 0 seq merge"
+	repeat merge "kern_dev_tasks_vs_rw.sh $1 10 0 seq merge"
+	repeat merge "kern_dev_tasks_vs_rw.sh $1 10 0 rand merge"
 }
 
 function comm_startup_lat
@@ -218,9 +218,9 @@ for sched in ${schedulers[*]}; do
 	send_email "agg_thr tests beginning"
 	agg_thr_with_greedy_rw $sched
 	send_email "agg_thr tests finished"
-	send_email "kern_compil_tasks tests beginning"
-	kern_compil_tasks_vs_rw $sched
-	send_email "kern_compil_tasks tests finished"
+	send_email "kern_dev_tasks tests beginning"
+	kern_dev_tasks_vs_rw $sched
+	send_email "kern_dev_tasks tests finished"
 	send_email "interleaved_io tests beginning"
 	interleaved_io $sched
 	send_email "interleaved_io tests finished"
