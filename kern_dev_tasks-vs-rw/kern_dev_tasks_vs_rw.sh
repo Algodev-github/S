@@ -33,7 +33,15 @@ with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
 \n\
 Default parameters values are \"\", $NUM_READERS, $NUM_WRITERS, \
-$RW_TYPE, $TASK, $STAT_DEST_DIR and $MAXRATE\n"
+$RW_TYPE, $TASK, $STAT_DEST_DIR and $MAXRATE.\n\
+\n\
+The output of the script depends on the command to be executed and is related\n\
+to the fact that tests have a preset duration. For a kernel make, the output\n\
+is the number of lines given as output by the command, which represent the\n\
+number of files processed during the make; this gives an idea of the completion\n\
+level of the command. A more accurate output is given in case of a git checkout\n\
+or merge, since the output of the command itself gives the completion percentage\n\
+of the command; this is reported in the output of the script.\n\"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
