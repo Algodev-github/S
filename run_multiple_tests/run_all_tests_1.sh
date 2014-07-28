@@ -96,6 +96,9 @@ function kern_dev_tasks_vs_rw
 	repeat merge "kern_dev_tasks_vs_rw.sh $1 0 0 seq merge"
 	repeat merge "kern_dev_tasks_vs_rw.sh $1 10 0 seq merge"
 	repeat merge "kern_dev_tasks_vs_rw.sh $1 10 0 rand merge"
+
+	repeat grep "kern_dev_tasks_vs_rw.sh $1 0 0 seq grep"
+	repeat grep "kern_dev_tasks_vs_rw.sh $1 10 0 seq grep"
 }
 
 function comm_startup_lat
