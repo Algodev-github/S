@@ -52,7 +52,9 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-create_files_rw_type $NUM_READERS $RW_TYPE
+if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
+	create_files_rw_type $NUM_READERS $RW_TYPE
+fi
 echo
 
 if [[ -d ${KERN_DIR}/.git ]]; then
