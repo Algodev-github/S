@@ -222,6 +222,7 @@ function start_readers_writers_rw_type
 	R_TYPE=$3
 	MAXRATE=$4
 	if [[ "$R_TYPE" != "raw_seq" && "$R_TYPE" != "raw_rand" ]]; then
+		create_files_rw_type $NUM_READERS $RW_TYPE
 		start_readers_writers $NUM_READERS $NUM_WRITERS $R_TYPE $MAXRATE
 	else
 		start_raw_readers $NUM_READERS $R_TYPE

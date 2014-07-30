@@ -32,9 +32,6 @@ fi
 
 SUFFIX=-to-copy
 
-create_files $NUM_COPIERS seq $SUFFIX
-echo
-
 # create and enter work dir
 rm -rf results-${sched}
 mkdir -p results-$sched

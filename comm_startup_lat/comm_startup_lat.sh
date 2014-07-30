@@ -168,8 +168,6 @@ fi
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`pwd`/$STAT_DEST_DIR
 
-create_files_rw_type $NUM_READERS $RW_TYPE
-
 rm -f $FILE_TO_WRITE
 
 set_scheduler
