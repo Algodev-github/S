@@ -79,7 +79,6 @@ function clean_and_exit {
 }
 
 function invoke_commands {
-        TIME=$SLEEPTIME_ITER # time to execute sleep 2
 	if [[ "$IDLE_DISK_LAT" != "" ]]; then
 	    REF_TIME=$IDLE_DISK_LAT
 	else
@@ -106,6 +105,8 @@ function invoke_commands {
 			KILLPROC=$!
 			disown
 		fi
+		# printf "Sleeping for 2 seconds ... "
+		TIME=`(/usr/bin/time -f %e sleep $SLEEPTIME_ITER) 2>&1`
 		COM_TIME=`setsid bash -c 'echo $BASHPID > current-pid; /usr/bin/time -f %e '"$COMMAND" 2>&1`
 		TIME=`echo "$COM_TIME + $TIME - $SLEEPTIME_ITER" | bc -l`
 		if [[ "$MAX_STARTUP" != "0" ]]; then
@@ -131,8 +132,6 @@ function invoke_commands {
 		if [[ "$IDLE_DISK_LAT" != "" ]]; then
 		    echo Idle-disk start-up time: \#\# $IDLE_DISK_LAT sec
 		fi
-		# printf "Sleeping for 2 seconds ... "
-		TIME=`(/usr/bin/time -f %e sleep $SLEEPTIME_ITER) 2>&1`
 	done
 }
 
@@ -168,8 +167,6 @@ fi
 
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`pwd`/$STAT_DEST_DIR
-
-create_files_rw_type $NUM_READERS $RW_TYPE
 
 rm -f $FILE_TO_WRITE
 

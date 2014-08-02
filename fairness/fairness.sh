@@ -66,9 +66,6 @@ for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
 	fi
 done
 
-create_files $NUM_FILES $R_TYPE
-echo
-
 # create result dir tree and cd to its root
 rm -rf results-${SCHED}
 mkdir -p results-$SCHED
