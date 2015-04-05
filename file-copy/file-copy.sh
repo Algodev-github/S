@@ -37,13 +37,8 @@ rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
 
-if [ "$sched" != "" ] ; then
-	# switch to the desired scheduler
-	echo Switching to $sched
-	echo $sched > /sys/block/$HD/queue/scheduler
-else
-	sched=`cat /sys/block/$HD/queue/scheduler`
-fi
+# switch to the desired scheduler
+set_scheduler
 
 # setup a quick shutdown for Ctrl-C 
 trap "shutdwn dd; exit" sigint
