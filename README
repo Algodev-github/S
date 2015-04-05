@@ -27,7 +27,10 @@ agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
 	confidence interval of the read/write/total aggregated throughput
 	values sampled during the run is reported.
 file-copy: file-copy.sh
-	Launches parallel file copies. Does not compute any statistic.
+	Launches parallel file copies. Only generates background workload,
+	and does not compute any statistic.
+	Creates the files to copy if they do not exist. Files are copied
+	to and read from $BASE_DIR.
 comm_startup_lat: comm_startup_lat.sh
 	Measures the cold-cache startup latency of the given command,
 	launched while the same configurable workload used in the agg_thr
@@ -134,13 +137,14 @@ utilities: several files here
 MAIN DEPENDENCIES
 
 You need at least fio, iostat (from the sysstat package), awk, time
-and bc installed. For the kernel-development benchmark you also need
-git and make, whereas gnuplot is needed to generate plots through
-plot_stats.sh, and mplayer is needed for the video-playing
-benchmark. To let the run_all_tests_1.sh script send mail reports
-about the test progress, you must have a mail transfer agent (such as,
-e.g., msmtp) and a mail client (such as, e.g., mailx) installed and
-correctly configured to send e-mails.
+and bc installed. For the file-copy.sh script you need pv. For the
+kernel-development benchmark you also need git and make, whereas
+gnuplot is needed to generate plots through plot_stats.sh, and
+mplayer is needed for the video-playing benchmark. To let the
+run_all_tests_1.sh script send mail reports about the test progress,
+you must have a mail transfer agent (such as, e.g., msmtp) and a mail
+client (such as, e.g., mailx) installed and correctly configured to
+send e-mails.
 
 USAGE AND OUTPUT OF THE BENCHMARKS
 
