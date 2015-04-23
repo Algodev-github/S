@@ -6,6 +6,10 @@ cur_date=`date +%y%m%d_%H%M`
 RES_DIR=../results/run_all_tests_1/$cur_date
 schedulers=(bfq cfq)
 
+workloads=("0 0 seq" "10 0 seq" "5 5 seq" "10 0 rand" "5 5 rand")
+testcases=(bash_startup xterm_startup kons_startup oowriter_startup)
+commands=("bash -c exit" "xterm /bin/true" "konsole -e /bin/true" "oowriter --terminate_after_init")
+
 function send_partial_stats
 {
 	if [ "$MAIL_REPORTS" == "1" ]; then
@@ -105,55 +109,17 @@ function comm_startup_lat
 {
 	cd ../comm_startup_lat
 
-	# 0 readers/writers
-
-	repeat oowriter_startup "comm_startup_lat.sh $1 0 0 seq 10"\
-		"oowriter --terminate_after_init"
-	repeat kons_startup "comm_startup_lat.sh $1 0 0 seq 10"\
-		"konsole -e /bin/true"
-	repeat xterm_startup "comm_startup_lat.sh $1 0 0 seq 10"\
-		"xterm /bin/true"
-	repeat bash_startup "comm_startup_lat.sh $1 0 0 seq 10" "bash -c exit"
-
-	# 10 readers
-
-	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 seq 10"\
-		"oowriter --terminate_after_init"
-	repeat oowriter_startup "comm_startup_lat.sh $1 10 0 rand 10"\
-		"oowriter --terminate_after_init"
-
-	repeat kons_startup "comm_startup_lat.sh $1 10 0 seq 10"\
-		"konsole -e /bin/true"
-	repeat kons_startup "comm_startup_lat.sh $1 10 0 rand 10"\
-		"konsole -e /bin/true"
-
-	repeat xterm_startup "comm_startup_lat.sh $1 10 0 seq 10"\
-		"xterm /bin/true"
-	repeat xterm_startup "comm_startup_lat.sh $1 10 0 rand 10"\
-		"xterm /bin/true"
-   
-	repeat bash_startup "comm_startup_lat.sh $1 10 0 seq 10" "bash -c exit"
-	repeat bash_startup "comm_startup_lat.sh $1 10 0 rand 10" "bash -c exit"
-
-	# 5 readers and 5 writers
-
-	repeat oowriter_startup "comm_startup_lat.sh $1 5 5 seq 10"\
-		"oowriter --terminate_after_init"
-	repeat oowriter_startup "comm_startup_lat.sh $1 5 5 rand 10"\
-		"oowriter --terminate_after_init"
-
-	repeat kons_startup "comm_startup_lat.sh $1 5 5 seq 10"\
-		"konsole -e /bin/true"
-	repeat kons_startup "comm_startup_lat.sh $1 5 5 rand 10"\
-		"konsole -e /bin/true"
-
-	repeat xterm_startup "comm_startup_lat.sh $1 5 5 seq 10"\
-		"xterm /bin/true"
-	repeat xterm_startup "comm_startup_lat.sh $1 5 5 rand 10"\
-		"xterm /bin/true"
-   
-	repeat bash_startup "comm_startup_lat.sh $1 5 5 seq 10" "bash -c exit"
-	repeat bash_startup "comm_startup_lat.sh $1 5 5 rand 10" "bash -c exit"
+        for wl in "${workloads[@]}"; do
+                for ((t=0 ; t<${#testcases[@]} ; ++t)); do
+                        repeat ${testcases[t]} "comm_startup_lat.sh $1 $wl 10" \
+                                "${commands[t]}"
+                        # If at least 2 iterations were not completed for this
+                        # testcase, abort all heavier testcases
+                        if [ ! -d $RES_DIR/${testcases[t]}/repetition1 ]; then
+                                break
+                        fi
+                done
+        done
 }
 
 function interleaved_io
