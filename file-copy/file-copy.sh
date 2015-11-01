@@ -55,6 +55,9 @@ else
 	flush_caches
 fi
 
+# create the file to copy if it doesn't exist
+create_files $NUM_COPIERS seq $SUFFIX
+
 init_tracing
 set_tracing 1
 
@@ -77,7 +80,6 @@ do
 done
 
 shutdwn dd
-clear
 
 cd ..
 
