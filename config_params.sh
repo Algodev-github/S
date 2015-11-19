@@ -26,10 +26,11 @@ BASE_SEQ_FILE_PATH=$BASE_DIR/largefile
 FILE_TO_RAND_READ=$BASE_DIR/verylargefile_read
 FILE_TO_RAND_WRITE=$BASE_DIR/verylargefile_write
 
-# the make, git merge and git checkout tests play with 2.6.30, 2.6.32 and
-# 2.6.33. You must provide a git tree containing at least these three versions,
+# the make, git merge and git checkout tests play with v4.0, v4.1 and
+# v4.2. You must provide a git tree containing at least these three versions,
 # and store the path to the tree in the following parameter.
-KERN_DIR=$BASE_DIR/fake_tree/linux-2.6
+KERN_REMOTE=https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+KERN_DIR=$BASE_DIR/fake_tree/linux
 #	NOTE:
 #	For the make test to run without blocking, you must be sure that the
 #	tree contains a valid .config for these kernels (a valid .config

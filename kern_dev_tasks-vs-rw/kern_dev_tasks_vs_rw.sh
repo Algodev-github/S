@@ -77,13 +77,13 @@ if [[ -d ${KERN_DIR}/.git ]]; then
 else
 	mkdir -p ${BASE_DIR}
 	cd ${BASE_DIR}
-	git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git $KERN_DIR
+	git clone $KERN_REMOTE $KERN_DIR
 fi
 
 (cd $KERN_DIR &&
 if [ "`git branch | grep base_branch`" == "" ]; then
 	echo Creating the base branch &&\
-	git branch base_branch v2.6.32 ;\
+	git branch base_branch v4.0 ;\
 fi)
 
 echo Executing $TASK prologue before actual test
@@ -107,21 +107,21 @@ case $TASK in
 			echo Removing previous branches &&\
 			git branch -D test1 ;\
 			echo Creating the branch to switch to &&\
-			git branch test1 v2.6.30)
+			git branch test1 v4.1)
 		;;
 	merge)
 		(cd $KERN_DIR &&\
 			echo Renaming the first branch if existing &&\
 			git branch -M test1 to_delete;\
 			echo Creating first branch to merge &&\
-			git branch test1 v2.6.30 &&\
+			git branch test1 v4.1 &&\
 			echo Switching to the first branch and cleaning &&\
 			git checkout -f test1 &&\
 			git clean -f -d ;
 			echo Removing previous branches &&\
 			git branch -D to_delete test2 ;\
 			echo Creating second branch to merge &&\
-			git branch test2 v2.6.33)
+			git branch test2 v4.2)
 		;;
 	grep)
 		(cd $KERN_DIR &&
