@@ -19,7 +19,14 @@ NUM_BLOCKS_CREATE_RAND=$(($NUM_BLOCKS_CREATE_SEQ * 10))
 NUM_BLOCKS=2000
 
 # where files are read from or written to
-BASE_DIR=/tmp/test
+BASE_DIR=/var/lib/bfq
+if test ! -d $BASE_DIR ; then
+    mkdir $BASE_DIR
+fi
+if test ! -w $BASE_DIR ; then
+    echo "$BASE_DIR is not writeable, reverting to /tmp/test"
+    BASE_DIR=/tmp/test
+fi
 
 # file names
 BASE_SEQ_FILE_PATH=$BASE_DIR/largefile
