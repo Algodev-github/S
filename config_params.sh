@@ -15,7 +15,9 @@ NUM_BLOCKS_CREATE_SEQ=5000
 # (the larger the better for randomness)
 NUM_BLOCKS_CREATE_RAND=$(($NUM_BLOCKS_CREATE_SEQ * 10))
 
-# portion, in 1M blocks, to read for each file, used only in fairness.sh
+# portion, in 1M blocks, to read for each file, used only in fairness.sh;
+# make sure it is not larger than either $NUM_BLOCKS_CREATE_SEQ or
+# $NUM_BLOCKS_CREATE RAND
 NUM_BLOCKS=2000
 
 # where files are read from or written to

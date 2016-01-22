@@ -17,13 +17,14 @@ switches to bfq and launches 10 iterations of 2 sequential readers of 2 \n\
 different files of 100MB each; the first reader has weight 1000, the second\n\
 500.\n\
 \n\
-Default parameters values are bfq, 4, 2, $NUM_BLOCKS, and 100 for each reader\n"
+Default parameter values are bfq, 4, 2, $NUM_BLOCKS, and 100 for every reader\n"
 
 SCHED=${1-bfq}
 NUM_FILES=${2-4}
 ITERATIONS=${3-2}
 NUM_BLOCKS=${4-$NUM_BLOCKS}
 R_TYPE=${5-seq}
+BFQ_NEW_VERSION=Y
 
 if [ "$1" == "-h" ]; then
 	printf "$usage_msg"
@@ -32,9 +33,16 @@ fi
 
 # set proper group
 if [ "${SCHED}" == "bfq" ] ; then
+    if [ "${BFQ_NEW_VERSION}" == "Y" ]; then
+	GROUP="blkio"
+	PREFIX="bfq."
+    else
 	GROUP="bfqio"
+	PREFIX=""
+    fi
 elif [ "${SCHED}" == "cfq" ] ; then
 	GROUP="blkio"
+	PREFIX=""
 fi
 
 mkdir -p /cgroup
@@ -52,7 +60,11 @@ for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
 	fi
 done
 
+# create files to read
+create_files_rw_type $NUM_FILES $R_TYPE
+
 # initialize weight array
+echo -n "Weights:"
 args=("$@")
 max_w=${WEIGHT[0]}
 for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
@@ -64,7 +76,9 @@ for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
 	if [[ ${WEIGHT[$i]} -gt $max_w ]] ; then
 		max_w=${WEIGHT[$i]}
 	fi
+	echo -n " ${WEIGHT[$i]}"
 done
+echo
 
 # create result dir tree and cd to its root
 rm -rf results-${SCHED}
@@ -126,7 +140,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	idx=0
 	echo $FILES
 	for f in $FILES ; do
-		echo ${WEIGHT[$idx]} > /cgroup/test$idx/$GROUP.weight
+		echo ${WEIGHT[$idx]} > /cgroup/test$idx/$GROUP.${PREFIX}weight
 		create_reader_and_assign_to_group $R_TYPE $i $idx $f
 		idx=$(($idx+1))
 	done
@@ -137,7 +151,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	# start logging aggregated throughput
 	iostat -tmd /dev/$HD 5 | tee iter-$i/iostat.out &
 
-	if [[ "$TIMEOUT" != "0" ]]; then
+	if [[ "$TIMEOUT" != "0" && "$TIMEOUT" != "" ]]; then
 		bash -c "sleep $TIMEOUT && \
 			 echo Timeout: killing readers ;\
 			 killall -q -s USR1 dd ; sleep 1 ;\
@@ -152,7 +166,8 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 		wait %$j
 	done
 
-	if [[ "$KILLPROC" != "" && "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
+	if [[ "$KILLPROC" != "" && "$(ps $KILLPROC | tail -n +2)" != "" ]];
+	then
 		kill -9 $KILLPROC > /dev/null 2>&1
 	fi
 	KILLPROC=
@@ -160,6 +175,12 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 done
 
 set_tracing 0
+
+# destroy cgroups and unmount controller
+for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
+	rmdir /cgroup/test$i
+done
+umount /cgroup
 
 for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	cd iter-$i
@@ -172,7 +193,8 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 
 	echo reader time stats in iteration $i | tee -a ../output
 	if [[ "$R_TYPE" == "seq" ]]; then
-		cat singles/* | grep "copied\|copiati" | awk '{ print $6 }' > time
+		cat singles/* | grep "copied\|copiati" | awk '{ print $6 }' \
+		    > time
 	else
 		rm -f time; touch time
 		for s in $(ls -1 singles/*); do
@@ -186,7 +208,8 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 
 	echo reader bandwith stats in iteration $i | tee -a ../output
 	if [[ "$R_TYPE" == "seq" ]]; then
-		cat singles/* | grep "copied\|copiati" | awk '{ print $8 }' > band
+		cat singles/* | grep "copied\|copiati" | awk '{ print $8 }' \
+		    > band
 	else
 		rm -f band; touch band
 		for s in $(ls -1 singles/*); do
