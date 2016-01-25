@@ -181,6 +181,7 @@ for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
 	rmdir /cgroup/test$i
 done
 umount /cgroup
+rm -rf /cgroup
 
 for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	cd iter-$i
