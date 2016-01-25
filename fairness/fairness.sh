@@ -68,8 +68,8 @@ echo -n "Weights:"
 args=("$@")
 max_w=${WEIGHT[0]}
 for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
-	if [ "${args[$(($i+6))]}" != "" ] ; then
-		WEIGHT[$i]=${args[$(($i+6))]}
+	if [ "${args[$(($i+5))]}" != "" ] ; then
+		WEIGHT[$i]=${args[$(($i+5))]}
 	else
 		WEIGHT[$i]=100
 	fi
