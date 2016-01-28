@@ -1,5 +1,11 @@
 #!/bin/bash
 # Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
+
+../utilities/check_dependencies.sh awk dd fio iostat pv
+if [[ $? -ne 0 ]]; then
+	exit
+fi
+
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 

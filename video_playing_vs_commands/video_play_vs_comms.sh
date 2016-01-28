@@ -2,6 +2,12 @@
 # Copyright (C) 2013 Mauro Andreolini <mauro.andreolini@unimore.it>
 #                    Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
+
+../utilities/check_dependencies.sh awk dd fio iostat time
+if [[ $? -ne 0 ]]; then
+	exit
+fi
+
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 UTIL_DIR=`cd ../utilities; pwd` 

@@ -1,6 +1,12 @@
 #!/bin/bash
 # Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
+
+../utilities/check_dependencies.sh awk dd fio iostat
+if [[ $? -ne 0 ]]; then
+	exit
+fi
+
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 CALC_AVG_AND_CO=`cd ../utilities; pwd`/calc_avg_and_co.sh
