@@ -38,7 +38,12 @@ function set_scheduler
 	if [ "$sched" != "" ] ; then
 		# Switch to the desired scheduler
 		echo Switching to $sched
-		echo $sched > /sys/block/$HD/queue/scheduler
+		echo $sched > /sys/block/$HD/queue/scheduler |& echo &> /dev/null
+		if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+			echo "There is no $sched scheduler:"
+			cat /sys/block/${HD}/queue/scheduler
+			exit 1
+		fi
 	else
 		sched=`cat /sys/block/${HD}/queue/scheduler`
 		sched=`echo $sched | sed 's/.*\[//'`
