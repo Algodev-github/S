@@ -23,16 +23,16 @@ MAXRATE=${7-16500} # maximum value for which the system apparently
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
 Usage:\n\
-kern_dev_tasks_vs_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
-                        [seq | rand | raw_seq | raw_rand]\n\
-                        [make | checkout | merge | grep] [results_dir]
-                        [max_write-kB-per-sec]\n\
+./kern_dev_tasks_vs_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
+                          [seq | rand | raw_seq | raw_rand]\n\
+                          [make | checkout | merge | grep] [results_dir]
+                          [max_write-kB-per-sec]\n\
 \n\
 first parameter equal to \"\" -> do not change scheduler\n\
 raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
 \n\
 For example:\n\
-sh kern_dev_tasks_vs_rw.sh bfq 10 rand checkout ..\n\
+sudo ./kern_dev_tasks_vs_rw.sh bfq 10 rand checkout ..\n\
 switches to bfq and launches 10 rand readers and 10 rand writers\n\
 aganinst a kernel checkout,\n\
 with each reader reading from the same file. The file containing\n\

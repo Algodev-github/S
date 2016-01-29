@@ -17,12 +17,12 @@ DURATION=${4-60}
 
 # see the following string for usage, or invoke interleaved_io.sh -h
 usage_msg="\
-Usage:\n\
-sudo bash interleaved_io.sh [bfq | cfq | ...] [num_readers]\n\
+Usage (as root):\n\
+./interleaved_io.sh [bfq | cfq | ...] [num_readers]\n\
 [stat_dest_dir] [duration]\n\
 \n\
 For example:\n\
-sudo bash interleaved_io.sh bfq 3 ..\n\
+sudo ./interleaved_io.sh bfq 3 ..\n\
 switches to bfq and launches 3 interleaved readers on the same disk.\n\
 The file containing the computed stats is stored\n\
 in the .. dir with respect to the cur dir.\n\

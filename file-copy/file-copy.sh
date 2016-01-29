@@ -19,12 +19,12 @@ MAXRATE=${5-16500} # maximum value for which the system apparently
 
 # see the following string for usage, or invoke file-copy.sh -h
 usage_msg="\
-Usage:\n\
+Usage (as root):\n\
 ./file-copy.sh [\"\" | bfq | cfq | ...] [num_copies] [num_iterations]\n\
   [max_kB-per-sec]\n\
 \n\
 For example:\n\
-./file-copy.sh bfq 10 3 10000\n\
+sudo ./file-copy.sh bfq 10 3 10000\n\
 switches to bfq and launches, for 3 times, 10 copies in parallel,\n\
 with each copy reading from/writing to a distinct file, at a maximum rate\n\
 equal to 10000 kB/sec.\n\

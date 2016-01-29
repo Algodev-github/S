@@ -27,10 +27,10 @@ MAXRATE=${10-16500}
 
 function show_usage {
 	echo "\
-Usage: sh comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers]
+Usage (as root): ./comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers]
 			      [num_writers] [seq | rand | raw_seq | raw_rand]
 			      [num_iter] [command] [stat_dest_dir]
-			      [max_iter_duration] [idle-disk-lat]
+			      [max_iter_duration] [idle-device-lat]
 			      [max_write-kB-per-sec]
 
 first parameter equal to \"\" -> do not change scheduler
@@ -42,8 +42,8 @@ max_iter_duration ->  maximum duration allowed for each command
                       no output file is created. If max_iter_duration
                       is set to 0, then no control is performed
                       
-idle_disk_lat -> reference command start-up time to print in each iteration,
-                 nothing is printed if this parameter is equal to \"\" 
+idle_device_lat -> reference command start-up time to print in each iteration,
+                   nothing is printed if this parameter is equal to \"\"
 
 max_write-kB-per-sec -> maximum write rate [kB/s] for which the system
 		        apparently does not risk to become unresponsive,
@@ -54,7 +54,7 @@ raw_seq/raw_rand -> read directly from device (no writers allowed)
 num_iter == 0 -> infinite iterations
 
 Example:
-sh comm_startup_lat.sh bfq 5 5 seq 20 \"xterm /bin/true\" mydir
+sudo ./comm_startup_lat.sh bfq 5 5 seq 20 \"xterm /bin/true\" mydir
 switches to bfq and, after launching 5 sequential readers and 5 sequential
 writers, runs \"bash -c exit\" for 20 times. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.

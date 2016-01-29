@@ -23,19 +23,19 @@ MAXRATE=${8-16500} # maximum value for which the system apparently
 
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
-Usage:\n\
-sh ./aggthr-with-greedy_rw.sh [\"\" | bfq | cfq | ...]\n\
-                              [num_readers] [num_writers]\n\
-                              [seq | rand | raw_seq | raw_rand ]\n\
-                              [stat_dest_dir] [duration] [sync]\n\
-                              [max_write-kB-per-sec] \n\
+Usage (as root):\n\
+./aggthr-with-greedy_rw.sh [\"\" | bfq | cfq | ...]\n\
+                           [num_readers] [num_writers]\n\
+                           [seq | rand | raw_seq | raw_rand ]\n\
+                           [stat_dest_dir] [duration] [sync]\n\
+                           [max_write-kB-per-sec] \n\
 \n\
 first parameter equal to \"\" -> do not change scheduler\n\
 raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
 sync parameter equal to yes -> invoke sync before starting readers/writers\n\
 \n\
 For example:\n\
-sh aggthr-with_greedy_rw.sh bfq 10 0 rand ..\n\
+sudo ./aggthr-with_greedy_rw.sh bfq 10 0 rand ..\n\
 switches to bfq and launches 10 rand readers and 10 rand writers\n\
 with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\

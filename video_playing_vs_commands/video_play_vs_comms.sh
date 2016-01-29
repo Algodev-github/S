@@ -25,7 +25,8 @@ MAXRATE=${8-16500} # maximum value for which the system apparently
 
 function show_usage {
 	echo "\
-Usage: sh video_play_vs_comms.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]
+Usage (as root):
+./video_play_vs_comms.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]
 				 [seq | rand | raw_seq | raw_rand] [num_iter]
 				 [real | fake] [stat_dest_dir]
 				 [max_write-kB-per-sec]
@@ -35,7 +36,7 @@ first parameter equal to \"\" -> do not change scheduler
 raw_seq/raw_rand -> read directly from device (no writers allowed)
 
 For example:
-sh video_play_vs_comms.sh bfq 5 5 seq 20 real mydir
+sudo ./video_play_vs_comms.sh bfq 5 5 seq 20 real mydir
 switches to bfq and, after launching 5 sequential readers and 5 sequential
 writers, runs mplayer for 20 times. During each run 
 \"bash -c exit\" is executed every 3 seconds. The file containing the computed

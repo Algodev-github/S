@@ -6,7 +6,7 @@ guaranteeing that the programs have a homogeneous interface, or in
 automating the installation of the suite, so you have to manually install every
 dependency (see MAIN DEPENDENCIES).
 
-CONTENT
+CONTENTS
 
 In the root directory:
 . config_params.sh

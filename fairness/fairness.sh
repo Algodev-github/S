@@ -13,12 +13,12 @@ CALC_AVG_AND_CO=`cd ../utilities; pwd`/calc_avg_and_co.sh
 
 # see the following string for usage, or invoke fairness -h
 usage_msg="\
-Usage:\n\
+Usage (as root):\n\
 ./fairness.sh [bfq | cfq | ...] [num_files] [iterations] [file_size_MB] \n\
 	      [seq | rand] [weights]\n\
 \n\
 For example:\n\
-fairness.sh bfq 2 10 100 seq 1000 500\n\
+sudo ./fairness.sh bfq 2 10 100 seq 1000 500\n\
 switches to bfq and launches 10 iterations of 2 sequential readers of 2 \n\
 different files of 100MB each; the first reader has weight 1000, the second\n\
 500.\n\
