@@ -32,6 +32,25 @@ NUM_BLOCKS=${4-$NUM_BLOCKS}
 R_TYPE=${5-seq}
 BFQ_NEW_VERSION=Y
 
+function create_reader_and_assign_to_group {
+	WL_TYPE=$1
+	ITER_IDX=$2
+	GROUP_IDX=$3
+	FNAME=$4
+	echo $BASHPID > /cgroup/test$GROUP_IDX/tasks
+
+	if [[ "$WL_TYPE" == "seq" ]]; then
+		dd if=$FNAME of=/dev/null bs=1M \
+			count=$(((${NUM_BLOCKS}*${WEIGHT[$GROUP_IDX]})/$max_w)) \
+			2>&1 | tee iter-$ITER_IDX/singles/reader-$GROUP_IDX
+	else
+		fio --name=readers --rw=randread --numjobs=1 --randrepeat=0 \
+			--size=$(((${NUM_BLOCKS}*${WEIGHT[$GROUP_IDX]})/$max_w))M \
+			--filename=$FNAME --minimal \
+			2>&1 | tee iter-$ITER_IDX/singles/reader-$GROUP_IDX
+	fi
+}
+
 if [ "$1" == "-h" ]; then
 	printf "$usage_msg"
 	exit
@@ -83,6 +102,7 @@ for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
 		max_w=${WEIGHT[$i]}
 	fi
 	echo -n " ${WEIGHT[$i]}"
+	echo ${WEIGHT[$i]} > /cgroup/test$i/$GROUP.${PREFIX}weight
 done
 echo
 
@@ -98,44 +118,29 @@ cd results-$SCHED
 echo Switching to $SCHED
 echo $SCHED > /sys/block/$DEV/queue/scheduler
 
-# if BFQ is the scheduler under test, disable the low_latency
-# heuristics; otherwise, results would be distorted by the
-# initial weight-raising period of the readers
-if [[ "$SCHED" == "bfq" ]]; then
+# If the scheduler under test is BFQ or CFQ, then disable the
+# low_latency heuristics to not ditort results.
+if [[ "$SCHED" == "bfq" || "$SCHED" == "cfq" ]]; then
+	PREVIOUS_VALUE=$(cat /sys/block/$DEV/queue/iosched/low_latency)
 	echo "Disabling low_latency"
 	echo 0 > /sys/block/$DEV/queue/iosched/low_latency
 fi
 
+function restore_low_latency
+{
+	if [[ "$SCHED" == "bfq" || "$SCHED" == "cfq" ]]; then
+		echo Restoring previous value of low_latency
+		echo $PREVIOUS_VALUE >\
+			/sys/block/$DEV/queue/iosched/low_latency
+	fi
+}
+
 # setup a quick shutdown for Ctrl-C
-trap "shutdwn 'dd fio iostat'; exit" sigint
+trap "shutdwn 'dd fio iostat'; restore_low_latency; exit" sigint
 
 # init and turn on tracing if TRACE==1
 init_tracing
 set_tracing 1
-
-function create_reader_and_assign_to_group {
-	WL_TYPE=$1
-	ITER_IDX=$2
-	GROUP_IDX=$3
-	FNAME=$4
-
-	if [[ "$WL_TYPE" == "seq" ]]; then
-		dd if=$FNAME of=/dev/null bs=1M \
-			count=$(((${NUM_BLOCKS}*${WEIGHT[$GROUP_IDX]})/$max_w)) \
-			2>&1 | tee iter-$ITER_IDX/singles/reader-$GROUP_IDX &
-		proc_name="dd$"
-	else
-		fio --name=readers --rw=randread --numjobs=1 --randrepeat=0 \
-			--size=$(((${NUM_BLOCKS}*${WEIGHT[$GROUP_IDX]})/$max_w))M \
-			--filename=$FNAME --minimal \
-			2>&1 | tee iter-$ITER_IDX/singles/reader-$GROUP_IDX &
-		proc_name="fio$"
-	fi
-	# the just-started reader is the last one listed in the sorted
-	# output of the ps command, as it has the highest PID
-	echo $(ps | grep $proc_name | awk '{print $1}' | sort | tail -n 1) \
-		> /cgroup/test$GROUP_IDX/tasks
-}
 
 for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	echo Iteration $(($i+1))/$ITERATIONS
@@ -146,8 +151,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	idx=0
 	echo $FILES
 	for f in $FILES ; do
-		echo ${WEIGHT[$idx]} > /cgroup/test$idx/$GROUP.${PREFIX}weight
-		create_reader_and_assign_to_group $R_TYPE $i $idx $f
+		(create_reader_and_assign_to_group $R_TYPE $i $idx $f) &
 		idx=$(($idx+1))
 	done
 
@@ -155,7 +159,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	sleep 2
 
 	# start logging aggregated throughput
-	iostat -tmd /dev/$DEV 5 | tee iter-$i/iostat.out &
+	iostat -tmd /dev/$DEV 1 | tee iter-$i/iostat.out &
 
 	if [[ "$TIMEOUT" != "0" && "$TIMEOUT" != "" ]]; then
 		bash -c "sleep $TIMEOUT && \
@@ -195,8 +199,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	echo Aggregated Throughtput in iteration $i | tee -a ../output
 	cat iostat.out | grep ^$DEV | awk '{ print $3 }' | \
 		tail -n$(($len-3)) | head -n$(($len-3)) > iostat-aggthr
-	$CALC_AVG_AND_CO 99 < iostat-aggthr | \
-		tee -a ../output
+	$CALC_AVG_AND_CO 99 < iostat-aggthr | tee -a ../output
 
 	echo reader time stats in iteration $i | tee -a ../output
 	if [[ "$R_TYPE" == "seq" ]]; then
@@ -229,5 +232,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	$CALC_AVG_AND_CO 99 < band | tee -a ../output
 	cd ..
 done
+
+restore_low_latency
 
 cd ..
