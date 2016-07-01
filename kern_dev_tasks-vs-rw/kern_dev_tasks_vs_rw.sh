@@ -16,41 +16,47 @@ NUM_WRITERS=${3-1}
 RW_TYPE=${4-seq}
 TASK=${5-make}
 STAT_DEST_DIR=${6-.}
-MAXRATE=${7-16500} # maximum value for which the system apparently
-                   # does not risk to become unresponsive under bfq
-                   # with a 90 MB/s hard disk
+MAXRATE=${7-4000} # maximum total sequential write rate for which the
+		  # system apparently does not risk to become
+		  # unresponsive under bfq with a 90 MB/s hard disk
+		  # (see comments in script comm_startup_lat.sh)
 
 # see the following string for usage, or invoke task_vs_rw.sh -h
 usage_msg="\
-Usage:\n\
-./kern_dev_tasks_vs_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]\n\
-                          [seq | rand | raw_seq | raw_rand]\n\
-                          [make | checkout | merge | grep] [results_dir]
-                          [max_write-kB-per-sec]\n\
-\n\
-first parameter equal to \"\" -> do not change scheduler\n\
-raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
-\n\
-For example:\n\
-sudo ./kern_dev_tasks_vs_rw.sh bfq 10 rand checkout ..\n\
-switches to bfq and launches 10 rand readers and 10 rand writers\n\
-aganinst a kernel checkout,\n\
-with each reader reading from the same file. The file containing\n\
-the computed stats is stored in the .. dir with respect to the cur dir.\n\
-\n\
+Usage:
+./kern_dev_tasks_vs_rw.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]
+                          [seq | rand | raw_seq | raw_rand]
+                          [make | merge | grep] [results_dir]
+                          [max_write-kB-per-sec]
+
+first parameter equal to \"\" -> do not change scheduler
+raw_seq/raw_rand -> read directly from device (no writers allowed)
+
+For example:
+sudo ./kern_dev_tasks_vs_rw.sh bfq 10 rand merge ..
+switches to bfq and launches 10 rand readers and 10 rand writers
+aganinst a kernel merge,
+with each reader reading from the same file. The file containing
+the computed stats is stored in the .. dir with respect to the cur dir.
+
 Default parameters values are \"\", $NUM_READERS, $NUM_WRITERS, \
-$RW_TYPE, $TASK, $STAT_DEST_DIR and $MAXRATE.\n\
-\n\
-The output of the script depends on the command to be executed and is related\n\
-to the fact that some tests have a preset duration. For a kernel make, the\n\
-duration of the test is fixed, and the output is the number of lines given as\n\
-output by the command, which represent the number of files processed during the\n\
-make; this gives an idea of the completion level of the command. A more accurate\n\
-output is given in case of a git checkout or merge, since the output of the command\n\
-itself gives the completion percentage of the command in the fixed amount of time\n\
-of the test; this is reported in the output of the script. In case of a git grep,\n\
-the duration of the test is not fixed, but bounded by a maximum duration. The\n\
-output of the script is the duration of the execution of the command in seconds.\n"
+$RW_TYPE, $TASK, $STAT_DEST_DIR and $MAXRATE.
+
+The output of the script depends on the command to be executed and is related
+to the fact that some tests have a preset duration. For a kernel make, the
+duration of the test is fixed, and the output is the number of lines given as
+output by the command, which represent the number of files processed during the
+make; this gives an idea of the completion level of the command. A more accurate
+output is given in case of a git merge, since the output of the command
+itself gives the completion percentage of the command in the fixed amount of time
+of the test; this is reported in the output of the script. In case of a git grep,
+the duration of the test is not fixed, but bounded by a maximum duration. The
+output of the script is the duration of the execution of the command in seconds.
+
+See the comments in the config_params.sh for details about the test
+repository.
+
+"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
@@ -58,7 +64,7 @@ if [ "$1" == "-h" ]; then
 fi
 
 function cleanup_and_exit {
-	msg=$1
+	echo $1
 	shutdwn 'fio iostat make git'
 	cd ..
 	rm -rf results-${sched}
@@ -66,13 +72,24 @@ function cleanup_and_exit {
 }
 
 function check_timed_out {
-	task=$1
-	cur=$2
-	timeout=$3
+	what=$1
+	task=$2
+	cur=$3
+	timeout=$4
+
+	echo -ne "$1-waiting time / Timeout:  $cur / $timeout\033[0K\r"
 	if [ $cur -eq $timeout ]; then
 		cleanup_and_exit "$task timed out, shutting down and removing all files"
 	fi
 }
+
+# MAIN
+
+if [ "$TASK" == checkout ]; then
+    echo checkout temporarily disabled, because of insufficient
+    echo output produced by newer git versions
+    exit
+fi
 
 mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
@@ -81,9 +98,26 @@ STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 if [[ -d ${KERN_DIR}/.git ]]; then
 	rm -f $KERN_DIR/.git/index.lock
 else
+	echo No linux repository found in $KERN_DIR
+	echo You can put one there yourself, or I can clone a remote repository for you
+	read -p "Do you want me to clone a remote repository? " yn
+	for yes_answer in y Y yes Yes YES; do
+		if [ "$yn" == $yes_answer ]; then
+			yn=y
+		fi
+	done
+	if [ "$yn" != y ]; then
+		exit
+	fi
+
 	mkdir -p ${BASE_DIR}
-	cd ${BASE_DIR}
-	git clone $KERN_REMOTE $KERN_DIR
+	echo Cloning into $KERN_DIR ...
+	git clone --branch v4.3 $KERN_REMOTE $KERN_DIR
+fi
+
+if [[ ! -f $KERN_DIR/.config ]]; then
+	SRC_CONF=$(ls /boot/config-$(uname -r))
+	cp $SRC_CONF $KERN_DIR/.config
 fi
 
 (cd $KERN_DIR &&
@@ -106,7 +140,7 @@ case $TASK in
 		make mrproper && make defconfig)
 		echo clean finished
 		;;
-	checkout)
+	checkout) # disabled!
 		(cd $KERN_DIR &&\
 			echo Switching to base_branch &&\
 			git checkout -f base_branch &&\
@@ -137,7 +171,6 @@ case $TASK in
 		else
 			echo Already on base_branch
 		fi)
-		echo Switched to base_branch
 		;;
 	*)
 		echo Wrong task name $TASK
@@ -161,13 +194,17 @@ curr_dir=$PWD
 echo Flushing caches
 flush_caches
 
+# init and turn on tracing if TRACE==1
+init_tracing
+set_tracing 1
+
 # start task
 case $TASK in
 	make)
 		(cd $KERN_DIR && make -j5 | tee ${curr_dir}/$TASK.out) &
 		waited_pattern="arch/x86/kernel/time\.o"
 		;;
-	checkout)
+	checkout) # disabled!
 		(cd $KERN_DIR && echo git checkout test1 ;\
 			echo\
 			"git checkout -f test1 2>&1 |tee ${curr_dir}/$TASK.out"
@@ -188,18 +225,25 @@ case $TASK in
 		;;
 esac
 
-echo Waiting for make to start actual source compilation or for checkout/merge
-echo to be just after 0%.
-echo For make this is done to leave out the initial configuration part, whose
-echo workload and execution time may vary significantly, and, as we verified,
-echo would distort the results with both schedulers.
+echo
+echo Waiting for $TASK to start before setting the timeout.
+if [ $TASK == make ]; then
+	echo In particular, for make we wait for the begininning of actual
+	echo source compilation, to leave out the initial configuration part.
+	echo In fact, the workload and execution time of this part may vary
+	echo significantly, thereby distorting results with any scheduler.
+fi
+echo
 
 count=0
 while ! grep -E "$waited_pattern" $TASK.out > /dev/null 2>&1 ; do
 	sleep 1
 	count=$(($count+1))
-	check_timed_out $TASK $count 120
+	check_timed_out Pattern $TASK $count 120
 done
+
+echo
+echo Pattern read
 
 if grep "Switched" $TASK.out > /dev/null ; then
 	cleanup_and_exit "$TASK already finished, shutting down and removing all files"
@@ -210,16 +254,16 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
                                       $MAXRATE
 
         # wait for reader/writer start-up transitory to terminate
-        SLEEP=$(($NUM_READERS + $NUM_WRITERS))
-        SLEEP=$(($(transitory_duration 7) + ($SLEEP / 2 )))
+        SLEEP=$(transitory_duration 7)
         echo "Waiting for transitory to terminate ($SLEEP seconds)"
         sleep $SLEEP
 fi
 
-#start logging aggthr; use a short interval as the test itself might be brief
+# start logging aggthr; use a short interval as the test itself might be short
 iostat -tmd /dev/$DEV 1 | tee iostat.out &
 
-# store the current number of lines to subtract it from the total for make
+# store the current number of lines, or the current completion level,
+# to subtract it from the total for make or merge
 if [ "$TASK" == "make" ]; then
 	initial_completion_level=`cat $TASK.out | wc -l`
 else
@@ -228,20 +272,24 @@ else
 		tail -n 1 | awk '{printf "%d", $4}'`
 fi
 
-test_dur=120
-echo Test duration $test_dur secs
+if [ "$TASK" != "grep" ]; then
+    test_dur=20
+else
+    test_dur=60 # git-grep test typically lasts for more than 20 seconds
+fi
 
-# init and turn on tracing if TRACE==1
-init_tracing
-set_tracing 1
+echo Test duration $test_dur secs
 
 if [ "$TASK" == "grep" ]; then
 	count=0
-	while pgrep git > /dev/null; do
+	completion_pattern="arch/x86/include/asm/processor.h"
+	while pgrep git > /dev/null &&
+	! grep -E "$completion_pattern" $TASK.out > /dev/null 2>&1 ; do
 		sleep 1
 		count=$((count+1))
-		check_timed_out $TASK $count $test_dur
+		check_timed_out Completion $TASK $count $test_dur
 	done
+	echo
 else
 	sleep $test_dur
 fi
