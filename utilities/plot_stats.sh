@@ -8,10 +8,16 @@ scaling_factor=${4:-"1.55"}
 plot_id=1
 usage_msg="\
 Usage:
-plot_stats.sh table_file [ref_mode] [term_mode]
-    ref_mode may be ref or noref
-    term_mode may be x11, gif or eps.
+plot_stats.sh table_file|table_dir [ref_mode] [term_mode]
+
+- if the first parameter is a directory, make a plot for each table
+  file in the directory
+- ref_mode may be ref or noref
+- term_mode may be x11, gif or eps.
+
 "
+
+../utilities/check_dependencies.sh bash awk gnuplot
 
 if [ $term_mode == "eps" ] ; then
 	lw=3
@@ -200,95 +206,121 @@ function get_max_value
     echo $1 $2 | awk '{if ($1 > $2) print $1; else print $2}'
 }
 
-# main
-
 if [[ "$1" == "-h" || "$1" == "" ]]; then
         printf "$usage_msg"
         exit
 fi
 
-in_filename=$1
+function parse_table
+{
+    in_filename=$1
 
-sed 's/X/-1/g' $in_filename > $in_filename.tmp1
-sed 's/-1-Axis/X-Axis/g' $in_filename.tmp1 > $in_filename.tmp
+    if [[ "$in_filename" == "" || ! -f $in_filename ]]; then
+	echo Sorry, table $in_filename not found
+	exit
+    fi
 
-out_filename=$in_filename
-out_filename="${out_filename%.*}"
-in_filename=$in_filename.tmp
+    sed 's/X/-1/g' $in_filename > $in_filename.tmp1
+    sed 's/-1-Axis/X-Axis/g' $in_filename.tmp1 > $in_filename.tmp
 
-lines=()
-max_value=0
-while read line; do
-    lines+=("$line")
-    if [[ $(echo $line | grep ^#) == "" ]] ; then
-	first_word=$(echo $line | awk '{printf $1}')
-	rest_of_line=$(echo $line | sed 's/'$first_word' //')
+    out_filename=$in_filename
+    out_filename="${out_filename%.*}"
+    in_filename=$in_filename.tmp
 
-	for number in $rest_of_line; do
-	    tmp_max=`get_max_value $number $max_value`
+    lines=()
+    max_value=0
+    while read line; do
+	lines+=("$line")
+	if [[ $(echo $line | grep ^#) == "" ]] ; then
+	    first_word=$(echo $line | awk '{printf $1}')
+	    rest_of_line=$(echo $line | sed 's/'$first_word' //')
 
-	    if [[ $tmp_max == $number ]]; then
-		max_value=$number
+	    for number in $rest_of_line; do
+		tmp_max=`get_max_value $number $max_value`
+
+		if [[ $tmp_max == $number ]]; then
+		    max_value=$number
+		fi
+	    done
+	fi
+    done < $in_filename
+
+    max_value=$(echo "$max_value * $scaling_factor" | bc -l)
+
+    if [[ "$max_value" == "0" ]]; then
+	max_value=0.01
+    fi
+
+    line_idx=1 # second line
+
+    x_label=$(echo ${lines[$line_idx]} | sed 's/# X-Axis: //')
+    ((line_idx++))
+
+    y_label=$(echo ${lines[$line_idx]} | sed 's/# Y-Axis: //')
+    ((line_idx++))
+
+    if [[ $ref_mode == ref ]]; then
+	reference_case=$(echo ${lines[$line_idx]} | sed 's/# Reference case: //')
+
+	reference_case_value=$(grep "^$reference_case" $in_filename | tail -n 1 | \
+	    awk '{print $2}')
+
+	if [[ "$reference_case_value" == "" ]]; then
+	    reference_case=`echo $reference_case | sed 's/seq/raw_seq/'`
+	    reference_case_value=$(grep "^$reference_case" $in_filename |\
+           tail -n 1 | awk '{print $2}')
+	fi
+	
+	reference_case_label=$(echo ${lines[$(($line_idx + 1))]} | \
+	    sed 's/# Reference-case label: //')
+    else
+	reference_case=none
+    fi
+    ((line_idx += 2))
+
+    first_word=$(echo ${lines[$line_idx]} | sed 's/# //' | awk '{print $1}')
+    scheduler_string=$(echo ${lines[$line_idx]} | sed 's/# '"$first_word"' //')
+
+    schedulers=()
+    for sched in $scheduler_string; do
+	schedulers+=($sched)
+    done
+
+    grep -v "^$reference_case\|^#" $in_filename > tmp_file
+
+    curves="\"tmp_file\" using 2:xticlabels(1) t \"${schedulers[0]}\""
+
+    for ((i = 1 ; i < ${#schedulers[@]} ; i++)); do
+	curves=$curves", \"\" using $((i+2)) t \"${schedulers[$i]}\""
+    done
+
+    plot_histograms tmp_file $out_filename \
+	"$x_label" 0 "$y_label" ${#schedulers[@]} \
+	"$curves" "$reference_case_label" "$reference_case_value" $max_value
+    
+    if [[ $term_mode != "x11" && $term_mode != "aqua" ]] ; then
+	echo Wrote $out_file_name.$term_mode
+    fi
+
+    rm tmp_file $in_filename ${in_filename}1
+}
+
+if [ -f "$1" ]; then
+    parse_table $1
+else
+    if [ -d "$1" ]; then
+	num_tables_parsed=0
+	for table_file in "$1"/*-table.txt; do
+	    if [[ -f "$table_file" ]]; then
+		echo Plotting $table_file
+		parse_table $table_file
+		num_tables_parsed=$(($num_tables_parsed+1))
 	    fi
 	done
+	if (($num_tables_parsed == 0)); then
+	    echo No table found, maybe you forgot to run calc_overall_stats.sh?
+	fi
+    else
+	echo $1 is not either a table file or a directory
     fi
-done < $in_filename
-
-max_value=$(echo "$max_value * $scaling_factor" | bc -l)
-
-if [[ "$max_value" == "0" ]]; then
-    max_value=0.01
 fi
-
-line_idx=1 # second line
-
-x_label=$(echo ${lines[$line_idx]} | sed 's/# X-Axis: //')
-((line_idx++))
-
-y_label=$(echo ${lines[$line_idx]} | sed 's/# Y-Axis: //')
-((line_idx++))
-
-if [[ $ref_mode == ref ]]; then
-    reference_case=$(echo ${lines[$line_idx]} | sed 's/# Reference case: //')
-
-    reference_case_value=$(grep "^$reference_case" $in_filename | tail -n 1 | \
-	awk '{print $2}')
-
-    if [[ "$reference_case_value" == "" ]]; then
-	reference_case=`echo $reference_case | sed 's/seq/raw_seq/'`
-	reference_case_value=$(grep "^$reference_case" $in_filename |\
-           tail -n 1 | awk '{print $2}')
-    fi
-    
-    reference_case_label=$(echo ${lines[$(($line_idx + 1))]} | \
-	sed 's/# Reference-case label: //')
-else
-    reference_case=none
-fi
-((line_idx += 2))
-
-first_word=$(echo ${lines[$line_idx]} | sed 's/# //' | awk '{print $1}')
-scheduler_string=$(echo ${lines[$line_idx]} | sed 's/# '"$first_word"' //')
-
-schedulers=()
-for sched in $scheduler_string; do
-    schedulers+=($sched)
-done
-
-grep -v "^$reference_case\|^#" $in_filename > tmp_file
-
-curves="\"tmp_file\" using 2:xticlabels(1) t \"${schedulers[0]}\""
-
-for ((i = 1 ; i < ${#schedulers[@]} ; i++)); do
-    curves=$curves", \"\" using $((i+2)) t \"${schedulers[$i]}\""
-done
-
-plot_histograms tmp_file $out_filename \
-	"$x_label" 0 "$y_label" ${#schedulers[@]} \
-	 "$curves" "$reference_case_label" "$reference_case_value" $max_value
-    
-if [[ $term_mode != "x11" && $term_mode != "aqua" ]] ; then
-    echo Wrote $out_file_name.$term_mode
-fi
-
-rm tmp_file $in_filename ${in_filename}1
