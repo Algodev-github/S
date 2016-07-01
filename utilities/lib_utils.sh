@@ -22,8 +22,8 @@ function set_tracing {
 			echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
 			echo $1 > /sys/kernel/debug/tracing/tracing_enabled
 		fi
-		echo "echo $1 > /sys/block/$HD/trace/enable"
-		echo $1 > /sys/block/$HD/trace/enable
+		echo "echo $1 > /sys/block/$DEV/trace/enable"
+		echo $1 > /sys/block/$DEV/trace/enable
 	fi
 }
 
@@ -38,14 +38,14 @@ function set_scheduler
 	if [ "$sched" != "" ] ; then
 		# Switch to the desired scheduler
 		echo Switching to $sched
-		echo $sched > /sys/block/$HD/queue/scheduler |& echo &> /dev/null
+		echo $sched > /sys/block/$DEV/queue/scheduler |& echo &> /dev/null
 		if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
 			echo "There is no $sched scheduler:"
-			cat /sys/block/${HD}/queue/scheduler
+			cat /sys/block/${DEV}/queue/scheduler
 			exit 1
 		fi
 	else
-		sched=`cat /sys/block/${HD}/queue/scheduler`
+		sched=`cat /sys/block/${DEV}/queue/scheduler`
 		sched=`echo $sched | sed 's/.*\[//'`
 		sched=`echo $sched | sed 's/\].*//'`
 	fi
@@ -55,10 +55,10 @@ function transitory_duration
 {
 	OTHER_SCHEDULER_DURATION=$1
 	if [[ $sched == "bfq" ]]; then
-		if [ -f /sys/block/$HD/queue/iosched/raising_max_time ]; then
-			FNAME=/sys/block/$HD/queue/iosched/raising_max_time
+		if [ -f /sys/block/$DEV/queue/iosched/raising_max_time ]; then
+			FNAME=/sys/block/$DEV/queue/iosched/raising_max_time
 		else
-			FNAME=/sys/block/$HD/queue/iosched/wr_max_time
+			FNAME=/sys/block/$DEV/queue/iosched/wr_max_time
 		fi
 		MAX_RAIS_SEC=$(($(cat $FNAME) / 1000 + 1))
 	else
@@ -151,18 +151,18 @@ function start_raw_readers
     NUM_READERS=$1
     R_TYPE=$2
     
-    echo Starting $NUM_READERS $R_TYPE readers on /dev/${HD}
+    echo Starting $NUM_READERS $R_TYPE readers on /dev/${DEV}
     if [ "$R_TYPE" == "raw_seq" ]; then
         for ((i = 0 ; $i < ${NUM_READERS} ; i++))
         do
             $FIO --name=seqreader$i -rw=read --size=${NUM_BLOCKS_CREATE_SEQ}M \
                 --offset=$[$i*$NUM_BLOCKS_CREATE_SEQ]M --numjobs=1 \
-                --filename=/dev/${HD} > /dev/null &
+                --filename=/dev/${DEV} > /dev/null &
         done
     else
         if [ $NUM_READERS -gt 0 ]; then
             $FIO --name=randreader$i -rw=randread --numjobs=$NUM_READERS \
-                --filename=/dev/${HD} > /dev/null &
+                --filename=/dev/${DEV} > /dev/null &
         fi
     fi
 }
@@ -261,13 +261,13 @@ function print_save
 	command=$3
 
 	echo "$message" | tee -a ${thr_stat_file_name}
-	len=$(cat iostat.out | grep ^$HD | wc -l)
+	len=$(cat iostat.out | grep ^$DEV | wc -l)
 	# collect iostat aggthr lines into one file, throwing away:
 	# . the first sample, because it just contains a wrong value
 	#   (easy to see by letting iostat start during a steady workload)
 	# . the last sample, because it can be influenced by the operations
 	#   performed at the end of the test
-	cat iostat.out | grep ^$HD | awk "{ $command }" |\
+	cat iostat.out | grep ^$DEV | awk "{ $command }" |\
 		tail -n$(($len-1)) | head -n$(($len-1)) > iostat-aggthr
 	#cat iostat-aggthr
 	sh $CALC_AVG_AND_CO 99 < iostat-aggthr |\

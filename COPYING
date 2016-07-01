@@ -1,7 +1,7 @@
 
  NOTE: the GPL below is copyrighted by the Free Software Foundation,
- but the instance of code that it refers to (the BFQ IO
- disk scheduler) is copyrighted by me and others who actually wrote it.
+ but the instance of code that it refers to (the S benchmark suite)
+ is copyrighted by me and others who actually wrote it.
 
  Also note that the only valid version of the GPL as far as the kernel
  is concerned is _this_ particular version of the license (ie v2, not

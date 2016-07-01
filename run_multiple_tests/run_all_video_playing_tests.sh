@@ -36,11 +36,11 @@ rm -rf $RES_DIR
 mkdir -p $RES_DIR
 
 if [ "${NCQ_QUEUE_DEPTH}" != "" ]; then
-    (echo ${NCQ_QUEUE_DEPTH} > /sys/block/${HD}/device/queue_depth)\
+    (echo ${NCQ_QUEUE_DEPTH} > /sys/block/${DEV}/device/queue_depth)\
 		 &> /dev/null
     ret=$?
     if [[ "$ret" -eq "0" ]]; then
-	echo "Set queue depth to ${NCQ_QUEUE_DEPTH} on ${HD}"
+	echo "Set queue depth to ${NCQ_QUEUE_DEPTH} on ${DEV}"
     elif [[ "$(id -u)" -ne "0" ]]; then
 	echo "You are currently executing this script as $(whoami)."
 	echo "Please run the script as root."

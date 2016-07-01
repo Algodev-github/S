@@ -136,7 +136,7 @@ function invoke_commands {
 		done
 		echo " $TIME sec"
 		if [[ "$IDLE_DISK_LAT" != "" ]]; then
-		    echo Idle-disk start-up time: \#\# $IDLE_DISK_LAT sec
+		    echo Idle-device start-up time: \#\# $IDLE_DISK_LAT sec
 		fi
 	done
 }
@@ -203,7 +203,7 @@ fi
 
 # start logging aggthr
 if [ "$IOSTAT" == "yes" ]; then
-	iostat -tmd /dev/$HD 3 | tee iostat.out &
+	iostat -tmd /dev/$DEV 3 | tee iostat.out &
 fi
 
 init_tracing

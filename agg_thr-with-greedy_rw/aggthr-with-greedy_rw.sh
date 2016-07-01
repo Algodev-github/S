@@ -93,7 +93,7 @@ fi
 echo for $DURATION seconds
 
 # start logging aggthr
-iostat -tmd /dev/$HD 2 | tee iostat.out &
+iostat -tmd /dev/$DEV 2 | tee iostat.out &
 
 sleep $DURATION
 

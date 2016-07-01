@@ -2,7 +2,7 @@
 # Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
 
-# see the following string for usage, or invoke task_vs_rw.sh -h
+# see the following string for usage, or invoke calc_overall_stats.sh -h
 usage_msg="\
 Usage:\n\
 calc_overall_stats.sh test_result_dir \
@@ -142,7 +142,7 @@ function per_subdirectory_loop
 		target_quantity_table_file=\
 `pwd`/`basename $single_test_res_dir`-lat-table.txt
 		target_quantity_type="Start-up time [sec]"
-		reference_value_label="Start-up time on idle disk"
+		reference_value_label="Start-up time on idle device"
 		;;
 	kern_task)
 		num_quants=4
@@ -151,7 +151,7 @@ function per_subdirectory_loop
 		target_quantity_table_file=\
 `pwd`/`basename $single_test_res_dir`-progress-table.txt
 		target_quantity_type="Completion percentage"
-		reference_value_label="Completion percentage on idle disk"
+		reference_value_label="Completion percentage on idle device"
 		;;
 	video_playing)
 		num_quants=6

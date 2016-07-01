@@ -1,12 +1,12 @@
 # If equal to 1, tracing is enabled during each test
 TRACE=0
 
-# The disk on which you are about to run the tests, by default tries to peek
+# The device on which you are about to run the tests, by default tries to peek
 # the device used for /
 # If it does not work or is not want you want, change it to fit your needs,
 # for example:
-# HD=sda
-HD=$(basename `mount | grep "on / " | cut -f 1 -d " "` | sed 's/\(...\).*/\1/g')
+# DEV=sda
+DEV=$(basename `mount | grep "on / " | cut -f 1 -d " "` | sed 's/\(...\).*/\1/g')
 
 # number of 1M blocks of the files to create for seq reading/writing
 NUM_BLOCKS_CREATE_SEQ=5000

@@ -96,14 +96,14 @@ cd results-$SCHED
 
 # switch to the desired scheduler
 echo Switching to $SCHED
-echo $SCHED > /sys/block/$HD/queue/scheduler
+echo $SCHED > /sys/block/$DEV/queue/scheduler
 
 # if BFQ is the scheduler under test, disable the low_latency
 # heuristics; otherwise, results would be distorted by the
 # initial weight-raising period of the readers
 if [[ "$SCHED" == "bfq" ]]; then
 	echo "Disabling low_latency"
-	echo 0 > /sys/block/$HD/queue/iosched/low_latency
+	echo 0 > /sys/block/$DEV/queue/iosched/low_latency
 fi
 
 # setup a quick shutdown for Ctrl-C
@@ -155,7 +155,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	sleep 2
 
 	# start logging aggregated throughput
-	iostat -tmd /dev/$HD 5 | tee iter-$i/iostat.out &
+	iostat -tmd /dev/$DEV 5 | tee iter-$i/iostat.out &
 
 	if [[ "$TIMEOUT" != "0" && "$TIMEOUT" != "" ]]; then
 		bash -c "sleep $TIMEOUT && \
@@ -191,9 +191,9 @@ rm -rf /cgroup
 
 for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	cd iter-$i
-	len=$(cat iostat.out | grep ^$HD | wc -l)
+	len=$(cat iostat.out | grep ^$DEV | wc -l)
 	echo Aggregated Throughtput in iteration $i | tee -a ../output
-	cat iostat.out | grep ^$HD | awk '{ print $3 }' | \
+	cat iostat.out | grep ^$DEV | awk '{ print $3 }' | \
 		tail -n$(($len-3)) | head -n$(($len-3)) > iostat-aggthr
 	$CALC_AVG_AND_CO 99 < iostat-aggthr | \
 		tee -a ../output

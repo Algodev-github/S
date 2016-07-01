@@ -207,7 +207,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 fi
 
 # start logging aggthr
-iostat -tmd /dev/$HD 3 | tee iostat.out &
+iostat -tmd /dev/$DEV 3 | tee iostat.out &
 
 init_tracing
 set_tracing 1

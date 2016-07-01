@@ -17,7 +17,7 @@ Each benchmark is implemented by a bash script, stored in a separate directory.
 Here is the list of the directories and of the main scripts they contain:
 agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
 	Measures the aggregated throughput with parallel, greedy (i.e.,
-	continuously issuing disk requests readers and/or writers. Both
+	continuously issuing I/O requests) readers and/or writers. Both
 	readers and writers are implemented with fio, and may be sequential
 	or random.
 	Files are read from and written to the /tmp/test directory (created
@@ -38,9 +38,10 @@ comm_startup_lat: comm_startup_lat.sh
 	dev and conf interval of both the sampled latencies and the read/
 	write/total aggregated throughput.
 video_playing_vs_commands: video_playing_vs_commands.sh
-	Measures the number of frames dropped while playing a video clip and,
-	at the same time, 1) repeatedly invoking a short command and 2) serving
-	one of the workloads of the of the agg_thr test.
+	Measures the number of frames dropped while playing a video
+	clip and, at the same time, 1) repeatedly invoking a short
+	command and 2) serving one of the workloads of the of the
+	agg_thr test.
 video_streaming
 	This is a small package, made of a few scripts, programs and patches
 	for setting up a simple experiment with a video server.
@@ -58,27 +59,28 @@ kern_compil_tasks-vs-rw: task_vs_rw.sh
 	executed while the same configurable workload used in the agg_thr
 	test is running. At the end of the test reports the number of lines
 	written to stdout by make, or the progress of the file checkout
-	phase of git merge or git checkout, plus the same statistics on disk
+	phase of git merge or git checkout, plus the same statistics on I/O
 	throughput as the other tests.
 	This script currently plays with 2.6.30, 2.6.32 and 2.6.33. You must
 	provide a git tree containing at least these three versions.
 	WARNING: the make test overwrites .config, whereas the other two tests
 	create new branches.
 fairness: fairness.sh
-	Measures how the disk bandwidth is distributed among parallel
+	Measures how the device throughput is distributed among parallel
 	sequential readers. This is more a work in progress than the other
 	scripts.
 interleaved_io: interleaved_io.sh
 	Measures the aggregate throughput against an I/O pattern with
-	interleaved readers. The script will spawn the desired number of
-	parallel processes, each reading sequentially a 16KB-zone of the disk.
-	The zones are interleaved, in that the zone read by the first process
-	is contiguous to the zone read by the second process, and so on.
-	At the end of the test, the min, max, avg, std deviation,
-	confidence interval of the read/write/total aggregated throughput
-	values sampled during the run is reported.
-	By default, the script won't create any file, but read directly
-	from the device on which the root directory is mounted.
+	interleaved readers. The script will spawn the desired number
+	of parallel processes, each reading sequentially a 16KB-zone
+	of the storage.  The zones are interleaved, in that the zone
+	read by the first process is contiguous to the zone read by
+	the second process, and so on.  At the end of the test, the
+	min, max, avg, std deviation, confidence interval of the
+	read/write/total aggregated throughput values sampled during
+	the run is reported.  By default, the script won't create any
+	file, but read directly from the device on which the root
+	directory is mounted.
 run_multiple_tests
 	Scripts to execute subsets of the above tests. For example,
 	there is the script run_all_tests_1.sh, which repeatedly
