@@ -3,25 +3,31 @@
 #                    Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
 
-../utilities/check_dependencies.sh awk dd fio iostat time
+../utilities/check_dependencies.sh awk dd fio iostat time mplayer
 if [[ $? -ne 0 ]]; then
 	exit
 fi
 
 . ../config_params.sh
 . ../utilities/lib_utils.sh
+CURDIR=$(pwd)
 UTIL_DIR=`cd ../utilities; pwd` 
 
 sched=${1-bfq}
-NUM_READERS=${2-5}
-NUM_WRITERS=${3-5}
+NUM_READERS=${2-10}
+NUM_WRITERS=${3-0}
 RW_TYPE=${4-seq}
-NUM_ITER=${5-10}
+NUM_ITER=${5-3}
 TYPE=${6-real}
 STAT_DEST_DIR=${7-.}
-MAXRATE=${8-16500} # maximum value for which the system apparently
-                   # does not risk to become unresponsive under bfq
-                   # with a 90 MB/s hard disk
+MAXRATE=${8-4000} # maximum total sequential write rate for which the
+		  # system apparently does not risk to become
+		  # unresponsive under bfq with a 90 MB/s hard disk
+		  # (see comm_startup_lat script)
+
+# set DISPLAY to allow applications with a GUI to be started remotely too
+# (a session must however be open on the target machine)
+export DISPLAY=:0
 
 function show_usage {
 	echo "\
@@ -43,7 +49,11 @@ writers, runs mplayer for 20 times. During each run
 statistics is stored in the mydir subdir of the current dir.
 
 Default parameters values are \"\", $NUM_READERS, $NUM_WRITERS, \
-$RW_TYPE, $TYPE, $STAT_DEST_DIR and $MAXRATE\n"
+$RW_TYPE, $TYPE, $STAT_DEST_DIR and $MAXRATE
+
+See the comments inside this script for details about the video
+currently in use for this becnhmark.
+"
 }
 
 COMMAND="bash -c exit"
@@ -57,19 +67,21 @@ NOCACHE_OPTS="-nocache"
 SKIP_START_OPTS="-ss"
 SKIP_LENGTH_OPTS="-endpos"
 
-# The following filename is the one assigned as a default to the
+# The following file name is the one assigned as a default to the
 # trailer available at
 # http://www.youtube.com/watch?v=8-_9n5DtKOc
-# when it is downloaded.
-VIDEO_FNAME="WALL-E HD 1080p Trailer.mp4"
+# when it is downloaded. For convenience, a copy of the video is
+# already present in this directory. In spite of the file name, it is
+# a 720p video (higher resolution are apparently available only withou
+# audio).
+VIDEO_FNAME="$CURDIR/WALL-E HD 1080p Trailer.mp4"
 # The following parameters let the playback of the trailer start a
 # few seconds before the most demanding portion of the video.
 SKIP_START="00:01:32"
 SKIP_LENGTH_SEC=40
 SKIP_LENGTH="00:00:${SKIP_LENGTH_SEC}"
-STOP_ITER_TOLERANCE_SEC=60
+STOP_ITER_TOLERANCE_SEC=40
 
-WEIGHT_DEBOOST_TIMEOUT=10
 PLAYER_OUT_FNAME=${sched}-player_out.txt
 DROP_DATA_FNAME=${sched}-drop_data_points.txt
 DROP_RATE_FNAME=${sched}-drop_rate_points.txt
@@ -99,31 +111,32 @@ function invoke_player_plus_commands {
 		M_CMD="${M_CMD} ${SKIP_START_OPTS} ${SKIP_START}"
 		M_CMD="${M_CMD} ${SKIP_LENGTH_OPTS} ${SKIP_LENGTH}"
 		M_CMD="${M_CMD} \"${VIDEO_FNAME}\""
-		sleep 2
+
+		sleep 1 # to let the invocation not belong to a burst
+			# of I/O queue activations (which is not what
+			# happens if a player is invoked by a user)
 		eval ${M_CMD} 2>&1 | tee -a ${PLAYER_OUT_FNAME} &
 		echo "Started ${M_CMD}"
 		ITER_START_TIMESTAMP=`date +%s`
 
-		RAIS_SEC=$(transitory_duration $WEIGHT_DEBOOST_TIMEOUT)
-		echo sleep $RAIS_SEC
-		sleep $RAIS_SEC
-
 		while true ; do
+			sleep 2
 			if [ `date +%s` -gt $(($ITER_START_TIMESTAMP+$SKIP_LENGTH_SEC+$STOP_ITER_TOLERANCE_SEC)) ]; then
-				echo Stopping iterations
+				echo Timeout: stopping iterations
 				clean_and_exit
 			fi
-			# we just invalidate caches but do not sync here,
-			# otherwise writes stall everything with
-			# any scheduler (and however latencies
-			# do not change)
+
+			# increase difficulty by syncing (in parallel, as sync
+			# is blocking)
+			sync &
 			echo 3 > /proc/sys/vm/drop_caches
+			echo Executing $COMMAND
 			(time -p $COMMAND) 2>&1 | tee -a lat-${sched} &
-			echo sleep 3
-			sleep 3
 			if [ "`pgrep ${PLAYER_CMD}`" == "" ] ; then
+
 				break
 			fi
+			sync &
 		done
 
 		drop=`grep -n "^BENCHMARKn:" ${PLAYER_OUT_FNAME} | tr -s " " | \
@@ -193,17 +206,22 @@ cd results-$sched
 # setup a quick shutdown for Ctrl-C 
 trap "clean_and_exit" sigint
 
+echo Preliminary cache-flush to block until previous writes have been completed
 flush_caches
 
 if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 	start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
 	# wait for reader/writer start-up transitory to terminate
-	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
-	MAX_RAIS_SEC=$(transitory_duration $WEIGHT_DEBOOST_TIMEOUT)
-	SLEEP=$(($MAX_RAIS_SEC + ($SLEEP / 2 )))
-	echo "Waiting for transitory to terminate ($SLEEP seconds)"
-	sleep $SLEEP
+	secs=$(transitory_duration 7)
+
+	while [ $secs -ge 0 ]; do
+	    echo -ne "Waiting for transitory to terminate: $secs\033[0K\r"
+	    sync &
+	    sleep 1
+	    : $((secs--))
+	done
+	echo
 fi
 
 # start logging aggthr
