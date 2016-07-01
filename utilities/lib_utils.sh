@@ -9,7 +9,7 @@ function init_tracing {
 			mount -t debugfs none /sys/kernel/debug
 		fi
 		echo nop > /sys/kernel/debug/tracing/current_tracer
-		echo 100000 > /sys/kernel/debug/tracing/buffer_size_kb
+		echo 500000 > /sys/kernel/debug/tracing/buffer_size_kb
 		echo "${SCHED}*" "__${SCHED}*" >\
 			/sys/kernel/debug/tracing/set_ftrace_filter
 		echo blk > /sys/kernel/debug/tracing/current_tracer
@@ -24,13 +24,31 @@ function set_tracing {
 		fi
 		echo "echo $1 > /sys/block/$DEV/trace/enable"
 		echo $1 > /sys/block/$DEV/trace/enable
+		if [ "$1" == 0 ]; then
+		    for cpu_path in /sys/kernel/debug/tracing/per_cpu/cpu?
+		    do
+			stat_file=$cpu_path/stats
+			OVER=$(grep "overrun" $stat_file | \
+			    grep -v "overrun: 0")
+			if [ "$OVER" != "" ]; then
+			    cpu=$(basename $cpu_path)
+			    echo $OVER on $cpu, please increase buffer size!
+			fi
+		    done
+		fi
 	fi
 }
 
 function flush_caches
 {
+	echo Syncing and dropping caches ...
 	sync
 	echo 3 > /proc/sys/vm/drop_caches
+}
+
+function get_scheduler
+{
+    cat /sys/block/$DEV/queue/scheduler | sed 's/.*\[\(.*\)\].*/\1/'
 }
 
 function set_scheduler
@@ -58,19 +76,27 @@ function transitory_duration
 		if [ -f /sys/block/$DEV/queue/iosched/raising_max_time ]; then
 			FNAME=/sys/block/$DEV/queue/iosched/raising_max_time
 		else
-			FNAME=/sys/block/$DEV/queue/iosched/wr_max_time
+			if [ -f /sys/block/$DEV/queue/iosched/wr_max_time ];
+			then
+				FNAME=/sys/block/$DEV/queue/iosched/wr_max_time
+			fi
 		fi
+	fi
+	if [[ "$FNAME" != "" ]]; then
 		MAX_RAIS_SEC=$(($(cat $FNAME) / 1000 + 1))
 	else
 		MAX_RAIS_SEC=$OTHER_SCHEDULER_DURATION
 	fi
-	echo $MAX_RAIS_SEC
+	# the extra 6 seconds mainly follow from the fact that fio is
+	# slow to start many jobs
+	echo $((MAX_RAIS_SEC + 6))
 }
 
 function shutdwn
 {
 	set_tracing 0
 	killall $1 2> /dev/null
+	kill -HUP $(jobs -lp) 2>/dev/null || true
 
 	# fio does not handle SIGTERM, and hence does not destroy
 	# the shared memory segments on this signal
@@ -108,6 +134,7 @@ function create_files
 				dd if=/dev/zero bs=1M \
 					count=$NUM_BLOCKS_CREATE_SEQ \
 					of=${fname}
+				FILE_CREATED=TRUE
         		fi
 		done
 	else
@@ -128,7 +155,12 @@ function create_files
 				of=${fname}
         		dd if=/dev/zero bs=1M count=$NUM_BLOCKS_CREATE_RAND \
 				of=${fname}
+			FILE_CREATED=TRUE
 		fi
+	fi
+	if [[ "$FILE_CREATED" == TRUE ]]; then
+	    echo syncing after file creation
+	    flush_caches
 	fi
 }
 
@@ -172,6 +204,7 @@ function start_readers_writers
 	NUM_READERS=$1
 	NUM_WRITERS=$2
 	RW_TYPE=$3
+	MAXRATE=${4-0}
 
 	printf "Starting"
 
@@ -180,6 +213,12 @@ function start_readers_writers
 	fi
 	if [[ $NUM_WRITERS -gt 0 ]]; then
 	    printf " $NUM_WRITERS $RW_TYPE writer(s)"
+	    if [[ $MAXRATE -gt 0 ]]; then
+		if [[ "$RW_TYPE" != seq ]]; then
+		    MAXRATE=$(($MAXRATE / 60))
+		fi
+		SETMAXRATE="--rate=$(($MAXRATE / $NUM_WRITERS))k"
+	    fi
 	fi
 	echo
 
@@ -195,8 +234,7 @@ function start_readers_writers
 		done
 		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 		do
-			$FIO --name=seqwriter$i -rw=write \
-			    --rate=$(($MAXRATE / $NUM_WRITERS))k \
+			$FIO --name=seqwriter$i -rw=write $SETMAXRATE \
 			    --numjobs=1 --size=${NUM_BLOCKS_CREATE_SEQ}M \
 			    --filename=${BASE_SEQ_FILE_PATH}_write$i \
 			    > /dev/null &
@@ -211,8 +249,7 @@ function start_readers_writers
 			> /dev/null &
 		fi
 		if [ $NUM_WRITERS -gt 0 ] ; then
-			$FIO --name=writers --rw=randwrite \
-			    --rate=$(($MAXRATE / $NUM_WRITERS))k \
+			$FIO --name=writers --rw=randwrite $SETMAXRATE \
 			    --size=${NUM_BLOCKS_CREATE_RAND}M \
 			    --numjobs=$NUM_WRITERS \
 			    --filename=$FILE_TO_RAND_WRITE > /dev/null &
@@ -269,7 +306,6 @@ function print_save
 	#   performed at the end of the test
 	cat iostat.out | grep ^$DEV | awk "{ $command }" |\
 		tail -n$(($len-1)) | head -n$(($len-1)) > iostat-aggthr
-	#cat iostat-aggthr
 	sh $CALC_AVG_AND_CO 99 < iostat-aggthr |\
 	 tee -a $thr_stat_file_name
 }
