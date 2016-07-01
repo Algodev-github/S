@@ -179,5 +179,4 @@ i) run multiple benchmarks automatically through a general script like
    plot_stats.sh to generate both global statistics and plots
    automatically (for most but not yet all benchmarks).
 
-For examples and brief help just invoke the desired script with the
--h option (apart from the scripts in run_multiple_tests, which provide no help).
+For examples and brief help just invoke the desired script with -h.
