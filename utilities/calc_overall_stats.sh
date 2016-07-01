@@ -14,9 +14,9 @@ calc_overall_stats.sh test_result_dir \
    Use aggthr for the results of agg_thr-with-greedy_rw.sh and\n\
    interleaved_io.sh., startup_lat for the results of comm_startup_lat.sh,\n\
    and kern_task for the results of task_vs_rw.sh. \n\
-   The computation of kern_task statistics is still to be tested.\n\
+   The computation of kern_task statistics is still to be completed.\n\
 \n\
-   Simplest-use example:\n\
+   Simple example:\n\
    calc_overall_stats.sh ../results/\n\
    computes the min, max, avg, std_dev and 99%conf of the avg values\n\
    reported in each of the output files found, recursively, in each of\n\
@@ -36,7 +36,7 @@ calc_overall_stats.sh test_result_dir \
    to the default cases, which otherwise vary with the type of benchmark.
  "
 
-SCHEDULERS=${2:-"bfq cfq"}
+SCHEDULERS=${2:-"bfq cfq deadline noop"}
 reference_case=$3
 
 CALC_AVG_AND_CO=`pwd`/calc_avg_and_co.sh
@@ -76,8 +76,7 @@ function quant_loops
 function file_loop
 {
 	n=0
-	for in_file in `find $1 -name "*$sched[-]$workload*"`; do
-
+	for in_file in `find $1 -name "*$sched[-]$workload*.txt"`; do
 		if ((`cat $in_file | wc -l` < $record_lines)); then
 			continue
 		fi
@@ -112,13 +111,14 @@ function set_res_type
 	startup)
 	    res_type=startup_lat
 	    ;;
-	make | checkout | merge)
+	make | checkout | merge | grep)
 	    res_type=kern_task
 	    ;;
 	video_playing)
 	    res_type=video_playing
 	    ;;
 	*)
+	    echo Fatal: no known type found for $1!
 	    ;;
     esac
 }
@@ -133,7 +133,7 @@ function per_subdirectory_loop
 		num_quants=3
 		record_lines=$((1 + $num_quants * 3))
 		thr_table_file=`pwd`/`basename $single_test_res_dir`-table.txt
-		reference_value_label="Disk peak rate"
+		reference_value_label="Device peak rate"
 		;;
 	startup_lat)
 		num_quants=4
@@ -163,7 +163,8 @@ function per_subdirectory_loop
 		reference_value_label="Drop rate with no greedy background workload"
 		;;
 	*)
-		echo Wrong or undefined result type
+		echo Undefined or wrong result type $res_type
+		return
 		;;
     esac
 
@@ -212,7 +213,6 @@ function per_subdirectory_loop
 
 	    for ((cur_quant = 0 ; cur_quant < $num_quants ; cur_quant++));
 	    do
-
 		cat line_file$cur_quant | tee -a $out_file
 		second_field=`tail -n 1 $out_file | awk '{print $2}'`
 
@@ -253,7 +253,8 @@ function per_subdirectory_loop
 		    target_field=$(tail -n 1 $out_file |\
 		       		awk '{print $'$field_num'}')
 		
-		    if [[ "$target_field" == "" ]]; then
+		    if [[ "$target_field" == "" || \
+			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
 		    fi
 		    
@@ -266,7 +267,8 @@ function per_subdirectory_loop
 		      [[ $res_type == video_playing ]]); then
 		    target_field=`tail -n 1 $out_file | awk '{print $3}'`
 
-		    if [[ "$target_field" == "" ]]; then
+		    if [[ "$target_field" == "" || \
+			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
 		    fi
 		    echo -ne "\t$target_field" >> $thr_table_file
@@ -313,10 +315,21 @@ else
 fi
 
 cd $results_dir
+
+# result type explicitly provided
+if [ "$res_type" != "" ]; then
+    per_subdirectory_loop $results_dir
+    exit
+fi
+
+echo Searching for benchmark results ...
+
 num_dir_visited=0
-for filter in "aggthr" "make" "checkout" "merge" "startup" "video_playing"; do
-    echo $filter
+# filters make, checkout, merge, grep and interleaved-io not yet
+# added, because the code for these cases is not yet complete
+for filter in aggthr startup video_playing; do
     for single_test_res_dir in `find $results_dir -name "*$filter*" -type d`; do
+	echo Computing $filter overall stats in $single_test_res_dir
 	per_subdirectory_loop $single_test_res_dir $filter
 	num_dir_visited=$(($num_dir_visited+1))
     done
@@ -326,17 +339,5 @@ if (($num_dir_visited > 0)); then
     exit
 fi
 
-# if we get here, then the result directory is a candidate to contain the
-# results of just one test
-for filter in "aggthr" "make" "checkout" "merge" "startup" "video_playing"; do
-    echo $filter
-    if [[ `echo $res_dirname | grep $filter` != "" ]]; then
-	per_subdirectory_loop $results_dir $filter
-	exit
-    fi
-done
-
-# the direcory name contains no hint;
-# the next attempt may be successful only if a result type has been
-# passed as second argument to the script
-per_subdirectory_loop $results_dir
+echo Sorry, no hint found in directory names inside $results_dir
+echo Cannot decide what to compute
