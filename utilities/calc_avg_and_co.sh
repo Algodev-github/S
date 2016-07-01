@@ -54,11 +54,11 @@ awk ' BEGIN {
 }
 
 END {
-	mean = sum / n;
-	if (n == 1) {
-		printf "\n\nERROR - too few data. Aborting...\n\n";
+	if (n < 2) {
+		printf "ERROR - too few values. Aborting...\n";
 		exit(0);
 	}
+	mean = sum / n;
 
 	if (n > 31)
 		lim = 31;
