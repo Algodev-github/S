@@ -18,38 +18,47 @@ sched=$1
 NUM_READERS=${2-0}
 NUM_WRITERS=${3-0}
 RW_TYPE=${4-seq}
-NUM_ITER=${5-0}
+NUM_ITER=${5-5}
 COMMAND=${6-"gnome-terminal -e /bin/true"}
 STAT_DEST_DIR=${7-.}
 MAX_STARTUP=${8-60}
-IDLE_DISK_LAT=$9
-MAXRATE=${10-16500}
+IDLE_DISK_LAT=${9-0}
+MAXRATE=${10-4000}
+
+# set display to allow application with a GUI to be started remotely too
+# (a session must however be open on the target machine)
+export DISPLAY=:0
 
 function show_usage {
 	echo "\
 Usage (as root): ./comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers]
 			      [num_writers] [seq | rand | raw_seq | raw_rand]
 			      [num_iter] [command] [stat_dest_dir]
-			      [max_iter_duration] [idle-device-lat]
+			      [max_startup-time] [idle-device-lat]
 			      [max_write-kB-per-sec]
 
 first parameter equal to \"\" -> do not change scheduler
 
-max_iter_duration ->  maximum duration allowed for each command
+raw_seq/raw_rand -> read directly from device (no writers allowed)
+
+max_startup-time  ->  maximum duration allowed for each command
 		      invocation, in seconds; if the command does not
-                      start within the maximum duration, then: the command
+                      start within the maximum duration, then the command
                       is killed, no other iteration is performed and
-                      no output file is created. If max_iter_duration
-                      is set to 0, then no control is performed
+                      no output file is created. If max_startup_time
+                      is set to 0, then no control is performed.
                       
 idle_device_lat -> reference command start-up time to print in each iteration,
                    nothing is printed if this parameter is equal to \"\"
 
-max_write-kB-per-sec -> maximum write rate [kB/s] for which the system
-		        apparently does not risk to become unresponsive,
-		        (at least) under bfq, with a 90 MB/s hard disk
-
-raw_seq/raw_rand -> read directly from device (no writers allowed)
+max_write-kB-per-sec -> maximum total sequentail write rate [kB/s],
+			used to reduce the risk that the system
+			becomes unresponsive. For random writers, this
+			value is further divided by 60. With the
+			current default value the system seems still
+			usable (at least) under bfq, with a 90 MB/s
+			HDD. If set to 0, then there is no limitation
+			on the write rate.
 
 num_iter == 0 -> infinite iterations
 
@@ -60,10 +69,11 @@ writers, runs \"bash -c exit\" for 20 times. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
 Default parameter values are: \"\", $NUM_READERS, $NUM_WRITERS, $RW_TYPE,
-$NUM_ITER, \"$COMMAND\", $STAT_DEST_DIR, $MAX_STARTUP, \"\" and $MAXRATE
+$NUM_ITER, \"$COMMAND\", $STAT_DEST_DIR, $MAX_STARTUP, $IDLE_DISK_LAT and $MAXRATE
 
 Other commands you may want to test:
-\"bash -c exit\", \"xterm /bin/true\", \"ssh localhost exit\""
+\"bash -c exit\", \"xterm /bin/true\", \"ssh localhost exit\",
+\"lowriter --terminate-after-init\""
 }
 
 if [ "$1" == "-h" ]; then
@@ -71,7 +81,8 @@ if [ "$1" == "-h" ]; then
         exit
 fi
 
-SLEEPTIME_ITER=4
+# keep at least three seconds, to make sure that iostat sample are enough
+SLEEPTIME_ITER=3
 
 function clean_and_exit {
     if [[ "$KILLPROC" != "" ]]; then
@@ -85,58 +96,90 @@ function clean_and_exit {
 }
 
 function invoke_commands {
-	if [[ "$IDLE_DISK_LAT" != "" ]]; then
+	if [[ $IDLE_DISK_LAT != 0 ]]; then
 	    REF_TIME=$IDLE_DISK_LAT
+
+	    # do not tolerate an unbearable inflation of the start-up time
+	    MAX_INFLATION=$(echo "$IDLE_DISK_LAT * 500 + 1" | bc -l)
+	    GREATER=$(echo "$MAX_STARTUP > $MAX_INFLATION" | bc -l)
+	    if [[ $GREATER == 1 ]]; then
+		MAX_STARTUP=$MAX_INFLATION
+		echo Maximum start-up time reduced to $MAX_STARTUP seconds
+	    fi
 	else
 	    REF_TIME=1
 	fi
 
 	rm -f Stop-iterations current-pid # remove possible garbage
+
+	if (($NUM_WRITERS > 0)); then
+	    # increase difficulty by periodically syncing (in
+	    # parallel, as sync is blocking)
+	    (while true; do echo ; echo Syncing again in parallel; \
+		sync & sleep 2; done) &
+	fi
+
 	for ((i = 0 ; $NUM_ITER == 0 || i < $NUM_ITER ; i++)) ; do
 		echo
 		if (($NUM_ITER > 0)); then
 			printf "Iteration $(($i+1)) / $NUM_ITER\n"
 		fi
-		# we do not sync here, otherwise
-		# writes stall everything with
-		# every scheduler (and however latencies
-		# are independent of whether we sync)
-		echo 3 > /proc/sys/vm/drop_caches
-		printf "Starting \"$SHORTNAME\" with cold cache ... "
+
+		TIME=`(/usr/bin/time -f %e sleep $SLEEPTIME_ITER) 2>&1`
+		TOO_LONG=$(echo "$TIME > $SLEEPTIME_ITER * 10 + 10" | bc -l)
+		if [[ "$MAX_STARTUP" != 0 && $TOO_LONG == 1 ]]; then
+			echo Even the pre-command sleep timed out: stopping iterations
+			clean_and_exit
+		fi
 		if [[ "$MAX_STARTUP" != "0" ]]; then
 			bash -c "sleep $MAX_STARTUP && \
-                                 echo Timeout: killing command ;\
+                                 echo Timeout: killing command;\
                                  cat current-pid | xargs -I pid kill -9 -pid ;\
 				 touch Stop-iterations" &
 			KILLPROC=$!
 			disown
 		fi
-		# printf "Sleeping for 2 seconds ... "
-		TIME=`(/usr/bin/time -f %e sleep $SLEEPTIME_ITER) 2>&1`
-		COM_TIME=`setsid bash -c 'echo $BASHPID > current-pid; /usr/bin/time -f %e '"$COMMAND" 2>&1`
-		TIME=`echo "$COM_TIME + $TIME - $SLEEPTIME_ITER" | bc -l`
+
+		sleep 1 # introduce a minimal pause between invocations
+		printf "Starting \"$SHORTNAME\" with cold caches ... "
+		COM_TIME=`setsid bash -c 'echo $BASHPID > current-pid;\
+			echo 3 > /proc/sys/vm/drop_caches; \
+			/usr/bin/time -f %e '"$COMMAND" 2>&1`
+
+		TIME=$(echo $COM_TIME | awk '{print $NF}')
+
 		if [[ "$MAX_STARTUP" != "0" ]]; then
-			if [[ "$KILLPROC" != "" && "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
+			if [[ "$KILLPROC" != "" && \
+			    "$(ps $KILLPROC | tail -n +2)" != "" ]]; then
+			        # kill unfired timeout
 				kill -9 $KILLPROC > /dev/null 2>&1
 				KILLPROC=
-			fi
-			if [[ -f Stop-iterations || "$TIME" == "" || `echo $TIME '>' $MAX_STARTUP | bc -l` == "1" ]]; then
-				echo Stopping iterations
-				clean_and_exit
 			fi
 		fi
 		echo done
 		echo "$TIME" >> lat-${sched}
 		printf "          Start-up time: "
-		NUM=`echo "( $TIME / $REF_TIME) * 2" | bc -l`
+
+		NUM=`echo "( $TIME / $REF_TIME ) * 2" | bc -l`
 		NUM=`printf "%0.f" $NUM`
 		for ((j = 0 ; $j < $NUM ; j++));
 		do
 			printf \#
 		done
 		echo " $TIME sec"
-		if [[ "$IDLE_DISK_LAT" != "" ]]; then
+		if [[ $IDLE_DISK_LAT != 0 ]]; then
 		    echo Idle-device start-up time: \#\# $IDLE_DISK_LAT sec
+		fi
+		if [[ -f Stop-iterations || "$TIME" == "" || \
+		    `echo $TIME '>' $MAX_STARTUP | bc -l` == "1" ]];
+		then # timeout fired
+		    echo Too long startup: stopping iterations
+		    clean_and_exit
+		else
+		    if [[  `echo $TIME '<' 2 | bc -l` == "1" ]]; then
+			# extra pause to let a minimum of thr stats be printed
+			sleep 2
+		    fi
 		fi
 	done
 }
@@ -178,6 +221,9 @@ rm -f $FILE_TO_WRITE
 
 set_scheduler
 
+echo Preliminary sync to block until previous writes have been completed
+sync
+
 # create and enter work dir
 rm -rf results-${sched}
 mkdir -p results-$sched
@@ -187,6 +233,7 @@ rm -f Stop-iterations current-pid
 
 # setup a quick shutdown for Ctrl-C 
 trap "clean_and_exit" sigint
+trap 'kill -HUP $(jobs -lp) >/dev/null 2>&1 || true' EXIT
 
 if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 
@@ -195,10 +242,15 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 				      $MAXRATE
 
 	# wait for reader/writer start-up transitory to terminate
-	SLEEP=$(($NUM_READERS + $NUM_WRITERS))
-	SLEEP=$(($(transitory_duration 7) + ($SLEEP / 2 )))
-	echo "Waiting for transitory to terminate ($SLEEP seconds)"
-	sleep $SLEEP
+	secs=$(transitory_duration 7)
+
+	while [ $secs -ge 0 ]; do
+	    echo -ne "Waiting for transitory to terminate: $secs\033[0K\r"
+	    sync & # let writes start as soon as possible
+	    sleep 1
+	    : $((secs--))
+	done
+	echo
 fi
 
 # start logging aggthr
@@ -207,8 +259,8 @@ if [ "$IOSTAT" == "yes" ]; then
 fi
 
 init_tracing
-
 set_tracing 1
+
 invoke_commands
 
 shutdwn 'fio iostat'
