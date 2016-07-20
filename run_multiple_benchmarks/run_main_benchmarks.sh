@@ -7,10 +7,10 @@ if [[ $? -ne 0 ]]; then
 	exit
 fi
 
-# see the following string for usage, or invoke ./run_all_tests_1.sh -h
+# see the following string for usage, or invoke ./run_main_benchmarks.sh -h
 usage_msg="\
 Usage (as root):\n\
-./run_all_tests_1.sh [fs|raw] [set of benchmarks] [set of schedulers]
+./run_main_benchmarks.sh [fs|raw] [set of benchmarks] [set of schedulers]
 
 If fs mode is selected, or if no value, i.e., \"\", is given, then file
 reads and writes are used as background workloads. Instead, if raw
@@ -28,16 +28,16 @@ given, then all available schedulers are tested.
 
 Examples
 # run all available benchmarks for all available schedulers, using fs
-sudo ./run_all_tests_1.sh
+sudo ./run_main_benchmarks.sh
 
 # run all available benchmarks for all available schedulers, using raw device
-sudo ./run_all_tests_1.sh raw
+sudo ./run_main_benchmarks.sh raw
 
 # run selected benchmarks for all available schedulers, using fs
-sudo ./run_all_tests_1.sh \"\" \"throughput startup\"
+sudo ./run_main_benchmarks.sh \"\" \"throughput startup\"
 
 # run selected benchmarks for cfq and noop, using fs
-sudo ./run_all_tests_1.sh \"\" \"throughput startup\" \"cfq noop\"
+sudo ./run_main_benchmarks.sh \"\" \"throughput startup\" \"cfq noop\"
 
 "
 
@@ -53,7 +53,7 @@ NUM_ITER_STARTUP=$NUM_REPETITIONS # number of iterations for each repetition
 # provides many fram-drop samples
 NUM_ITER_VIDEO=2
 cur_date=`date +%y%m%d_%H%M`
-RES_DIR=../results/run_all_tests_1/$cur_date
+RES_DIR=../results/run_main_benchmarks/$cur_date
 
 # startup test cases
 testcases=(bash_startup xterm_startup terminal_startup lowriter_startup)
