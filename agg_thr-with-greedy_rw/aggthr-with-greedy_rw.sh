@@ -109,7 +109,7 @@ secs=$DURATION
 
 while [ $secs -gt 0 ]; do
     echo "Remaining time: $secs"
-    if [ "$SYNC" == "yes" ]; then
+    if [[ "$SYNC" == "yes" && $NUM_WRITERS -gt 0 ]]; then
 	echo Syncing again in parallel ...
 	sync &
     fi
