@@ -78,7 +78,7 @@ VIDEO_FNAME="$CURDIR/WALL-E HD 1080p Trailer.mp4"
 # The following parameters let the playback of the trailer start a
 # few seconds before the most demanding portion of the video.
 SKIP_START="00:01:32"
-SKIP_LENGTH_SEC=40
+SKIP_LENGTH_SEC=20
 SKIP_LENGTH="00:00:${SKIP_LENGTH_SEC}"
 STOP_ITER_TOLERANCE_SEC=40
 
@@ -130,13 +130,13 @@ function invoke_player_plus_commands {
 			# is blocking)
 			sync &
 			echo 3 > /proc/sys/vm/drop_caches
+
 			echo Executing $COMMAND
 			(time -p $COMMAND) 2>&1 | tee -a lat-${sched} &
 			if [ "`pgrep ${PLAYER_CMD}`" == "" ] ; then
 
 				break
 			fi
-			sync &
 		done
 
 		drop=`grep -n "^BENCHMARKn:" ${PLAYER_OUT_FNAME} | tr -s " " | \
