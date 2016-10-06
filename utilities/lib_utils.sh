@@ -105,58 +105,46 @@ function shutdwn
 		for f in `cat - | awk '{ print $2 }'`; do ipcrm -m $f; done
 }
 
+function create_file
+{
+	fname=$1
+	target_num_blocks=$2 # of 1MB each
+	test -f ${fname}
+	file_absent=$?
+	wrong_size=0
+	if [ -f ${fname} ] ; then
+		file_size=$(du --apparent-size -B 1024 $fname | col -x | cut -f 1 -d " ")
+		computed_size=$(echo "${NUM_BLOCKS_CREATE_SEQ} * 1024" | bc -l)
+		if [[ "${file_size}" -ne "${computed_size}" ]]; then
+			wrong_size=1
+		fi
+	fi
+	if [[ "${file_absent}" -eq "1" || "${wrong_size}" -eq "1" ]]; then
+		echo dd if=/dev/zero bs=1M \
+			count=$NUM_BLOCKS_CREATE_SEQ \
+			of=${fname}
+		dd if=/dev/zero bs=1M \
+			count=$NUM_BLOCKS_CREATE_SEQ \
+			of=${fname}
+		FILE_CREATED=TRUE
+	fi
+}
+
 function create_files
 {
 	NUM_READERS=$1
 	RW_TYPE=$2
 	SUFFIX=$3
 	mkdir -p ${BASE_DIR}
+	FILE_CREATED=FALSE
 
 	if [ "$RW_TYPE" == "seq" ]; then
 		for ((i = 0 ; $i < $NUM_READERS ; i++))
 		do
-			fname=${BASE_SEQ_FILE_PATH}$SUFFIX$i
-			test -f ${fname}
-			file_absent=$?
-			wrong_size=0
-        		if [ -f ${fname} ] ; then
-				file_size=$(du --apparent-size -B 1024 $fname | col -x | cut -f 1 -d " ")
-				computed_size=$(echo "${NUM_BLOCKS_CREATE_SEQ} * 1024" | bc -l)
-				if [[ "${file_size}" -ne "${computed_size}" ]]; then
-					wrong_size=1
-				fi
-			fi
-			if [[ "${file_absent}" -eq "1" ||\
-                              "${wrong_size}" -eq "1" ]]; then
-				echo dd if=/dev/zero bs=1M \
-					count=$NUM_BLOCKS_CREATE_SEQ \
-					of=${fname}
-				dd if=/dev/zero bs=1M \
-					count=$NUM_BLOCKS_CREATE_SEQ \
-					of=${fname}
-				FILE_CREATED=TRUE
-        		fi
+			create_file ${BASE_SEQ_FILE_PATH}$SUFFIX$i ${NUM_BLOCKS_CREATE_SEQ}
 		done
 	else
-		fname=${FILE_TO_RAND_READ}
-		test -f ${fname}
-		file_absent=$?
-		wrong_size=0
-		if [ -f ${fname} ] ; then
-			file_size=$(du --apparent-size -B 1024 $fname | col -x | cut -f 1 -d " ")
-			computed_size=$(echo "${NUM_BLOCKS_CREATE_RAND} * 1024" | bc -l)
-			if [[ "${file_size}" -ne "${computed_size}" ]]; then
-				wrong_size=1
-			fi
-		fi
-		if [[ "${file_absent}" -eq "1" || "${wrong_size}" -eq "1" ]]; then
-        		echo dd if=/dev/zero bs=1M \
-				count=$NUM_BLOCKS_CREATE_RAND \
-				of=${fname}
-        		dd if=/dev/zero bs=1M count=$NUM_BLOCKS_CREATE_RAND \
-				of=${fname}
-			FILE_CREATED=TRUE
-		fi
+		create_file ${FILE_TO_RAND_READ} ${NUM_BLOCKS_CREATE_RAND}
 	fi
 	if [[ "$FILE_CREATED" == TRUE ]]; then
 	    echo syncing after file creation

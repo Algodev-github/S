@@ -237,7 +237,7 @@ function video-playing
 
         for ((w=0 ; w<${#latency_workloads[@]};w++)); do
 	    wl=${latency_workloads[w]}
-            repeat video_playing "$VIDEOCMD $1 $wl $NUM_ITER_VIDEO $type" \
+            repeat video_playing "$VIDEOCMD $1 $wl $NUM_ITER_VIDEO $type n" \
 		$1-${wl_infix[w]}-video_playing_stat.txt
         done
 }
