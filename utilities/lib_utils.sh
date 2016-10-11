@@ -114,17 +114,17 @@ function create_file
 	wrong_size=0
 	if [ -f ${fname} ] ; then
 		file_size=$(du --apparent-size -B 1024 $fname | col -x | cut -f 1 -d " ")
-		computed_size=$(echo "${NUM_BLOCKS_CREATE_SEQ} * 1024" | bc -l)
+		computed_size=$(echo "${target_num_blocks} * 1024" | bc -l)
 		if [[ "${file_size}" -ne "${computed_size}" ]]; then
 			wrong_size=1
 		fi
 	fi
 	if [[ "${file_absent}" -eq "1" || "${wrong_size}" -eq "1" ]]; then
 		echo dd if=/dev/zero bs=1M \
-			count=$NUM_BLOCKS_CREATE_SEQ \
+			count=${target_num_blocks} \
 			of=${fname}
 		dd if=/dev/zero bs=1M \
-			count=$NUM_BLOCKS_CREATE_SEQ \
+			count=${target_num_blocks} \
 			of=${fname}
 		FILE_CREATED=TRUE
 	fi
