@@ -118,6 +118,11 @@ function clean_and_exit {
 	cd ..
 	# rm work dir
 	rm -rf results-${sched}
+	if [[ $CACHE != y && $CACHE != Y && $sched == bfq ]]; then
+		echo "Dectivating strict_guarantees"
+
+		echo 0 > /sys/block/$DEV/queue/iosched/strict_guarantees
+	fi
 	exit
 }
 
@@ -151,6 +156,7 @@ function invoke_player_plus_commands {
 			# the invocation of the player not belong to a burst
 			# of I/O queue activations (which is not what
 			# happens if a player is invoked by a user)
+
 		eval ${M_CMD} 2>&1 | tee -a ${PLAYER_OUT_FNAME} &
 		echo "Started ${M_CMD}"
 		ITER_START_TIMESTAMP=`date +%s`
@@ -159,7 +165,7 @@ function invoke_player_plus_commands {
 		while ! grep -E "Starting playback..." ${PLAYER_OUT_FNAME} > /dev/null 2>&1 ; do
 			sleep 1
 		        count=$(($count+1))
-		        check_timed_out $count 20
+		        check_timed_out $count 30
 		done
 
 		echo
@@ -196,6 +202,8 @@ function invoke_player_plus_commands {
 		echo "--- DROP RATE ---"
 		cat ${DROP_RATE_FNAME}
 		rm -f ${PLAYER_OUT_FNAME}
+
+		echo 3 > /proc/sys/vm/drop_caches
 	done
 }
 
@@ -244,8 +252,7 @@ rm -f $FILE_TO_WRITE
 set_scheduler
 
 if [[ $CACHE != y && $CACHE != Y && $sched == bfq ]]; then
-	echo \
-"Activating strict_gurantees (do not forget to deactivate it if needed)"
+	echo "Activating strict_guarantees"
 
 	echo 1 > /sys/block/$DEV/queue/iosched/strict_guarantees
 fi
