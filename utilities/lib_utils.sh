@@ -57,8 +57,10 @@ function set_scheduler
 		# Switch to the desired scheduler
 		echo Switching to $sched
 		echo $sched > /sys/block/$DEV/queue/scheduler |& echo &> /dev/null
-		if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-			echo "There is no $sched scheduler:"
+		PIPE_STATUS=${PIPESTATUS[0]}
+		NEW_SCHED=$(cat /sys/block/$DEV/queue/scheduler | egrep "\[$sched\]")
+		if [[ $PIPE_STATUS -ne 0 || "$NEW_SCHED" == "" ]]; then
+			echo "Switch to $sched failed:"
 			cat /sys/block/${DEV}/queue/scheduler
 			exit 1
 		fi
