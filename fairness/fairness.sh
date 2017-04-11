@@ -25,7 +25,7 @@ different files of 100MB each; the first reader has weight 1000, the second\n\
 \n\
 Default parameter values are bfq, 4, 2, $NUM_BLOCKS, and 100 for every reader\n"
 
-SCHED=${1-bfq}
+sched=${1-bfq}
 NUM_FILES=${2-4}
 ITERATIONS=${3-2}
 NUM_BLOCKS=${4-$NUM_BLOCKS}
@@ -57,7 +57,7 @@ if [ "$1" == "-h" ]; then
 fi
 
 # set proper group
-if [ "${SCHED}" == "bfq" ] ; then
+if [[ "${sched}" == "bfq" || "${sched}" == "bfq-mq" ]] ; then
     if [ "${BFQ_NEW_VERSION}" == "Y" ]; then
 	GROUP="blkio"
 	PREFIX="bfq."
@@ -65,13 +65,14 @@ if [ "${SCHED}" == "bfq" ] ; then
 	GROUP="bfqio"
 	PREFIX=""
     fi
-elif [ "${SCHED}" == "cfq" ] ; then
+elif [ "${sched}" == "cfq" ] ; then
 	GROUP="blkio"
 	PREFIX=""
 fi
 
 mkdir -p /cgroup
 umount /cgroup
+echo mount -t cgroup -o $GROUP none /cgroup
 mount -t cgroup -o $GROUP none /cgroup
 
 # load file names and create group dirs
@@ -107,20 +108,20 @@ done
 echo
 
 # create result dir tree and cd to its root
-rm -rf results-${SCHED}
-mkdir -p results-$SCHED
+rm -rf results-${sched}
+mkdir -p results-$sched
 for ((i = 0 ; $i < ${ITERATIONS} ; i++)) ; do
-	mkdir -p results-$SCHED/iter-$i/singles
+	mkdir -p results-$sched/iter-$i/singles
 done
-cd results-$SCHED
+cd results-$sched
 
 # switch to the desired scheduler
-echo Switching to $SCHED
-echo $SCHED > /sys/block/$DEV/queue/scheduler
+set_scheduler
 
 # If the scheduler under test is BFQ or CFQ, then disable the
 # low_latency heuristics to not ditort results.
-if [[ "$SCHED" == "bfq" || "$SCHED" == "cfq" ]]; then
+if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
+	"$sched" == "cfq" ]]; then
 	PREVIOUS_VALUE=$(cat /sys/block/$DEV/queue/iosched/low_latency)
 	echo "Disabling low_latency"
 	echo 0 > /sys/block/$DEV/queue/iosched/low_latency
@@ -128,7 +129,8 @@ fi
 
 function restore_low_latency
 {
-	if [[ "$SCHED" == "bfq" || "$SCHED" == "cfq" ]]; then
+	if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
+		"$sched" == "cfq" ]]; then
 		echo Restoring previous value of low_latency
 		echo $PREVIOUS_VALUE >\
 			/sys/block/$DEV/queue/iosched/low_latency
