@@ -14,6 +14,7 @@ sched=${1-bfq}
 NUM_READERS=${2-3}
 STAT_DEST_DIR=${3-.}
 DURATION=${4-30}
+DIS_LOW_LATENCY=NO # If set to YES, then also disable low latency
 
 # see the following string for usage, or invoke interleaved_io.sh -h
 usage_msg="\
@@ -27,7 +28,8 @@ switches to bfq and launches 3 interleaved readers on the same device.\n\
 The file containing the computed stats is stored\n\
 in the .. dir with respect to the cur dir.\n\
 \n\
-Default parameter values are bfq, 3, . and $DURATION\n"
+Default parameter values are bfq, 3, . and $DURATION\n
+With CFQ and BFQ, it is also possible to disable low latency\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
@@ -45,11 +47,31 @@ mkdir -p results-$sched
 cd results-$sched
 
 # switch to the desired scheduler
-echo Switching to $sched
-echo $sched > /sys/block/$DEV/queue/scheduler
+set_scheduler
+
+# If the scheduler under test is BFQ or CFQ, then disable the
+# low_latency heuristics to not ditort results.
+if [[ "$DIS_LOW_LATENCY" != "NO" ]]; then
+	if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
+		"$sched" == "cfq" ]]; then
+		PREVIOUS_VALUE=$(cat /sys/block/$DEV/queue/iosched/low_latency)
+		echo "Disabling low_latency"
+		echo 0 > /sys/block/$DEV/queue/iosched/low_latency
+	fi
+fi
+
+function restore_low_latency
+{
+	if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
+		"$sched" == "cfq" ]]; then
+		echo Restoring previous value of low_latency
+		echo $PREVIOUS_VALUE >\
+			/sys/block/$DEV/queue/iosched/low_latency
+	fi
+}
 
 # setup a quick shutdown for Ctrl-C
-trap "shutdwn 'fio iostat' ; exit" sigint
+trap "shutdwn 'fio iostat' ; restore_low_latency; exit" sigint
 
 flush_caches
 
@@ -79,3 +101,5 @@ cd ..
 
 # rm work dir
 rm -rf results-${sched}
+
+restore_low_latency
