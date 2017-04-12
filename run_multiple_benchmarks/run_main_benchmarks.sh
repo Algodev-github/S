@@ -108,17 +108,6 @@ function repeat
 	mkdir -p $RES_DIR/$1
 	for ((i = 0 ; $i < $NUM_REPETITIONS ; i++))
 	do
-		# check BFQ self-configuration of weight-raising
-		# duration, which is a critical parameter
-		if [ $(get_scheduler) == bfq ]; then
-			wrtime=$(cat /sys/block/$DEV/queue/iosched/wr_max_time)
-			if [ $wrtime -lt 3000 ]; then
-				echo Weight raising too low \($wrtime\)
-				echo Exiting ...
-				exit
-			fi
-		fi
-
 		echo
 		echo Repetition $(($i + 1)) / $NUM_REPETITIONS \($sched, $1\)
 		echo

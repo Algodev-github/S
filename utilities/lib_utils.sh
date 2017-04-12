@@ -74,14 +74,12 @@ function set_scheduler
 function transitory_duration
 {
 	OTHER_SCHEDULER_DURATION=$1
-	if [[ $sched == "bfq" ]]; then
-		if [ -f /sys/block/$DEV/queue/iosched/raising_max_time ]; then
-			FNAME=/sys/block/$DEV/queue/iosched/raising_max_time
-		else
-			if [ -f /sys/block/$DEV/queue/iosched/wr_max_time ];
-			then
-				FNAME=/sys/block/$DEV/queue/iosched/wr_max_time
-			fi
+	if [ -f /sys/block/$DEV/queue/iosched/raising_max_time ]; then
+		FNAME=/sys/block/$DEV/queue/iosched/raising_max_time
+	else
+		if [ -f /sys/block/$DEV/queue/iosched/wr_max_time ];
+		then
+			FNAME=/sys/block/$DEV/queue/iosched/wr_max_time
 		fi
 	fi
 	if [[ "$FNAME" != "" ]]; then
