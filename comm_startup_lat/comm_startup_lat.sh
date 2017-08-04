@@ -23,7 +23,16 @@ COMMAND=${6-"gnome-terminal -e /bin/true"}
 STAT_DEST_DIR=${7-.}
 MAX_STARTUP=${8-60}
 IDLE_DISK_LAT=${9-0}
-MAXRATE=${10-4000}
+
+if [[ "${10}" == "" ]]; then # compute MAXRATE automatically
+	if [[ "$(cat /sys/block/$DEV/queue/rotational)" == "1" ]]; then
+		MAXRATE=4000
+	else
+		MAXRATE=0 # no write-rate limitation for flash-based storage
+	fi
+else
+	MAXRATE=${10}
+fi
 
 # set display to allow application with a GUI to be started remotely too
 # (a session must however be open on the target machine)
@@ -51,14 +60,19 @@ max_startup-time  ->  maximum duration allowed for each command
 idle_device_lat -> reference command start-up time to print in each iteration,
                    nothing is printed if this parameter is equal to \"\"
 
-max_write-kB-per-sec -> maximum total sequentail write rate [kB/s],
+max_write-kB-per-sec -> maximum total sequential write rate [kB/s],
 			used to reduce the risk that the system
 			becomes unresponsive. For random writers, this
-			value is further divided by 60. With the
-			current default value the system seems still
-			usable (at least) under bfq, with a 90 MB/s
-			HDD. If set to 0, then there is no limitation
-			on the write rate.
+			value is further divided by 60. If set to 0,
+			then no limitation is enforced on the write rate.
+			If no value is set, then a default value is
+			computed automatically as a function of whether
+			the device is rotational. In particular, for
+			a rotational device, the current default value is
+			such that the system seems still usable (at least)
+			under bfq, with a 90 MB/s HDD. On the opposite end,
+			no write-rate limitation is enforced for a
+			non-rotational device.
 
 num_iter == 0 -> infinite iterations
 
