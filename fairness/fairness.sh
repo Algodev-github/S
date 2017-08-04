@@ -57,10 +57,11 @@ if [ "$1" == "-h" ]; then
 fi
 
 # set proper group
-if [[ "${sched}" == "bfq" || "${sched}" == "bfq-mq" ]] ; then
+if [[ "${sched}" == "bfq" || "${sched}" == "bfq-mq" || \
+	"${sched}" == "bfq-sq" ]] ; then
     if [ "${BFQ_NEW_VERSION}" == "Y" ]; then
 	GROUP="blkio"
-	PREFIX="bfq."
+	PREFIX="${sched}."
     else
 	GROUP="bfqio"
 	PREFIX=""
