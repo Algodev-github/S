@@ -412,6 +412,7 @@ function print_save
 	thr_stat_file_name=$1
 	message=$2
 	command=$3
+	extra_rm_lines=${4:-0}
 
 	echo "$message" | tee -a ${thr_stat_file_name}
 	len=$(cat iostat.out | grep ^$DEV | wc -l)
@@ -421,18 +422,18 @@ function print_save
 	# . the last sample, because it can be influenced by the operations
 	#   performed at the end of the test
 	cat iostat.out | grep ^$DEV | awk "{ $command }" |\
-		tail -n$(($len-1)) | head -n$(($len-1)) > iostat-aggthr
+		tail -n$(($len-1-$extra_rm_lines)) | head -n$(($len-1)) > iostat-aggthr
 	sh $CALC_AVG_AND_CO 99 < iostat-aggthr |\
-	 tee -a $thr_stat_file_name
+		tee -a $thr_stat_file_name
 }
 
 function print_save_agg_thr
 {
 	sed -i 's/,/\./g' iostat.out
 	sed -i '3,6d' iostat.out
-	print_save $1 "Aggregated throughput:" 'print $3 + $4'
-	print_save $1 "Read throughput:" 'print $3'
-	print_save $1 "Write throughput:" 'print $4'
+	print_save $1 "Aggregated throughput:" 'print $3 + $4' $2
+	print_save $1 "Read throughput:" 'print $3' $2
+	print_save $1 "Write throughput:" 'print $4' $2
 
 	echo
 }
