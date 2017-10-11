@@ -57,7 +57,7 @@ else
 fi
 
 # create the file to copy if it doesn't exist
-create_files $NUM_COPIERS seq $SUFFIX
+create_files $NUM_COPIERS $SUFFIX
 
 init_tracing
 set_tracing 1
@@ -70,8 +70,8 @@ do
     # start $NUM_COPIES copiers
     for ((i = 0 ; $i < $NUM_COPIERS ; i++))
     do
-	dd if=${BASE_SEQ_FILE_PATH}$SUFFIX$i 2>&1 | \
-	    pv -q -L $(($MAXRATE / $NUM_COPIERS))k 2>&1 | dd of=${BASE_SEQ_FILE_PATH}-copy$i \
+	dd if=${BASE_FILE_PATH}$SUFFIX$i 2>&1 | \
+	    pv -q -L $(($MAXRATE / $NUM_COPIERS))k 2>&1 | dd of=${BASE_FILE_PATH}-copy$i \
 	    > /dev/null 2>&1 &
     done
     echo "Copying $NUM_COPIERS file(s)"

@@ -126,30 +126,20 @@ function create_file
 		dd if=/dev/zero bs=1M \
 			count=${target_num_blocks} \
 			of=${fname}
-		FILE_CREATED=TRUE
+		echo syncing after file creation
+		flush_caches
 	fi
 }
 
 function create_files
 {
 	NUM_READERS=$1
-	RW_TYPE=$2
-	SUFFIX=$3
+	SUFFIX=$2
 	mkdir -p ${BASE_DIR}
-	FILE_CREATED=FALSE
 
-	if [ "$RW_TYPE" == "seq" ]; then
-		for ((i = 0 ; $i < $NUM_READERS ; i++))
-		do
-			create_file ${BASE_SEQ_FILE_PATH}$SUFFIX$i ${NUM_BLOCKS_CREATE_SEQ}
-		done
-	else
-		create_file ${FILE_TO_RAND_READ} ${NUM_BLOCKS_CREATE_RAND}
-	fi
-	if [[ "$FILE_CREATED" == TRUE ]]; then
-	    echo syncing after file creation
-	    flush_caches
-	fi
+	for ((i = 0 ; $i < $NUM_READERS ; i++)); do
+		create_file ${BASE_FILE_PATH}$SUFFIX$i ${FILE_SIZE_MB}
+	done
 }
 
 function create_files_rw_type
@@ -157,7 +147,7 @@ function create_files_rw_type
 	NUM_READERS=$1
 	RW_TYPE=$2
 	if [[ "$RW_TYPE" != "raw_seq" && "$RW_TYPE" != "raw_rand" ]]; then
-		create_files $NUM_READERS $RW_TYPE
+		create_files $NUM_READERS
 		echo
 	else
 		NUM_WRITERS=0 # only raw readers allowed for the moment (we use
@@ -175,8 +165,8 @@ function start_raw_readers
     if [ "$R_TYPE" == "raw_seq" ]; then
         for ((i = 0 ; $i < ${NUM_READERS} ; i++))
         do
-            $FIO --name=seqreader$i -rw=read --size=${NUM_BLOCKS_CREATE_SEQ}M \
-                --offset=$[$i*$NUM_BLOCKS_CREATE_SEQ]M --numjobs=1 \
+            $FIO --name=seqreader$i -rw=read --size=${FILE_SIZE_MB}M \
+                --offset=$[$i*$FILE_SIZE_MB]M --numjobs=1 \
                 --filename=/dev/${DEV} > /dev/null &
         done
     else
@@ -210,39 +200,25 @@ function start_readers_writers
 	fi
 	echo
 
-	if [ "$RW_TYPE" == "seq" ]; then
-		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
-		do
-			rm -f ${BASE_SEQ_FILE_PATH}_write$i
-		done
-		for ((i = 0 ; $i < ${NUM_READERS} ; i++))
-		do
-			$FIO --name=seqreader$i -rw=read --numjobs=1 \
-			    --filename=${BASE_SEQ_FILE_PATH}$i > /dev/null &
-		done
-		for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
-		do
-			$FIO --name=seqwriter$i -rw=write $SETMAXRATE \
-			    --numjobs=1 --size=${NUM_BLOCKS_CREATE_SEQ}M \
-			    --filename=${BASE_SEQ_FILE_PATH}_write$i \
-			    > /dev/null &
-		done
-	else
-		if [ $NUM_WRITERS -gt 0 ] ; then
-			rm -f $FILE_TO_RAND_WRITE
-		fi
-		if [ $NUM_READERS -gt 0 ] ; then
-		        $FIO --name=readers --rw=randread \
-       	        	--numjobs=$NUM_READERS --filename=$FILE_TO_RAND_READ \
-			> /dev/null &
-		fi
-		if [ $NUM_WRITERS -gt 0 ] ; then
-			$FIO --name=writers --rw=randwrite $SETMAXRATE \
-			    --size=${NUM_BLOCKS_CREATE_RAND}M \
-			    --numjobs=$NUM_WRITERS \
-			    --filename=$FILE_TO_RAND_WRITE > /dev/null &
-		fi
+	if [[ "$RW_TYPE" != seq ]]; then
+		TYPE_PREF=rand
 	fi
+	for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
+	do
+		rm -f ${BASE_FILE_PATH}_write$i
+	done
+	for ((i = 0 ; $i < ${NUM_READERS} ; i++))
+	do
+		$FIO --name=${RW_TYPE}reader$i -rw=${TYPE_PREF}read --numjobs=1 \
+		    --filename=${BASE_FILE_PATH}$i > /dev/null &
+	done
+	for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
+	do
+		$FIO --name=${RW_TYPE}writer$i -rw=${TYPE_PREF}write $SETMAXRATE \
+		    --numjobs=1 --size=${FILE_SIZE_MB}M \
+		    --filename=${BASE_FILE_PATH}_write$i \
+		    > /dev/null &
+	done
 }
 
 function start_readers_writers_rw_type

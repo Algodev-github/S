@@ -80,15 +80,11 @@ mount -t cgroup -o $GROUP none /cgroup
 FILES=""
 for ((i = 0 ; $i < $NUM_FILES ; i++)) ; do
 	mkdir -p /cgroup/test$i
-	if [[ "$R_TYPE" == "seq" ]]; then
-		FILES+="${BASE_SEQ_FILE_PATH}$i "
-	else
-		FILES+="${FILE_TO_RAND_READ} "
-	fi
+	FILES+="${BASE_FILE_PATH}$i "
 done
 
 # create files to read
-create_files_rw_type $NUM_FILES $R_TYPE
+create_files_rw_type $NUM_FILES
 
 # initialize weight array
 echo -n "Weights:"

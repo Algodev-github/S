@@ -15,16 +15,14 @@ TRACE=0
 # DEV=sda
 DEV=$(basename `mount | grep "on / " | cut -f 1 -d " "` | sed 's/\(...\).*/\1/g')
 
-# number of 1M blocks of the files to create for seq reading/writing
-NUM_BLOCKS_CREATE_SEQ=500
-
-# number of 1M blocks of the files to create for rand reading/writing
-# (the larger the better for randomness)
-NUM_BLOCKS_CREATE_RAND=$(($NUM_BLOCKS_CREATE_SEQ * 10))
+# Size of the files to create for reading/writing, in MB.
+# For random I/O with rotational devices, consider that the
+# size of the files may heavily influence throughput and, in
+# general, service properties
+FILE_SIZE_MB=500
 
 # portion, in 1M blocks, to read for each file, used only in fairness.sh;
-# make sure it is not larger than either $NUM_BLOCKS_CREATE_SEQ or
-# $NUM_BLOCKS_CREATE RAND
+# make sure it is not larger than $FILE_SIZE_MB
 NUM_BLOCKS=2000
 
 # where files are read from or written to
@@ -38,9 +36,7 @@ if test ! -w $BASE_DIR ; then
 fi
 
 # file names
-BASE_SEQ_FILE_PATH=$BASE_DIR/largefile
-FILE_TO_RAND_READ=$BASE_DIR/verylargefile_read
-FILE_TO_RAND_WRITE=$BASE_DIR/verylargefile_write
+BASE_FILE_PATH=$BASE_DIR/largefile
 
 # The kernel-development benchmarks expect a repository in the
 # following directory. In particular, they play with v4.0, v4.1 and

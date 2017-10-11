@@ -40,7 +40,6 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-rm -f $FILE_TO_WRITE
 # create and enter work dir
 rm -rf results-${sched}
 mkdir -p results-$sched

@@ -120,8 +120,8 @@ printf "%9d %8d %12d %10d %14d %5s\n\n" $start_iter $end_iter $start_nfiles \
 ver=${out_dir}/video_streaming_`date +%Y%m%d-%H%M`
 
 #measured in MB
-sizes="$(($NUM_BLOCKS_CREATE_SEQ ))"
-max_size=$(($NUM_BLOCKS_CREATE_SEQ))
+sizes="$(($FILE_SIZE_MB ))"
+max_size=$(($FILE_SIZE_MB))
 
 echo Creating needed files $f
 if [ $file_location != $BASE_DIR ]; then
@@ -146,14 +146,14 @@ files[5]="/mnt/${DEV}5/1GB_file /mnt/${DEV}12/1GB_file /mnt/${DEV}20/1GB_file \
 /mnt/${DEV}27/1GB_file /mnt/${DEV}34/1GB_file"
 
 else
-    create_files 5 seq # at most five files are read in parallel at the moment
+    create_files 5 # at most five files are read in parallel at the moment
     flush_caches
 
-files[1]="${BASE_SEQ_FILE_PATH}0"
-files[2]="${BASE_SEQ_FILE_PATH}0 ${BASE_SEQ_FILE_PATH}4"
-files[3]="${BASE_SEQ_FILE_PATH}0 ${BASE_SEQ_FILE_PATH}2 ${BASE_SEQ_FILE_PATH}4"
-files[4]="${BASE_SEQ_FILE_PATH}0 ${BASE_SEQ_FILE_PATH}1 ${BASE_SEQ_FILE_PATH}2 ${BASE_SEQ_FILE_PATH}4"
-files[5]="${BASE_SEQ_FILE_PATH}0 ${BASE_SEQ_FILE_PATH}1 ${BASE_SEQ_FILE_PATH}2 ${BASE_SEQ_FILE_PATH}3 ${BASE_SEQ_FILE_PATH}4"
+files[1]="${BASE_FILE_PATH}0"
+files[2]="${BASE_FILE_PATH}0 ${BASE_FILE_PATH}4"
+files[3]="${BASE_FILE_PATH}0 ${BASE_FILE_PATH}2 ${BASE_FILE_PATH}4"
+files[4]="${BASE_FILE_PATH}0 ${BASE_FILE_PATH}1 ${BASE_FILE_PATH}2 ${BASE_FILE_PATH}4"
+files[5]="${BASE_FILE_PATH}0 ${BASE_FILE_PATH}1 ${BASE_FILE_PATH}2 ${BASE_FILE_PATH}3 ${BASE_FILE_PATH}4"
 
 fi
 

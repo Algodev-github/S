@@ -257,8 +257,6 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-rm -f $FILE_TO_WRITE
-
 set_scheduler
 
 if [[ $CACHE != y && $CACHE != Y && $sched == bfq ]]; then
