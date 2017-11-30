@@ -10,7 +10,7 @@ fi
 LC_NUMERIC=C
 . ../config_params.sh
 . ../utilities/lib_utils.sh
-UTIL_DIR=`cd ../utilities; pwd` 
+UTIL_DIR=`cd ../utilities; pwd`
 # Set to yes if you want also iostat to be executed in parallel
 IOSTAT=yes
 
@@ -56,7 +56,7 @@ max_startup-time  ->  maximum duration allowed for each command
                       is killed, no other iteration is performed and
                       no output file is created. If max_startup_time
                       is set to 0, then no control is performed.
-                      
+
 idle_device_lat -> reference command start-up time to print in each iteration,
                    nothing is printed if this parameter is equal to \"\"
 
@@ -106,6 +106,9 @@ function clean_and_exit {
     cd ..
     rm -rf results-$sched
     rm -f Stop-iterations current-pid # remove possible garbage
+    if [[ "$XHOST_CONTROL" != "" ]]; then
+	   xhost -
+    fi
     exit
 }
 
@@ -233,6 +236,15 @@ STAT_DEST_DIR=`pwd`/$STAT_DEST_DIR
 
 rm -f $FILE_TO_WRITE
 
+# If $COMMAND starts an X application, then the latter needs to access
+# the X server. Yet this script may be executed as root by a non-root
+# user (e.g., using sudo). To guarantee that the X application can
+# access the X server also in this case, turn off access control
+# temporarily. To this purpose, store previous access-control state
+# before turning it off.
+XHOST_CONTROL=$(sudo -u $SUDO_USER xhost | egrep "enabled")
+sudo -u $SUDO_USER xhost +
+
 set_scheduler
 
 echo Preliminary sync to block until previous writes have been completed
@@ -245,7 +257,7 @@ cd results-$sched
 
 rm -f Stop-iterations current-pid
 
-# setup a quick shutdown for Ctrl-C 
+# setup a quick shutdown for Ctrl-C
 trap "clean_and_exit" sigint
 trap 'kill -HUP $(jobs -lp) >/dev/null 2>&1 || true' EXIT
 
@@ -278,6 +290,10 @@ set_tracing 1
 invoke_commands
 
 shutdwn 'fio iostat'
+
+if [[ "$XHOST_CONTROL" != "" ]]; then
+	xhost -
+fi
 
 compute_statistics
 
