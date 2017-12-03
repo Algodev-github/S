@@ -245,6 +245,14 @@ rm -f $FILE_TO_WRITE
 XHOST_CONTROL=$(sudo -u $SUDO_USER xhost | egrep "enabled")
 sudo -u $SUDO_USER xhost +
 
+echo Checking that \"$COMMAND\" can be successfully executed
+$COMMAND
+if [[ $? -ne 0 ]]; then
+	echo Command \"$COMMAND\" failed, check X server access
+	exit
+fi
+echo Command execution ok
+
 set_scheduler
 
 echo Preliminary sync to block until previous writes have been completed
