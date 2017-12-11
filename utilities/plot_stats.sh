@@ -195,7 +195,24 @@ function plot_histograms()
 
     echo $plot_curves >> tmp.txt
 
+    if [ $term_mode == "x11" ] ; then
+	export DISPLAY=:0
+	# To make x11 plots, gnuplot needs to access the X server. Yet this
+	# script may be executed as root by a non-root user (e.g., using sudo).
+	# To guarantee that gnuplot can access the X server also in this case,
+	# turn off access control temporarily. To this purpose, store previous
+	# access-control state before turning it off.
+	XHOST_CONTROL=$(sudo -u $SUDO_USER xhost | egrep "enabled")
+	sudo -u $SUDO_USER xhost +
+    fi
+
     gnuplot $options < tmp.txt
+
+    if [[ "$XHOST_CONTROL" != "" ]]; then
+	xhost -
+	XHOST_CONTROL=
+    fi
+
     rm -f label_*.plt tmp.txt
 
     plot_id=$(($plot_id+1))
