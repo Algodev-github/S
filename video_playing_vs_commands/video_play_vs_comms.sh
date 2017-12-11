@@ -29,6 +29,13 @@ MAXRATE=${9-4000} # maximum total sequential write rate for which the
 # set DISPLAY to allow applications with a GUI to be started remotely too
 # (a session must however be open on the target machine)
 export DISPLAY=:0
+# To playback a video, the player needs to access the X server. Yet this
+# script may be executed as root by a non-root user (e.g., using sudo).
+# To guarantee that the player can access the X server also in this case,
+# turn off access control temporarily. To this purpose, store previous
+# access-control state before turning it off.
+XHOST_CONTROL=$(sudo -u $SUDO_USER xhost | egrep "enabled")
+sudo -u $SUDO_USER xhost +
 
 function show_usage {
 	echo "\
@@ -122,6 +129,9 @@ function clean_and_exit {
 		echo "Dectivating strict_guarantees"
 
 		echo 0 > /sys/block/$DEV/queue/iosched/strict_guarantees
+	fi
+	if [[ "$XHOST_CONTROL" != "" ]]; then
+		xhost -
 	fi
 	exit
 }
@@ -295,6 +305,10 @@ set_tracing 1
 invoke_player_plus_commands
 
 shutdwn 'fio iostat'
+
+if [[ "$XHOST_CONTROL" != "" ]]; then
+	xhost -
+fi
 
 compute_statistics
 
