@@ -87,7 +87,7 @@ $NUM_ITER, \"$COMMAND\", $STAT_DEST_DIR, $MAX_STARTUP, $IDLE_DISK_LAT and $MAXRA
 
 Other commands you may want to test:
 \"bash -c exit\", \"xterm /bin/true\", \"ssh localhost exit\",
-\"lowriter --terminate-after-init\""
+\"lowriter --terminate_after_init\""
 }
 
 if [ "$1" == "-h" ]; then
