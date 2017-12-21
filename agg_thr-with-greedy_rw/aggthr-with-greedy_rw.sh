@@ -15,7 +15,7 @@ NUM_READERS=${2-1}
 NUM_WRITERS=${3-0}
 RW_TYPE=${4-seq}
 STAT_DEST_DIR=${5-.}
-DURATION=${6-30}
+DURATION=${6-10}
 SYNC=${7-yes}
 MAXRATE=${8-0} # If useful with other schedulers than bfq, 16500
 		   # is apparently the maximum value for which the

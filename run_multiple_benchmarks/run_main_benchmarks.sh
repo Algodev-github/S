@@ -157,7 +157,7 @@ function throughput
         for ((w=0 ; w<${#thr_workloads[@]};w++)); do
 	    wl=${thr_workloads[w]}
 	    repeat aggthr "aggthr-with-greedy_rw.sh $1 $wl" \
-		$1-${thr_wl_infix[w]}-30sec-aggthr_stat.txt
+		$1-${thr_wl_infix[w]}-10sec-aggthr_stat.txt
 	done
 }
 
