@@ -246,9 +246,11 @@ XHOST_CONTROL=$(sudo -u $SUDO_USER xhost | egrep "enabled")
 sudo -u $SUDO_USER xhost +
 
 echo Checking that \"$COMMAND\" can be successfully executed
-$COMMAND
-if [[ $? -ne 0 ]]; then
-	echo Command \"$COMMAND\" failed, check X server access
+$COMMAND 2>&1 | tee comm_out
+fail_str=$(egrep -i fail comm_out)
+rm comm_out
+if [[ $? -ne 0 || "$fail_str" != "" ]]; then
+	echo Command \"$COMMAND\" failed, check syntax or X server access
 	exit
 fi
 echo Command execution ok
