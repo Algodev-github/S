@@ -21,7 +21,7 @@ RW_TYPE=${4-seq}
 NUM_ITER=${5-5}
 COMMAND=${6-"gnome-terminal -e /bin/true"}
 STAT_DEST_DIR=${7-.}
-MAX_STARTUP=${8-60}
+MAX_STARTUP=${8-120}
 IDLE_DISK_LAT=${9-0}
 
 if [[ "${10}" == "" ]]; then # compute MAXRATE automatically
