@@ -19,7 +19,8 @@ workloads (this option also avoids intense writes). Raw mode is not
 yet implemented.
 
 The set of benchmarks can be built out of the following benchmarks:
-throughput, startup, fairness, video-playing, kernel-devel, interleaved-io.
+throughput startup fairness video-playing kernel-devel interleaved-io
+
 If no set or an empty set, i.e., \"\", is given, then all benchmarks are
 executed.
 
