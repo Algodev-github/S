@@ -17,7 +17,17 @@ TRACE=0
 # If it does not work or is not want you want, change it to fit your needs,
 # for example:
 # DEV=sda
-DEV=$(basename `mount | grep "on / " | cut -f 1 -d " "` | sed 's/\(...\).*/\1/g')
+DEV=$(mount | grep "on / " | cut -f 1 -d " ")
+DEV=$(readlink -f $DEV) # moves to /dev/dm-X in case of device mapper
+DEV=$(basename $DEV)
+
+# get physical partition if $DEV is a device mapper
+if [ "$(echo $DEV | egrep dm-)" != "" ] ; then
+	DEV=$(ls /sys/block/$DEV/slaves | cut -f 1 -d " ")
+fi
+
+# strip partition number
+DEV=$(echo $DEV | sed 's/\(...\).*/\1/g')
 
 # Size of the files to create for reading/writing, in MB.
 # For random I/O with rotational devices, consider that the
