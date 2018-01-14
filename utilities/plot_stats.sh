@@ -18,6 +18,7 @@ plot_stats.sh table_file|table_dir [ref_mode] [term_mode]
 "
 
 ../utilities/check_dependencies.sh bash awk gnuplot
+. ../utilities/lib_utils.sh
 
 if [ $term_mode == "eps" ] ; then
 	lw=3
@@ -196,14 +197,7 @@ function plot_histograms()
     echo $plot_curves >> tmp.txt
 
     if [ $term_mode == "x11" ] ; then
-	export DISPLAY=:0
-	# To make x11 plots, gnuplot needs to access the X server. Yet this
-	# script may be executed as root by a non-root user (e.g., using sudo).
-	# To guarantee that gnuplot can access the X server also in this case,
-	# turn off access control temporarily. To this purpose, store previous
-	# access-control state before turning it off.
-	XHOST_CONTROL=$(sudo -u $SUDO_USER xhost | egrep "enabled")
-	sudo -u $SUDO_USER xhost +
+	enable_X_access_and_test_cmd
     fi
 
     gnuplot $options < tmp.txt
