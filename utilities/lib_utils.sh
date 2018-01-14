@@ -39,6 +39,73 @@ function set_tracing {
 	fi
 }
 
+# Try to open access to an X display; then set DISPLAY, plus XHOST_CONTROL, for
+# that display. In addition, test the execution of the command line passed as
+# first argument, if any is passed.
+function enable_X_access_and_test_cmd {
+	COMMAND="$1"
+
+	COMM_OK=no
+	for dis in `ls /tmp/.X11-unix | tr 'X' ':'`; do
+		# Tentatively set display so as to allow applications with a
+		# GUI to be started remotely too (a session must however be
+		# open on the target machine)
+		export DISPLAY=$dis
+
+		# To run, an X application needs to access the X server. In
+		# this respect, these scripts may be executed as root (e.g.,
+		# using sudo) by a different, non-root user. And the latter may
+		# be the actual owner the current X session.  To guarantee that
+		# the X application can access the X server also in this case,
+		# turn off access control temporarily. Before turning it
+		# off, save previous access-control state, to re-enable it
+		# again at the end of the benchmark, if needed.
+		XHOST_CONTROL=$(sudo -u $SUDO_USER xhost 2> /dev/null |\
+				egrep "enabled")
+		sudo -u $SUDO_USER xhost + > /dev/null 2>&1
+
+		if [[ $? -ne 0 && "$COMMAND" == "" ]]; then
+			continue
+		fi
+
+		if [[ "$COMMAND" == "" ]]; then # => "xhost +" succeded
+			COMM_OK=yes
+			break
+		fi
+
+		$COMMAND >comm_out 2>&1
+		COM_OUT=$?
+		fail_str=$(egrep -i "fail|error|can\'t open display" comm_out)
+		rm comm_out
+		if [[ $COM_OUT -ne 0 || "$fail_str" != "" ]]; then
+			continue
+		fi
+		COMM_OK=yes
+		break
+	done
+
+	if [[ "$COMMAND" != "" && "$COMM_OK" != "yes" ]]; then
+		echo Command \"$COMMAND\" failed on every display\;
+		echo check syntax or X server access, or just make sure
+		echo an X session is open for your user. For example, if
+		echo you have opened a session as foo, then, as foo, you
+		echo can successfully execute these scripts using sudo
+		echo \(even through ssh\).
+		echo But if you, as foo, become root using su, or if you
+		echo are in a root shell, then I\'m not able to give you
+		echo access to the X server.
+		echo Aborting.
+		if [[ "$XHOST_CONTROL" != "" ]]; then
+			xhost -
+		fi
+		exit 1
+	fi
+	if [[ "$COMM_OK" != "yes" ]]; then
+		echo Sorry, failed to get access to any display. Aborting.
+		exit 1
+	fi
+}
+
 function flush_caches
 {
 	echo Syncing and dropping caches ...

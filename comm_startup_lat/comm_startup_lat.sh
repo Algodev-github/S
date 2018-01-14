@@ -34,10 +34,6 @@ else
 	MAXRATE=${10}
 fi
 
-# set display to allow application with a GUI to be started remotely too
-# (a session must however be open on the target machine)
-export DISPLAY=:0
-
 function show_usage {
 	echo "\
 Usage (as root): ./comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers]
@@ -236,24 +232,7 @@ STAT_DEST_DIR=`pwd`/$STAT_DEST_DIR
 
 rm -f $FILE_TO_WRITE
 
-# If $COMMAND starts an X application, then the latter needs to access
-# the X server. Yet this script may be executed as root by a non-root
-# user (e.g., using sudo). To guarantee that the X application can
-# access the X server also in this case, turn off access control
-# temporarily. To this purpose, store previous access-control state
-# before turning it off.
-XHOST_CONTROL=$(sudo -u $SUDO_USER xhost | egrep "enabled")
-sudo -u $SUDO_USER xhost +
-
-echo Checking that \"$COMMAND\" can be successfully executed
-$COMMAND 2>&1 | tee comm_out
-fail_str=$(egrep -i fail comm_out)
-rm comm_out
-if [[ $? -ne 0 || "$fail_str" != "" ]]; then
-	echo Command \"$COMMAND\" failed, check syntax or X server access
-	exit
-fi
-echo Command execution ok
+enable_X_access_and_test_cmd "$COMMAND"
 
 set_scheduler
 
