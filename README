@@ -9,9 +9,17 @@ dependency (see MAIN DEPENDENCIES).
 CONTENTS
 
 In the root directory:
-. config_params.sh
-	(Hopefully all and only the) parameters that need to be set
-	to let the test scripts run smoothly on your system
+. def_config_params.sh
+        Default configuration of general parameters, driving the
+        execution of all benchmarks. On the very first execution of
+        some benchmark script by a user, this file is copied into the
+        user home, as .S-config.sh. This is done even if just the -h
+        option is passed to the script. The file .S-config.sh is the
+        one that is actually read to set the values of the parameters,
+        regardless of whether the file has just been copied from
+        def_config_params.sh, or was already present in the home
+        directory. Thus .S-config.sh is the file to modify, to change
+        the configuration.
 
 Each benchmark is implemented by a bash script, stored in a separate directory.
 Here is the list of the directories and of the main scripts they contain:
