@@ -26,16 +26,7 @@ MAXRATE=${9-4000} # maximum total sequential write rate for which the
 		  # unresponsive under bfq with a 90 MB/s hard disk
 		  # (see comm_startup_lat script)
 
-# set DISPLAY to allow applications with a GUI to be started remotely too
-# (a session must however be open on the target machine)
-export DISPLAY=:0
-# To playback a video, the player needs to access the X server. Yet this
-# script may be executed as root by a non-root user (e.g., using sudo).
-# To guarantee that the player can access the X server also in this case,
-# turn off access control temporarily. To this purpose, store previous
-# access-control state before turning it off.
-XHOST_CONTROL=$(sudo -u $SUDO_USER xhost | egrep "enabled")
-sudo -u $SUDO_USER xhost +
+enable_X_access_and_test_cmd
 
 function show_usage {
 	echo "\
