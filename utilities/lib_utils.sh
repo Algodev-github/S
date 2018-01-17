@@ -73,6 +73,10 @@ function enable_X_access_and_test_cmd {
 			break
 		fi
 
+		# some X appplication, such as gnome-terminal, may need LC_ALL
+		# set as follows
+		export LC_ALL="en_US.UTF-8"
+
 		$COMMAND >comm_out 2>&1
 		COM_OUT=$?
 		fail_str=$(egrep -i "fail|error|can\'t open display" comm_out)
