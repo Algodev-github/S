@@ -80,7 +80,6 @@ function enable_X_access_and_test_cmd {
 		$COMMAND >comm_out 2>&1
 		COM_OUT=$?
 		fail_str=$(egrep -i "fail|error|can\'t open display" comm_out)
-		rm comm_out
 		if [[ $COM_OUT -ne 0 || "$fail_str" != "" ]]; then
 			continue
 		fi
@@ -89,21 +88,31 @@ function enable_X_access_and_test_cmd {
 	done
 
 	if [[ "$COMMAND" != "" && "$COMM_OK" != "yes" ]]; then
-		echo Command \"$COMMAND\" failed on every display\;
-		echo check syntax or X server access, or just make sure
-		echo an X session is open for your user. For example, if
-		echo you have opened a session as foo, then, as foo, you
+		echo Command \"$COMMAND\" failed on every
+		echo display, with the following error message:
+		echo
+		echo ------------------------------------------------------
+		cat comm_out
+		echo ------------------------------------------------------
+		echo
+		echo If the problem is unsuccessful access to the X server,
+		echo then check access permissions, and make sure that
+		echo an X session is open for your user. In this respect,
+		echo if you have opened a session as foo, then, as foo, you
 		echo can successfully execute these scripts using sudo
 		echo \(even through ssh\).
 		echo But if you, as foo, become root using su, or if you
-		echo are in a root shell, then I\'m not able to give you
+		echo logged in as root, then I\'m not able to give you
 		echo access to the X server.
+		echo
 		echo Aborting.
+		rm comm_out
 		if [[ "$XHOST_CONTROL" != "" ]]; then
-			xhost -
+			xhost - > /dev/null 2>&1
 		fi
 		exit 1
 	fi
+	rm comm_out
 	if [[ "$COMM_OK" != "yes" ]]; then
 		echo Sorry, failed to get access to any display. Aborting.
 		exit 1
