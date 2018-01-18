@@ -7,6 +7,10 @@ fi
 if [ ! -f $CONF_DEST_DIR/.S-config.sh ]; then
 	echo No user config found in $CONF_DEST_DIR, copying default config
 	tail -n +5 ../def_config_params.sh > $CONF_DEST_DIR/.S-config.sh
+
+	if [ "$SUDO_USER" != "" ]; then
+		chown $SUDO_USER:$SUDO_USER $CONF_DEST_DIR/.S-config.sh
+	fi
 fi
 
 . $CONF_DEST_DIR/.S-config.sh
