@@ -14,8 +14,8 @@ TRACE=0
 
 # The device on which you are about to run the tests, by default tries to peek
 # the device used for /
-# If it does not work or is not want you want, change it to fit your needs,
-# for example:
+# If it does not work or is not want you want, replace next lines with just an
+# assignment. For example:
 # DEV=sda
 DEV=$(mount | grep "on / " | cut -f 1 -d " ")
 DEV=$(readlink -f $DEV) # moves to /dev/dm-X in case of device mapper
@@ -26,8 +26,30 @@ if [ "$(echo $DEV | egrep dm-)" != "" ] ; then
 	DEV=$(ls /sys/block/$DEV/slaves | cut -f 1 -d " ")
 fi
 
-# strip partition number
-DEV=$(echo $DEV | sed 's/\(...\).*/\1/g')
+# get three-character prefix of device name, to detect device type
+DEV_PREFIX=$(echo $DEV | sed 's/\(...\).*/\1/g')
+
+# detect device type and strip partition number accordingly
+if [ "$(echo "$DEV_PREFIX" | egrep "sd[a-z]")" != "" ]; then # scsi device
+	DEV=$DEV_PREFIX
+else
+	if [ "$(echo "$DEV_PREFIX" | egrep "nvm")" != "" ]; then # nvme device
+		DEV=$(echo $DEV | sed 's/\(nvme[0-9]*n[0-9]*\).*/\1/g')
+	else
+		echo Block device for root directory unrecongnized. Try setting
+		echo your target device manually in ~/.S-config.sh
+		exit
+	fi
+fi
+
+# test target device
+cat /sys/block/$DEV/queue/scheduler >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+	echo There is something wrong with the device $DEV, which I have
+	echo computed as the device on which your root directory is mounted.
+	echo Try setting your target device manually in ~/.S-config.sh
+	exit
+fi
 
 # Size of the files to create for reading/writing, in MB.
 # For random I/O with rotational devices, consider that the
