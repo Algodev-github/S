@@ -135,7 +135,7 @@ function set_scheduler
 {
 	if [ "$sched" != "" ] ; then
 		# Switch to the desired scheduler
-		echo Switching to $sched
+		echo Switching to $sched for /dev/$DEV
 		echo $sched > /sys/block/$DEV/queue/scheduler |& echo &> /dev/null
 		PIPE_STATUS=${PIPESTATUS[0]}
 		NEW_SCHED=$(cat /sys/block/$DEV/queue/scheduler | egrep "\[$sched\]")
