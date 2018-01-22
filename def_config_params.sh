@@ -2,9 +2,10 @@
 # in your home directory. The latter gets created on the very first execution
 # of some benchmark script (even if only the option -h is passed to the script).
 
-if [[ "$(id -u)" -ne "0" ]]; then
+if [[ "$1" != "-h" && "$(id -u)" -ne "0" ]]; then
     echo "You are currently executing me as $(whoami),"
-    echo "but I need root privileges (e.g., to switch among schedulers)."
+    echo "but I need root privileges (e.g., to switch"
+    echo "between schedulers)."
     echo "Please run me as root."
     exit 1
 fi
