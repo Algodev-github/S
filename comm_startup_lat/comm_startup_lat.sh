@@ -26,7 +26,8 @@ IDLE_DISK_LAT=${9-0}
 
 if [[ "${10}" == "" ]]; then # compute MAXRATE automatically
 	if [[ "$(cat /sys/block/$DEV/queue/rotational)" == "1" ]]; then
-		MAXRATE=4000
+	        MAXRATE=4000
+	        echo Automatically limiting write rate to ${MAXRATE}KB/s
 	else
 		MAXRATE=0 # no write-rate limitation for flash-based storage
 	fi
@@ -36,11 +37,14 @@ fi
 
 function show_usage {
 	echo "\
-Usage (as root): ./comm_startup_lat.sh [\"\" | bfq | cfq | ...] [num_readers]
-			      [num_writers] [seq | rand | raw_seq | raw_rand]
-			      [num_iter] [command] [stat_dest_dir]
-			      [max_startup-time] [idle-device-lat]
-			      [max_write-kB-per-sec]
+Usage (as root): ./comm_startup_lat.sh [\"\" | <I/O scheduler name>]
+			      [<num_readers>]
+			      [<num_writers>] [seq | rand | raw_seq | raw_rand]
+			      [<num_iterations>]
+			      [<command>]
+			      [<stat_dest_dir>]
+			      [<max_startup-time>] [<idle-device-lat>]
+			      [<max_write-kB-per-sec>]
 
 first parameter equal to \"\" -> do not change scheduler
 
@@ -70,7 +74,7 @@ max_write-kB-per-sec -> maximum total sequential write rate [kB/s],
 			no write-rate limitation is enforced for a
 			non-rotational device.
 
-num_iter == 0 -> infinite iterations
+num_iterations == 0 -> infinite iterations
 
 Example:
 sudo ./comm_startup_lat.sh bfq 5 5 seq 20 \"xterm /bin/true\" mydir
