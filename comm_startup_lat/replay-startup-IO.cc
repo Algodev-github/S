@@ -128,7 +128,7 @@ void issue_next_rq(thread_data_t *data)
 		if (data->offset >=
 		    OUT_FILE_SIZE - 512 * IO_requests[next_rq_idx].size)
 			data->offset = 0;
-	} else
+	} else // preserve 512-byte alignment in memory
 		data->offset =
 			(rand() %
 			 (OUT_FILE_SIZE / 512 -
@@ -211,6 +211,7 @@ int main(int argc, char *argv[])
 	if (argc < 3 || !strcmp(argv[1], "-h")) {
 		cout<<"Synopsis:"<<endl
 		    <<"./replay-startup-IO <trace file name> <fake-file dir>"
+		    <<" [create_files]"
 		    <<endl;
 		return 1;
 	}
@@ -314,6 +315,17 @@ int main(int argc, char *argv[])
 
 		if (get_filesize(filepath) == OUT_FILE_SIZE)
 			continue;
+
+		if (argc < 4 || strcmp(argv[3], "create_files")) {
+			cout<<"File "<<filepath
+			    <<" does not exist or has wrong size"
+			    <<endl;
+			cout<<"To fix this, just invoke me appending the "
+			    <<"create_files option too"<<endl;
+
+			return 1;
+		}
+
 		cout<<"Creating file "<<filepath<<endl;
 
 		ofstream f(filepath);
@@ -331,10 +343,17 @@ int main(int argc, char *argv[])
 		f.close();
 	}
 
+	if (argc == 4 && !strcmp(argv[3], "create_files"))
+		return 0;
+
 	/*
 	 * create and init:
 	 * - threads
 	 * - mutexes and condition variables
+	 *
+	 * This preparation phase even emulates a little better what
+	 * whould happen in the start-up of a real
+	 * multi-process/thread application.
 	 */
 	for (int i = 0 ; i < nr_threads ; i++) {
 		string filepath(outdir + "/" +
@@ -378,26 +397,6 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 	}
-
-#if 0
-	cout<<"Going to sleep"<<endl;
-
-	if (signal(SIGCONT, sig_handler) == SIG_ERR) {
-		cout<<"Couldn't set signal"<<endl;
-		return 1;
-	}
-
-	sigset_t new_mask;
-
-	/* initialize the new signal mask */
-	sigfillset(&new_mask);
-	sigdelset(&new_mask,SIGCONT);
-
-	/* wait for ONLY a SIGCONT signal */
-	sigsuspend(&new_mask);
-
-	cout<<"Woken up"<<endl;
-#endif
 
 	thread_datas[0].please_start = true;
 	pthread_cond_signal(&thread_datas[0].cond);
