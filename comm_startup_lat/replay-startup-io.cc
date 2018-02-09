@@ -56,6 +56,7 @@ struct thread_data_t {
 	int fd;
 	io_context_t ctx;
 	unsigned long long offset;
+	unsigned int pending_io;
 };
 
 pthread_t *threads;
@@ -80,13 +81,12 @@ void do_sync_read(thread_data_t *data, void *odirect_buf)
 
 void do_async_read(thread_data_t *data, void *odirect_buf)
 {
-	struct iocb cb;
-	struct iocb* iocbs = &cb;
+	struct iocb* iocbs = new iocb[1];
 
-	memset(&cb, 0, sizeof(cb));
+	memset(iocbs, 0, sizeof(iocb));
 
 	// submit read request
-	io_prep_pread(&cb, data->fd, odirect_buf,
+	io_prep_pread(iocbs, data->fd, odirect_buf,
 		      512 * IO_requests[next_rq_idx].size,
 		      data->offset);
 	int res = io_submit(data->ctx, 1, &iocbs);
@@ -94,6 +94,7 @@ void do_async_read(thread_data_t *data, void *odirect_buf)
 		cout<<"io_submit error for thread "<<data->id<<endl;
 		exit(1);
 	}
+	data->pending_io++;
 }
 
 void issue_next_rq(thread_data_t *data)
@@ -137,8 +138,29 @@ void issue_next_rq(thread_data_t *data)
 	if (next_rq_idx + 1 < IO_requests.size() &&
 	    IO_requests[next_rq_idx].action == "RA")
 		do_async_read(data, odirect_buf);
-	else
+	else {
+		if (data->pending_io > 0) {
+			struct io_event events[data->pending_io];
+
+			DEB(cout<<"Thread "<<data->id<<": rq "
+			    <<next_rq_idx<<" waiting for "
+			    <<data->pending_io
+			    <<" pending IOs"
+			    <<endl);
+			int ret = io_getevents(data->ctx, data->pending_io,
+					       data->pending_io, events, 0);
+			if(ret < 0) {
+				cout<<"io_getevents error "<<ret<<" for thread "
+				    <<data->id
+				    <<", rq "<<next_rq_idx
+				    <<endl;
+				exit(1);
+			}
+			data->pending_io = 0;
+		}
+
 		do_sync_read(data, odirect_buf);
+	}
 	data->offset += 512 * IO_requests[next_rq_idx].size;
 
 end:
@@ -150,7 +172,7 @@ void *thread_worker(void *p)
 {
 	struct thread_data_t *data = (struct thread_data_t *)p;
 
-	cout<<"Thread "<<syscall(SYS_gettid)<<" started"<<endl;
+	DEB(cout<<"Thread "<<syscall(SYS_gettid)<<" started"<<endl);
 	while (true) {
 		pthread_mutex_lock(&data->mutex);
 		while (!data->please_start && !IO_finished) {
@@ -220,6 +242,10 @@ int main(int argc, char *argv[])
 
 	string line;
 	ifstream infile(argv[1]);
+	if (!infile) {
+		cout<<"Failed to open file "<<argv[1]<<endl;
+		return 1;
+	}
 
 	string outdir(argv[2]);
 
@@ -387,6 +413,8 @@ int main(int argc, char *argv[])
 		thread_datas[i].id = i;
 		thread_datas[i].please_start = false;
 		thread_datas[i].offset = 0;
+		thread_datas[i].pending_io = 0;
+
 		ret = pthread_create(&threads[i], 0,
 					 &thread_worker, &thread_datas[i]);
 
