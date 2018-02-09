@@ -5,7 +5,7 @@
  * Main dependency: libaio-devel
  *
  * Command line to compile:
- * g++ -pthread -laio -Wall replay-startup-IO.cc -o replay-startup-IO
+ * g++ -pthread -Wall replay-startup-IO.cc -o replay-startup-IO -laio
  */
 #include <iostream>
 #include <sstream>
