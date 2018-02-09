@@ -41,7 +41,8 @@ Usage (as root): ./comm_startup_lat.sh [\"\" | <I/O scheduler name>]
 			      [<num_readers>]
 			      [<num_writers>] [seq | rand | raw_seq | raw_rand]
 			      [<num_iterations>]
-			      [<command>]
+			      [<command> |
+			       replay-startup-io xterm|gnometerm|lowriter]
 			      [<stat_dest_dir>]
 			      [<max_startup-time>] [<idle-device-lat>]
 			      [<max_write-kB-per-sec>]
@@ -49,6 +50,17 @@ Usage (as root): ./comm_startup_lat.sh [\"\" | <I/O scheduler name>]
 first parameter equal to \"\" -> do not change scheduler
 
 raw_seq/raw_rand -> read directly from device (no writers allowed)
+
+command | replay-startup-io -> two possibilities here:
+			       - write a generic command line (examples
+				 below of command lines that allow the
+				 command start-up times of some popular
+				 applicaitons to be measured)
+			       - invoke the replayer of the I/O done by
+			         some popular applications during start up;
+				 this allows start-up times to be evaluated
+				 without actually needing to execute those
+				 applications.
 
 max_startup-time  ->  maximum duration allowed for each command
 		      invocation, in seconds; if the command does not
@@ -237,11 +249,29 @@ ${sched}-${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-lat_thr_stat.txt
 	fi
 }
 
+function compile_replayer
+{
+	g++ -laio -pthread -Wall replay-startup-io.cc -o replay-startup-io
+	if [ $? -ne 0 ]; then
+	    echo Failed to compile replay-startup-io
+	    echo Maybe libaio-dev/libaio-devel is not installed?
+	    exit
+	fi
+}
+
 ## Main ##
 
-SHORTNAME=`echo $COMMAND | awk '{print $1}'`
+FIRSTWORD=`echo $COMMAND | awk '{print $1}'`
 
-if [[ $(which $SHORTNAME) == "" ]] ; then
+if [ "$FIRSTWORD" == replay-startup-io ]; then
+    SHORTNAME=$COMMAND
+    SECONDWORD=`echo $COMMAND | awk '{print $2}'`
+    COMMAND="$PWD/replay-startup-io $PWD/$SECONDWORD.trace $BASE_DIR"
+else
+    SHORTNAME=$FIRSTWORD
+fi
+
+if [[ "$FIRSTWORD" != replay-startup-io && $(which $SHORTNAME) == "" ]] ; then
     echo Command to invoke not found
     exit
 fi
@@ -251,7 +281,28 @@ STAT_DEST_DIR=`pwd`/$STAT_DEST_DIR
 
 rm -f $FILE_TO_WRITE
 
-enable_X_access_and_test_cmd "$COMMAND"
+if [ $FIRSTWORD == replay-startup-io ]; then
+    if [[ ! -f replay-startup-io || \
+	      replay-startup-io.cc -nt replay-startup-io ]]; then
+	echo Compiling replay-startup-io ...
+	compile_replayer
+    fi
+    # test command and create files
+    $COMMAND create_files
+    if [ $? -ne 0 ]; then
+	echo Pre-execution of replay-startup-io failed
+	echo Trying to recompile from source ...
+	# trying to recompile
+	compile_replayer
+	$COMMAND create_files
+	if [ $? -ne 0 ]; then
+	    echo Pre-execution of replay-startup-io failed
+	    exit
+	fi
+    fi
+else
+    enable_X_access_and_test_cmd "$COMMAND"
+fi
 
 set_scheduler
 
