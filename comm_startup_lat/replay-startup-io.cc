@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2018 Paolo Valente <paolo.valente@linaro.org>
+ *                    Daniele Toschi <tosted94@gmail.com>
+ *
  * Main dependency: libaio-devel
  *
  * Command line to compile:
