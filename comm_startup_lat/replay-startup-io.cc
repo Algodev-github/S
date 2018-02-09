@@ -102,7 +102,9 @@ void do_async_read(thread_data_t *data, void *odirect_buf)
 
 void issue_next_rq(thread_data_t *data)
 {
+#if 0 // not sleeping for the moment, as emulation seems more accurate this way
 	nanosleep(&IO_requests[next_rq_idx].delta, 0);
+#endif
 
 	if (debug_mode) {
 		cout<<"Rq "<<next_rq_idx
