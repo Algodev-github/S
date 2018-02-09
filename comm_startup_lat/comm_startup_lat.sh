@@ -251,7 +251,7 @@ ${sched}-${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-lat_thr_stat.txt
 
 function compile_replayer
 {
-	g++ -laio -pthread -Wall replay-startup-io.cc -o replay-startup-io
+	g++ -pthread -Wall replay-startup-io.cc -o replay-startup-io -laio
 	if [ $? -ne 0 ]; then
 	    echo Failed to compile replay-startup-io
 	    echo Maybe libaio-dev/libaio-devel is not installed?
