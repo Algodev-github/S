@@ -125,7 +125,8 @@ void issue_next_rq(thread_data_t *data)
 	void *odirect_buf;
 	if (posix_memalign(&odirect_buf, 512, 512 *
 			   IO_requests[next_rq_idx].size)) {
-		cout<<"Failed to allocate O_DIRECT buffer"
+		cout<<"Failed to allocate O_DIRECT buffer for size "
+		    <<IO_requests[next_rq_idx].size
 		    <<endl;
 		exit(1);
 	}
