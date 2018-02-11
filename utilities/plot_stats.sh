@@ -189,7 +189,7 @@ function plot_histograms()
     esac
 
     printf "plot " >> tmp.txt
- 
+
     if [[ "$ref_value" != "" ]] ; then
 	printf "%f t \"$ref_label\" lw $lw, " $ref_value >> tmp.txt
     fi
@@ -273,21 +273,21 @@ function parse_table
     if [[ $ref_mode == ref ]]; then
 	reference_case=$(echo ${lines[$line_idx]} | sed 's/# Reference case: //')
 
-	reference_case_value=$(grep "^$reference_case" $in_filename | tail -n 1 | \
+	reference_case_value=$(grep "^  $reference_case" $in_filename | tail -n 1 | \
 	    awk '{print $2}')
 
 	if [[ "$reference_case_value" == "" ]]; then
 	    reference_case=`echo $reference_case | sed 's/seq/raw_seq/'`
-	    reference_case_value=$(grep "^$reference_case" $in_filename |\
+	    reference_case_value=$(grep "^  $reference_case" $in_filename |\
            tail -n 1 | awk '{print $2}')
 	fi
-	
+
 	reference_case_label=$(echo ${lines[$(($line_idx + 1))]} | \
 	    sed 's/# Reference-case label: //')
     else
 	reference_case=none
     fi
-    ((line_idx += 2))
+    ((line_idx += 3))
 
     first_word=$(echo ${lines[$line_idx]} | sed 's/# //' | awk '{print $1}')
     scheduler_string=$(echo ${lines[$line_idx]} | sed 's/# '"$first_word"' //')
@@ -297,7 +297,7 @@ function parse_table
 	schedulers+=($sched)
     done
 
-    grep -v "^$reference_case\|^#" $in_filename > tmp_file
+    grep -v "^  $reference_case\|^#" $in_filename > tmp_file
 
     curves="\"tmp_file\" using 2:xticlabels(1) t \"${schedulers[0]}\""
 
@@ -308,7 +308,7 @@ function parse_table
     plot_histograms tmp_file $out_filename \
 	"$x_label" 0 "$y_label" ${#schedulers[@]} \
 	"$curves" "$reference_case_label" "$reference_case_value" $max_value
-    
+
     if [[ $term_mode != "x11" && $term_mode != "aqua" ]] ; then
 	echo Wrote $out_file_name.$term_mode
     fi
