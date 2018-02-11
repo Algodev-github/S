@@ -6,8 +6,8 @@
 usage_msg="\
 Usage:\n\
 calc_overall_stats.sh test_result_dir \
-[Scheduler array] [Reference case]
-   [aggthr | startup_lat | kern_task]\n\
+[<Scheduler array>] [<Reference case>]
+   [aggthr | startup_lat | kern_task] [verbose]\n\
    \n\
    The last param is needed only if the type(s) of the results cannot be
    inferred from the name of the test-result directory.
@@ -38,6 +38,12 @@ calc_overall_stats.sh test_result_dir \
 
 SCHEDULERS=${2:-"bfq kyber mq-deadline none"}
 reference_case=$3
+if [ "$5" == verbose ]; then
+    REDIRECT=/dev/stdout
+else
+    REDIRECT=/dev/null
+fi
+
 
 CALC_AVG_AND_CO=`pwd`/calc_avg_and_co.sh
 
@@ -81,14 +87,14 @@ function file_loop
 			continue
 		fi
 		if (($n == 0)); then
-			head -n 1 $in_file | tee -a $out_file
+			head -n 1 $in_file | tee -a $out_file > $REDIRECT
 		fi
 		n=$(($n + 1))
 
 		quant_loops
 	done
 	if (($n > 0)); then
-		echo $n repetitions | tee -a $out_file
+		echo $n repetitions | tee -a $out_file > $REDIRECT
 	fi
 }
 
@@ -218,11 +224,11 @@ function per_subdirectory_loop
 
 	    for ((cur_quant = 0 ; cur_quant < $num_quants ; cur_quant++));
 	    do
-		cat line_file$cur_quant | tee -a $out_file
+		cat line_file$cur_quant | tee -a $out_file > $REDIRECT
 		second_field=`tail -n 1 $out_file | awk '{print $2}'`
 
 		cat number_file$cur_quant | $CALC_AVG_AND_CO 99 | \
-		    tee -a $out_file
+		    tee -a $out_file > $REDIRECT
 
 		if [[ "$line_created" != True ]] ; then
 		    wl_improved_name=`echo $workload | sed 's/0w//'`
@@ -291,7 +297,8 @@ function per_subdirectory_loop
 	    fi
 	fi
 	if (($n > 0)); then
-	    echo ------------------------------------------------------------------
+	    echo ------------------------------------------------------------------ \
+		 > $REDIRECT
 	fi
 
     done
@@ -327,14 +334,14 @@ if [ "$res_type" != "" ]; then
     exit
 fi
 
-echo Searching for benchmark results ...
+echo Searching for benchmark results ... > $REDIRECT
 
 num_dir_visited=0
 # filters make, checkout, merge, grep and interleaved-io not yet
 # added, because the code for these cases is not yet complete
 for filter in aggthr startup video_playing; do
     for single_test_res_dir in `find $results_dir -name "*$filter*" -type d`; do
-	echo Computing $filter overall stats in $single_test_res_dir
+	echo Computing $filter overall stats in $single_test_res_dir > $REDIRECT
 	per_subdirectory_loop $single_test_res_dir $filter
 	num_dir_visited=$(($num_dir_visited+1))
     done
