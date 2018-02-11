@@ -23,6 +23,14 @@ MAXRATE=${8-0} # If useful with other schedulers than bfq, 16500
 		   # sequential writers, under any scheduler with a 90
 		   # MB/s hard disk.
 
+VERBOSITY=$9
+
+if [[ "$VERBOSITY" == verbose ]]; then
+    REDIRECT=/dev/stdio
+else
+    REDIRECT=/dev/null
+fi
+
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
 Usage (as root):\n\
@@ -30,7 +38,7 @@ Usage (as root):\n\
                            [num_readers] [num_writers]\n\
                            [seq | rand | raw_seq | raw_rand ]\n\
                            [stat_dest_dir] [duration] [sync]\n\
-                           [max_write-kB-per-sec] \n\
+                           [max_write-kB-per-sec] [verbose]\n\
 \n\
 first parameter equal to \"\" -> do not change scheduler\n\
 raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
@@ -56,7 +64,7 @@ STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
 set_scheduler
 
-echo Preliminary sync to wait for the completion of possible previous writes
+echo Preliminary sync to wait for the completion of possible previous writes > $REDIRECT
 sync
 
 # create and enter work dir
@@ -64,7 +72,7 @@ rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
 
-# setup a quick shutdown for Ctrl-C 
+# setup a quick shutdown for Ctrl-C
 trap "shutdwn 'fio iostat'; exit" sigint
 
 init_tracing
@@ -72,14 +80,14 @@ set_tracing 1
 
 start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
-echo Flushing caches
+echo Flushing caches > $REDIRECT
 if [ "$SYNC" != "yes" ]; then
-	echo Not syncing
+	echo Not syncing > $REDIRECT
 	echo 3 > /proc/sys/vm/drop_caches
 else
 	# Flushing in parallel, otherwise sync would block for a very
 	# long time
-	flush_caches &
+	flush_caches > $REDIRECT &
 fi
 
 if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
@@ -88,33 +96,33 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 	secs=$(transitory_duration 7)
 
 	while [ $secs -ge 0 ]; do
-	    echo -ne "Waiting for transitory to terminate: $secs\033[0K\r"
+	    echo -ne "Waiting for transitory to terminate: $secs\033[0K\r" > $REDIRECT
 	    sleep 1
 	    : $((secs--))
 	done
 	echo
 fi
 
-echo Measurement started, and lasting $DURATION seconds
+echo Measurement started, and lasting $DURATION seconds > $REDIRECT
 
 start_time=$(date +'%s')
 
 # start logging aggthr
-iostat -tmd /dev/$DEV 2 | tee iostat.out &
+iostat -tmd /dev/$DEV 2 | tee iostat.out > $REDIRECT &
 
 # wait for reader/writer start-up transitory to terminate
 secs=$DURATION
 
 while [ $secs -gt 0 ]; do
-    echo "Remaining time: $secs"
+    echo "Remaining time: $secs" > $REDIRECT
     if [[ "$SYNC" == "yes" && $NUM_WRITERS -gt 0 ]]; then
-	echo Syncing again in parallel ...
+	echo Syncing again in parallel ... > $REDIRECT
 	sync &
     fi
     sleep 2
     : $((secs-=2))
 done
-echo
+echo > $REDIRECT
 
 shutdwn 'fio iostat'
 
