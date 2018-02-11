@@ -112,7 +112,7 @@ function enable_X_access_and_test_cmd {
 		fi
 		exit 1
 	fi
-	rm comm_out
+	rm -f comm_out
 	if [[ "$COMM_OK" != "yes" ]]; then
 		echo Sorry, failed to get access to any display. Aborting.
 		exit 1
@@ -240,7 +240,7 @@ function start_raw_readers
 {
     NUM_READERS=$1
     R_TYPE=$2
-    
+
     echo Starting $NUM_READERS $R_TYPE readers on /dev/${DEV}
     if [ "$R_TYPE" == "raw_seq" ]; then
         for ((i = 0 ; $i < ${NUM_READERS} ; i++))
