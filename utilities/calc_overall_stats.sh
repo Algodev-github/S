@@ -99,7 +99,12 @@ function write_header
     echo "# Y-Axis: $2" >> $1
     echo "# Reference case: $3" >> $1
     echo "# Reference-case label: $4" >> $1
-    echo -e "# Workload\t${SCHEDULERS[@]}" >> $1
+    echo "#" >> $1
+    echo -en "# Workload  " >> $1
+    for sched in $SCHEDULERS; do
+	printf "%12s" $sched >> $1
+    done
+    echo >> $1
 }
 
 function set_res_type
@@ -201,10 +206,10 @@ function per_subdirectory_loop
 	    file_loop $single_test_res_dir
 	    if [ ! -f line_file0 ]; then
 		if [[ "$line_created" == True ]]; then
-		    printf "\tX" >> $thr_table_file
+		    printf "%12s" X >> $thr_table_file
 
 		    if [[ $res_type != aggthr ]]; then
-			printf "\tX" >> $target_quantity_table_file
+			printf "%12s" X >> $target_quantity_table_file
 		    fi
 		fi
 		numX=$((numX + 1))
@@ -222,17 +227,17 @@ function per_subdirectory_loop
 		if [[ "$line_created" != True ]] ; then
 		    wl_improved_name=`echo $workload | sed 's/0w//'`
 
-		    echo -n $wl_improved_name >> $thr_table_file
+		    printf "  %-10s" $wl_improved_name >> $thr_table_file
 
 		    for ((i = 0 ; i < numX ; i++)) ; do
-			echo -n "\tX\t" >> $thr_table_file
+			printf "%12s" X >> $thr_table_file
 		    done
 
 		    if [[ $res_type != aggthr ]]; then
-			echo -n $wl_improved_name \
+			printf "  %-10s" $wl_improved_name \
 			    >> $target_quantity_table_file
 			for ((i = 0 ; i < numX ; i++)) ; do
-			    echo -n " X " >> $target_quantity_table_file
+			    printf "%12s" X >> $target_quantity_table_file
 			done
 		    fi
 		    line_created=True
@@ -258,7 +263,7 @@ function per_subdirectory_loop
 			target_field=X
 		    fi
 
-		    echo -ne "\t$target_field" >> $target_quantity_table_file
+		    printf "%12s" $target_field >> $target_quantity_table_file
 		elif (((cur_quant == 0)) && \
 		      [[ "$res_type" != video_playing ]]) ||
 		     ((( cur_quant == 1)) && [[ $res_type != aggthr ]] && \
@@ -271,7 +276,7 @@ function per_subdirectory_loop
 			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
 		    fi
-		    echo -ne "\t$target_field" >> $thr_table_file
+		    printf "%12s" $target_field  >> $thr_table_file
 		fi
 
 		rm line_file$cur_quant number_file$cur_quant
