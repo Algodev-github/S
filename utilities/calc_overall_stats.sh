@@ -36,7 +36,7 @@ calc_overall_stats.sh test_result_dir \
    to the default cases, which otherwise vary with the type of benchmark.
  "
 
-SCHEDULERS=${2:-"bfq cfq deadline noop"}
+SCHEDULERS=${2:-"bfq kyber mq-deadline none"}
 reference_case=$3
 
 CALC_AVG_AND_CO=`pwd`/calc_avg_and_co.sh
@@ -59,7 +59,7 @@ function quant_loops
 				'{ if (n == line_to_print) {
 					printf "%d\n", $0
 					exit
-			   	   }	
+				    }
 				   n++ }' >> number_file$cur_quant
 		else
 			cat $in_file | awk \
@@ -67,7 +67,7 @@ function quant_loops
 				'{ if (n == line_to_print) {
 					print $3
 					exit
-			   	   }	
+				    }
 				   n++ }' >> number_file$cur_quant
 		fi
 	done
@@ -177,7 +177,7 @@ function per_subdirectory_loop
     else
 	write_header $thr_table_file "Aggregate throughput [MB/sec]" \
             none ""
-	
+
 	write_header $target_quantity_table_file "$target_quantity_type" \
             $target_reference_case "$reference_value_label"
     fi
@@ -223,7 +223,7 @@ function per_subdirectory_loop
 		    wl_improved_name=`echo $workload | sed 's/0w//'`
 
 		    echo -n $wl_improved_name >> $thr_table_file
-		    
+
 		    for ((i = 0 ; i < numX ; i++)) ; do
 			echo -n "\tX\t" >> $thr_table_file
 		    done
@@ -249,15 +249,15 @@ function per_subdirectory_loop
 		    elif [[ $res_type == kern_task ]]; then
 			field_num=1
 		    fi
-		    
+
 		    target_field=$(tail -n 1 $out_file |\
 		       		awk '{print $'$field_num'}')
-		
+
 		    if [[ "$target_field" == "" || \
 			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
 		    fi
-		    
+
 		    echo -ne "\t$target_field" >> $target_quantity_table_file
 		elif (((cur_quant == 0)) && \
 		      [[ "$res_type" != video_playing ]]) ||
