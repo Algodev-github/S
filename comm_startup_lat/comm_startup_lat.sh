@@ -35,6 +35,14 @@ else
 	MAXRATE=${10}
 fi
 
+VERBOSITY=${11}
+
+if [[ "$VERBOSITY" == verbose ]]; then
+    REDIRECT=/dev/stdio
+else
+    REDIRECT=/dev/null
+fi
+
 function show_usage {
 	echo "\
 Usage (as root): ./comm_startup_lat.sh [\"\" | <I/O scheduler name>]
@@ -45,7 +53,7 @@ Usage (as root): ./comm_startup_lat.sh [\"\" | <I/O scheduler name>]
 			       replay-startup-io xterm|gnometerm|lowriter]
 			      [<stat_dest_dir>]
 			      [<max_startup-time>] [<idle-device-lat>]
-			      [<max_write-kB-per-sec>]
+			      [<max_write-kB-per-sec>] [verbose]
 
 first parameter equal to \"\" -> do not change scheduler
 
@@ -340,7 +348,7 @@ fi
 
 # start logging aggthr
 if [ "$IOSTAT" == "yes" ]; then
-	iostat -tmd /dev/$DEV 3 | tee iostat.out &
+	iostat -tmd /dev/$DEV 3 | tee iostat.out > $REDIRECT &
 fi
 
 init_tracing
