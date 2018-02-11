@@ -121,6 +121,7 @@ function write_basic_plot_conf()
     num_bars=$1
 
     printf "
+    set title \"$plot_title\"
     set style fill solid 0.8 border -1
     set style data histogram
     set style histogram cluster gap 1
@@ -141,7 +142,7 @@ function write_basic_plot_conf()
 function plot_histograms()
 {
     in_file_name=$1
-    out_file_name=$2
+    out_file_path=$2
     x_label=${3:-"No x label!"}
     x_label_offset=${4:-0}
     y_label=$5
@@ -152,7 +153,7 @@ function plot_histograms()
     max_y=${10}
 
     rm -f tmp.txt
-    write_basic_plot_conf $num_bars
+    write_basic_plot_conf $num_bars $out_file_path
     printf "
     set xlabel \"$x_label\" offset 0,$x_label_offset
     set ylabel \"$y_label\"
@@ -168,7 +169,7 @@ function plot_histograms()
 	eps)
 	printf "
         set style fill pattern 1
-        set output \"${out_file_name}.eps\"
+        set output \"${out_file_path}.eps\"
         set term post eps 22
         " >> tmp.txt
 	options="-mono"
@@ -176,7 +177,7 @@ function plot_histograms()
 	gif)
 	printf "
         #set key horizontal 8000, 30
-        set output \"${out_file_name}.gif\"
+        set output \"${out_file_path}.gif\"
         set term gif font \"arial,14\"
         " >> tmp.txt
 	    ;;
@@ -234,8 +235,12 @@ function parse_table
     sed 's/X/-1/g' $in_filename > $in_filename.tmp1
     sed 's/-1-Axis/X-Axis/g' $in_filename.tmp1 > $in_filename.tmp
 
-    out_filename=$in_filename
-    out_filename="${out_filename%.*}"
+    out_filepath=$in_filename
+    plot_title=$(basename $out_filepath)
+    plot_title=$(echo $plot_title | sed 's/-table.txt//')
+    plot_title=$(echo $plot_title | sed 's/_/ /')
+    plot_title=$(echo $plot_title | sed 's/-/ /')
+    out_filepath="${out_filepath%.*}"
     in_filename=$in_filename.tmp
 
     lines=()
@@ -305,12 +310,12 @@ function parse_table
 	curves=$curves", \"\" using $((i+2)) t \"${schedulers[$i]}\""
     done
 
-    plot_histograms tmp_file $out_filename \
+    plot_histograms tmp_file $out_filepath \
 	"$x_label" 0 "$y_label" ${#schedulers[@]} \
 	"$curves" "$reference_case_label" "$reference_case_value" $max_value
 
     if [[ $term_mode != "x11" && $term_mode != "aqua" ]] ; then
-	echo Wrote $out_file_name.$term_mode
+	echo Wrote $out_file_path.$term_mode
     fi
 
     rm tmp_file $in_filename ${in_filename}1
