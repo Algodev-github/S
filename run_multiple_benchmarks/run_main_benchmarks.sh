@@ -19,7 +19,7 @@ workloads (this option also avoids intense writes). Raw mode is not
 yet implemented.
 
 The set of benchmarks can be built out of the following benchmarks:
-throughput startup fairness video-playing kernel-devel interleaved-io
+throughput startup replaied-startup fairness video-playing kernel-devel interleaved-io
 
 If no set or an empty set, i.e., \"\", is given, then all benchmarks are
 executed.
@@ -58,10 +58,14 @@ RES_DIR=../results/run_main_benchmarks/$cur_date
 
 # startup test cases
 testcases=(xterm_startup gnome_terminal_startup lowriter_startup)
+# replaied-startup test cases
+replaied_testcases=(replaied_xterm_startup replaied_gnome_terminal_startup replaied_lowriter_startup)
 # reference start-up times for test cases, will be set during execution
 reftimes=(0 0 0)
 # command for each test case
 commands=("xterm /bin/true" "gnome-terminal -e /bin/true" "lowriter --terminate_after_init")
+# replay command for each replaied-startup test case
+replay_commands=("replay-startup-io xterm" "replay-startup-io gnometerm" "replay-startup-io lowriter")
 
 function send_partial_stats
 {
@@ -174,26 +178,26 @@ function kernel-devel
 	repeat git-grep "kern_dev_tasks_vs_rw.sh $1 0 0 seq grep"
 }
 
-function startup
+function do_startup
 {
 	cd ../comm_startup_lat
 
         for ((w=0 ; w<${#latency_workloads[@]};w++)); do
 	    wl=${latency_workloads[w]}
-                for ((t=0 ; t<${#testcases[@]} ; ++t)); do
-                        repeat ${testcases[t]} \
+            for ((t=0 ; t<${#actual_testcases[@]} ; ++t)); do
+                        repeat ${actual_testcases[t]} \
 			    "comm_startup_lat.sh $1 $wl $NUM_ITER_STARTUP" \
-                                "${commands[t]}" "60 ${reftimes[t]}" \
+                                "${cmd_lines[t]}" "60 ${reftimes[t]}" \
 			    $1-${wl_infix[w]}-lat_thr_stat.txt
 
                         # If less than 2 repetitions were completed for this
                         # testcase, abort all heavier testcases
                         if [ $NUM_REPETITIONS -gt 1 ] && \
-			   [ ! -f $RES_DIR/${testcases[t]}/repetition1/$1-${wl_infix[w]}-lat_thr_stat.txt ]; then
+			   [ ! -f $RES_DIR/${actual_testcases[t]}/repetition1/$1-${wl_infix[w]}-lat_thr_stat.txt ]; then
                                 break
                         fi
 			if [[ $wl == "0 0 seq" ]]; then
-			    stat_file=$RES_DIR/${testcases[t]}/overall_stats-${testcases[t]}.txt
+			    stat_file=$RES_DIR/${actual_testcases[t]}/overall_stats-${actual_testcases[t]}.txt
 			    reftimes[t]=$(head -n 5 $stat_file | tail -n 1 | \
 				awk '{print $2;}')
 			    TOOSMALL=$(echo "${reftimes[t]} <= 0.001" | bc -l)
@@ -203,6 +207,22 @@ function startup
 			fi
                 done
         done
+}
+
+function startup
+{
+    cmd_lines=("${commands[@]}")
+    actual_testcases=("${testcases[@]}");
+
+    do_startup $1
+}
+
+function replaied-startup
+{
+    cmd_lines=("${replay_commands[@]}")
+    actual_testcases=("${replaied_testcases[@]}");
+
+    do_startup $1
 }
 
 function interleaved-io
@@ -291,7 +311,7 @@ if [[ "$BENCHMARKS" == "" ]]; then
 	exit
     fi
 
-    BENCHMARKS="throughput startup fairness video-playing kernel-devel interleaved-io"
+    BENCHMARKS="throughput startup replaied-startup fairness video-playing kernel-devel interleaved-io"
 fi
 
 if [[ "$SCHEDULERS" == "" ]]; then
