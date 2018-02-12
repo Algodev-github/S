@@ -148,13 +148,13 @@ function per_subdirectory_loop
 	aggthr)
 		num_quants=3
 		record_lines=$((1 + $num_quants * 3))
-		thr_table_file=`pwd`/`basename $single_test_res_dir`-table.txt
+		thr_table_file=`pwd`/`basename $single_test_res_dir`oughput-table.txt
 		reference_value_label="Device peak rate"
 		;;
 	startup_lat)
 		num_quants=4
 		record_lines=$((1 + ($num_quants) * 3))
-		thr_table_file=`pwd`/`basename $single_test_res_dir`-thr-table.txt
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-throughput-table.txt
 		target_quantity_table_file=\
 `pwd`/`basename $single_test_res_dir`-time-table.txt
 		target_quantity_type="Start-up time [sec]"
@@ -163,7 +163,7 @@ function per_subdirectory_loop
 	kern_task)
 		num_quants=4
 		record_lines=$((1 + ($num_quants - 1) * 3 + 2))
-		thr_table_file=`pwd`/`basename $single_test_res_dir`-thr-table.txt
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-throughput-table.txt
 		target_quantity_table_file=\
 `pwd`/`basename $single_test_res_dir`-progress-table.txt
 		target_quantity_type="Completion percentage"
@@ -172,7 +172,7 @@ function per_subdirectory_loop
 	video_playing)
 		num_quants=6
 		record_lines=$((1 + $num_quants * 3))
-		thr_table_file=`pwd`/`basename $single_test_res_dir`-thr-table.txt
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-throughput-table.txt
 		target_quantity_table_file=\
 `pwd`/`basename $single_test_res_dir`-drop_rate-table.txt
 		target_quantity_type="Drop rate"
