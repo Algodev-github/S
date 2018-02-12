@@ -101,9 +101,9 @@ function file_loop
 function write_header
 {
     table_title=$(basename $1)
-    table_title=$(echo $table_title | sed 's/-table.txt//')
-    table_title=$(echo $table_title | sed 's/_/ /')
-    table_title=$(echo $table_title | sed 's/-/ /')
+    table_title=$(echo $table_title | sed 's/-table.txt//g')
+    table_title=$(echo $table_title | sed 's/_/ /g')
+    table_title=$(echo $table_title | sed 's/-/ /g')
 
     echo "# $table_title" > $1
     echo "# X-Axis: Workload" >> $1
