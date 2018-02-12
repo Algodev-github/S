@@ -223,7 +223,7 @@ function shutdwn
 {
 	set_tracing 0
 	killall $1 2> /dev/null
-	kill -HUP $(jobs -lp) 2>/dev/null || true
+	(kill -HUP $(jobs -lp)) >/dev/null 2>&1 || true
 
 	# fio does not handle SIGTERM, and hence does not destroy
 	# the shared memory segments on this signal
