@@ -115,8 +115,9 @@ function repeat
 	for ((i = 0 ; $i < $NUM_REPETITIONS ; i++))
 	do
 		echo
-		echo Repetition $(($i + 1)) / $NUM_REPETITIONS \($sched, $1\)
-		echo
+		echo -n "Repetition $(($i + 1)) / $NUM_REPETITIONS "
+		echo -n "[$sched ($sched_id/$num_scheds), "
+		echo "$1 ($bench_id/$num_benchs)]"
 
 		# make sure that I/O generators/monitors are dead
 		# (sometimes shutdown does not work properly)
@@ -158,10 +159,14 @@ function throughput
 {
 	cd ../agg_thr-with-greedy_rw
 
+	wl_id=1
         for ((w=0 ; w<${#thr_workloads[@]};w++)); do
 	    wl=${thr_workloads[w]}
+	    echo
+	    echo Testing workload \"$wl\" \($wl_id/${#thr_workloads[@]}\)
 	    repeat throughput "aggthr-with-greedy_rw.sh $1 $wl" \
 		$1-${thr_wl_infix[w]}-10sec-aggthr_stat.txt
+	    ((++wl_id))
 	done
 }
 
@@ -169,9 +174,13 @@ function kernel-devel
 {
 	cd ../kern_dev_tasks-vs-rw
 
+	wl_id=1
         for ((w=0 ; w<${#kern_workloads[@]};w++)); do
 	    wl=${kern_workloads[w]}
-		repeat make "kern_dev_tasks_vs_rw.sh $1 $wl make"
+	    echo
+	    echo Testing workload \"$wl\" \($wl_id/${#kern_workloads[@]}\)
+	    repeat make "kern_dev_tasks_vs_rw.sh $1 $wl make"
+	    ((++wl_id))
 	done
 
 	repeat git-grep "kern_dev_tasks_vs_rw.sh $1 0 0 seq grep"
@@ -181,8 +190,11 @@ function do_startup
 {
 	cd ../comm_startup_lat
 
+	wl_id=1
         for ((w=0 ; w<${#latency_workloads[@]};w++)); do
 	    wl=${latency_workloads[w]}
+	    echo
+	    echo Testing workload \"$wl\" \($wl_id/${#latency_workloads[@]}\)
             for ((t=0 ; t<${#actual_testcases[@]} ; ++t)); do
                         repeat ${actual_testcases[t]} \
 			    "comm_startup_lat.sh $1 $wl $NUM_ITER_STARTUP" \
@@ -205,7 +217,8 @@ function do_startup
 			    fi
 			fi
                 done
-        done
+	((++wl_id))
+	done
 }
 
 function startup
@@ -244,10 +257,14 @@ function video-playing
 	type=real
 	VIDEOCMD=video_play_vs_comms.sh
 
+	wl_id=1
         for ((w=0 ; w<${#latency_workloads[@]};w++)); do
 	    wl=${latency_workloads[w]}
+	    echo
+	    echo Testing workload \"$wl\" \($wl_id/${#latency_workloads[@]}\)
             repeat video_playing "$VIDEOCMD $1 $wl $NUM_ITER_VIDEO $type n" \
 		$1-${wl_infix[w]}-video_playing_stat.txt
+	    ((++wl_id))
         done
 }
 
@@ -381,17 +398,35 @@ send_email "S main-benchmark run started"
 echo Schedulers: $SCHEDULERS
 echo Benchmarks: $BENCHMARKS
 
-# main loop
+num_scheds=0
 for sched in $SCHEDULERS; do
+    ((++num_scheds))
+done
+
+num_benchs=0
+for sched in $BENCHMARKS; do
+    ((++num_benchs))
+done
+
+# main loop
+sched_id=1
+for sched in $SCHEDULERS; do
+    bench_id=1
     for benchmark in $BENCHMARKS
     do
+	echo
+	echo -n "Testing $sched scheduler ($sched_id/$num_scheds) "
+	echo "for $benchmark ($bench_id/$num_benchs)"
 	send_email "$benchmark tests beginning"
 	$benchmark $sched
 	send_email "$benchmark tests finished"
+	((++bench_id))
     done
+    ((++sched_id))
 done
 send_email "S main-benchmark run finished"
 
+echo
 echo Computing overall stats
 cd ../utilities
 ./calc_overall_stats.sh $RES_DIR "${SCHEDULERS[@]}"
