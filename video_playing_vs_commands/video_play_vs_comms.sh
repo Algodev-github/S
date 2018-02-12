@@ -11,7 +11,7 @@ fi
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 CURDIR=$(pwd)
-UTIL_DIR=`cd ../utilities; pwd` 
+UTIL_DIR=`cd ../utilities; pwd`
 
 sched=${1-bfq}
 NUM_READERS=${2-10}
@@ -26,6 +26,15 @@ MAXRATE=${9-4000} # maximum total sequential write rate for which the
 		  # unresponsive under bfq with a 90 MB/s hard disk
 		  # (see comm_startup_lat script)
 
+VERBOSITY=${10}
+
+if [[ "$VERBOSITY" == verbose ]]; then
+    REDIRECT=/dev/stdio
+else
+    REDIRECT=/dev/null
+fi
+
+
 enable_X_access_and_test_cmd
 
 function show_usage {
@@ -34,7 +43,7 @@ Usage (as root):
 ./video_play_vs_comms.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]
 				 [seq | rand | raw_seq | raw_rand] [<num_iterations>]
 				 [real | fake] [<cache_toggle>: y|n] [<stat_dest_dir>]
-				 [<max_write-kB-per-sec>]
+				 [<max_write-kB-per-sec>] [verbose]
 
 first parameter equal to \"\" -> do not change scheduler
 
@@ -48,7 +57,7 @@ raw_seq/raw_rand -> read directly from device (no writers allowed)
 For example:
 sudo ./video_play_vs_comms.sh bfq 5 5 seq 20 real mydir
 switches to bfq and, after launching 5 sequential readers and 5 sequential
-writers, runs mplayer for 20 times. During each run 
+writers, runs mplayer for 20 times. During each run
 a custom \"dd\" command is executed every 4 seconds. The file containing the computed
 statistics is stored in the mydir subdir of the current dir.
 
@@ -122,7 +131,7 @@ function clean_and_exit {
 		echo 0 > /sys/block/$DEV/queue/iosched/strict_guarantees
 	fi
 	if [[ "$XHOST_CONTROL" != "" ]]; then
-		xhost -
+		xhost - > /dev/null 2>&1
 	fi
 	exit
 }
@@ -169,8 +178,8 @@ function invoke_player_plus_commands {
 		        check_timed_out $count 30
 		done
 
-		echo
-		echo Pattern read
+		echo > $REDIRECT
+		echo Pattern read > $REDIRECT
 
 		while true ; do
 			sleep 4
@@ -181,10 +190,10 @@ function invoke_player_plus_commands {
 
 			# increase difficulty by syncing (in parallel, as sync
 			# is blocking)
-			echo Syncing in parallel
+			echo Syncing in parallel > $REDIRECT
 			sync &
 
-			echo Executing $COMMAND
+			echo Executing $COMMAND > $REDIRECT
 			(time -p $COMMAND) 2>&1 | tee -a lat-${sched} &
 			if [ "`pgrep ${PLAYER_CMD}`" == "" ] ; then
 				break
@@ -248,7 +257,7 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-set_scheduler
+set_scheduler > $REDIRECT
 
 if [[ $CACHE != y && $CACHE != Y && $sched == bfq ]]; then
 	echo "Activating strict_guarantees"
@@ -261,13 +270,14 @@ rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
 
-# setup a quick shutdown for Ctrl-C 
+# setup a quick shutdown for Ctrl-C
 trap "clean_and_exit" sigint
 
 # file read by the interfering command
 create_file /var/lib/S/smallfile 15
 
-echo Preliminary cache-flush to block until previous writes have been completed
+echo Preliminary cache-flush to block until previous writes have been completed\
+     > $REDIRECT
 flush_caches
 
 if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
@@ -286,7 +296,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 fi
 
 # start logging aggthr
-iostat -tmd /dev/$DEV 3 | tee iostat.out &
+iostat -tmd /dev/$DEV 3 | tee iostat.out > $REDIRECT &
 
 init_tracing
 set_tracing 1
@@ -296,7 +306,7 @@ invoke_player_plus_commands
 shutdwn 'fio iostat'
 
 if [[ "$XHOST_CONTROL" != "" ]]; then
-	xhost -
+	xhost - > /dev/null 2>&1
 fi
 
 compute_statistics
