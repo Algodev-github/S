@@ -5,10 +5,16 @@ dirname=plots
 ref_mode=${2:-"ref"}
 term_mode=${3:-"x11"}
 scaling_factor=${4:-"1.55"}
+
+if [[ "$5" == print_tables ]]; then
+    PRINT_TABLES=yes
+fi
+
 plot_id=1
 usage_msg="\
 Usage:
-plot_stats.sh table_file|table_dir [ref_mode] [term_mode]
+plot_stats.sh <table_file>|<table_dir> [<ref_mode>] [<term_mode>]
+	      [<scaling factor>] [print_tables]
 
 - if the first parameter is a directory, make a plot for each table
   file in the directory
@@ -313,7 +319,8 @@ function parse_table
 	"$x_label" 0 "$y_label" ${#schedulers[@]} \
 	"$curves" "$reference_case_label" "$reference_case_value" $max_value
 
-    if [[ $term_mode != "x11" && $term_mode != "aqua" ]] ; then
+    if [[ $term_mode != "x11" && $term_mode != "aqua" && \
+	"$PRINT_TABLES" != yes ]] ; then
 	echo Wrote $out_file_path.$term_mode
     fi
 
@@ -327,13 +334,22 @@ else
 	num_tables_parsed=0
 	for table_file in "$1"/*-table.txt; do
 	    if [[ -f "$table_file" ]]; then
-		echo Plotting $table_file
+		if [[ "$PRINT_TABLES" == yes ]]; then
+		    echo -------------------------------------------------------
+		    cat $table_file
+		else
+		    echo Plotting $table_file
+		fi
 		parse_table $table_file
 		num_tables_parsed=$(($num_tables_parsed+1))
 	    fi
 	done
 	if (($num_tables_parsed == 0)); then
 	    echo No table found, maybe you forgot to run calc_overall_stats.sh?
+	else
+	    if [[ "$PRINT_TABLES" == yes ]]; then
+		echo -------------------------------------------------------
+	    fi
 	fi
     else
 	echo $1 is not either a table file or a directory
