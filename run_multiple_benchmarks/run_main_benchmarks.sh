@@ -332,12 +332,12 @@ fi
 
 if [[ "$BENCHMARKS" == "" ]]; then
     ../utilities/check_dependencies.sh dd fio iostat time mplayer \
-	git make xterm gnome-terminal lowriter
+	git xterm gnome-terminal lowriter
     if [[ $? -ne 0 ]]; then
 	exit
     fi
 
-    BENCHMARKS="throughput startup replaied-startup fairness video-playing kernel-devel interleaved-io"
+    BENCHMARKS="throughput startup video-playing"
 fi
 
 if [[ "$SCHEDULERS" == "" ]]; then
