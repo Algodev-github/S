@@ -288,7 +288,6 @@ function start_raw_readers
     NUM_READERS=$1
     R_TYPE=$2
 
-    echo Starting $NUM_READERS $R_TYPE readers on /dev/${DEV}
     if [ "$R_TYPE" == "raw_seq" ]; then
         for ((i = 0 ; $i < ${NUM_READERS} ; i++))
         do
@@ -302,6 +301,7 @@ function start_raw_readers
                 --filename=/dev/${DEV} > /dev/null &
         fi
     fi
+    echo Started $NUM_READERS $R_TYPE readers on /dev/${DEV}
 }
 
 function start_readers_writers
@@ -311,7 +311,7 @@ function start_readers_writers
 	RW_TYPE=$3
 	MAXRATE=${4-0}
 
-	printf "Starting"
+	printf "Started"
 
 	if [[ $NUM_READERS -gt 0 ]]; then
 	    printf " $NUM_READERS $RW_TYPE reader(s)"
