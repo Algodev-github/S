@@ -1,6 +1,5 @@
 #!/bin/bash
 export LC_NUMERIC=C
-export LC_ALL=C
 dirname=plots
 ref_mode=${2:-"ref"}
 term_mode=${3:-"x11"}
