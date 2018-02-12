@@ -236,10 +236,6 @@ function parse_table
     sed 's/-1-Axis/X-Axis/g' $in_filename.tmp1 > $in_filename.tmp
 
     out_filepath=$in_filename
-    plot_title=$(basename $out_filepath)
-    plot_title=$(echo $plot_title | sed 's/-table.txt//')
-    plot_title=$(echo $plot_title | sed 's/_/ /')
-    plot_title=$(echo $plot_title | sed 's/-/ /')
     out_filepath="${out_filepath%.*}"
     in_filename=$in_filename.tmp
 
@@ -266,6 +262,9 @@ function parse_table
     if [[ "$max_value" == "0" ]]; then
 	max_value=0.01
     fi
+
+    line_idx=0 # first line
+    plot_title=$(echo ${lines[$line_idx]} | sed 's/# //')
 
     line_idx=1 # second line
 

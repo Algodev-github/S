@@ -100,7 +100,12 @@ function file_loop
 
 function write_header
 {
-    echo "# Table automatically created by calc_overall_stats" > $1
+    table_title=$(basename $1)
+    table_title=$(echo $table_title | sed 's/-table.txt//')
+    table_title=$(echo $table_title | sed 's/_/ /')
+    table_title=$(echo $table_title | sed 's/-/ /')
+
+    echo "# $table_title" > $1
     echo "# X-Axis: Workload" >> $1
     echo "# Y-Axis: $2" >> $1
     echo "# Reference case: $3" >> $1
