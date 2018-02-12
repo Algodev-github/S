@@ -229,7 +229,9 @@ function shutdwn
 	# the shared memory segments on this signal
 	num_lines=`ipcs -m | wc -l`
 	ipcs -m | tail -n `expr $num_lines - 3` |\
-		for f in `cat - | awk '{ print $2 }'`; do ipcrm -m $f; done
+	    for f in `cat - | awk '{ print $2 }'`; do\
+			 ipcrm -m $f > /dev/null 2>&1; \
+	    done
 }
 
 function create_file
