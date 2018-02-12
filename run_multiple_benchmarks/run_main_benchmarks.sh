@@ -57,7 +57,7 @@ cur_date=`date +%y%m%d_%H%M`
 RES_DIR=../results/run_main_benchmarks/$cur_date
 
 # startup test cases
-testcases=(bash_startup xterm_startup terminal_startup lowriter_startup)
+testcases=(bash_startup xterm_startup gnome_terminal_startup lowriter_startup)
 # reference start-up times for test cases, will be set during execution
 reftimes=(0 0 0 0)
 # command for each test case
