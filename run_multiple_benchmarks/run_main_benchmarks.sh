@@ -404,6 +404,7 @@ cd ../utilities
 if [[ test_X_access ]]; then
     ./plot_stats.sh $RES_DIR
 fi
+./plot_stats.sh $RES_DIR ref gif
 
 cur_date=`date +%y%m%d_%H%M`
 echo
