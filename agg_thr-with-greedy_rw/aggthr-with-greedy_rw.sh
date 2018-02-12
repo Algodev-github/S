@@ -62,7 +62,7 @@ mkdir -p $STAT_DEST_DIR
 # turn to an absolute path (needed later)
 STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
-set_scheduler
+set_scheduler > $REDIRECT
 
 echo Preliminary sync to wait for the completion of possible previous writes > $REDIRECT
 sync
@@ -100,7 +100,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 	    sleep 1
 	    : $((secs--))
 	done
-	echo
+	echo > $REDIRECT
 fi
 
 echo Measurement started, and lasting $DURATION seconds > $REDIRECT
