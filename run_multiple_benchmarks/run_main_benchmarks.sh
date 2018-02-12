@@ -355,7 +355,7 @@ if [[ "$SCHEDULERS" == "" ]]; then
 	sed 's/\[//' | sed 's/\]//')"
 fi
 
-echo Tests beginning on $cur_date
+echo Benchmarks beginning on `date +%y%m%d\ %H:%M`
 
 if command -v tracker-control >/dev/null 2>&1; then
         echo Stopping services, check that they are restarted
@@ -426,7 +426,11 @@ for sched in $SCHEDULERS; do
 done
 send_email "S main-benchmark run finished"
 
+cur_date=`date +%y%m%d\ %H:%M`
 echo
+echo All benchmarks finished on $cur_date
+echo
+
 echo Computing overall stats
 cd ../utilities
 ./calc_overall_stats.sh $RES_DIR "${SCHEDULERS[@]}"
@@ -435,11 +439,6 @@ if [[ test_X_access ]]; then
     ./plot_stats.sh $RES_DIR
 fi
 ./plot_stats.sh $RES_DIR ref gif 1.55 print_tables
-
-cur_date=`date +%y%m%d_%H%M`
-echo
-echo All test finished on $cur_date
-echo
 
 if command -v tracker-control >/dev/null 2>&1; then
 	echo systemctl restart crond.service
