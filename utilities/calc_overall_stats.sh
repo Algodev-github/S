@@ -151,7 +151,7 @@ function per_subdirectory_loop
 		record_lines=$((1 + ($num_quants) * 3))
 		thr_table_file=`pwd`/`basename $single_test_res_dir`-thr-table.txt
 		target_quantity_table_file=\
-`pwd`/`basename $single_test_res_dir`-lat-table.txt
+`pwd`/`basename $single_test_res_dir`-time-table.txt
 		target_quantity_type="Start-up time [sec]"
 		reference_value_label="Start-up time on idle device"
 		;;
