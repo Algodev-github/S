@@ -10,13 +10,15 @@ fi
 # see the following string for usage, or invoke ./run_main_benchmarks.sh -h
 usage_msg="\
 Usage (as root):\n\
-./run_main_benchmarks.sh [fs|raw] [set of benchmarks] [set of schedulers]
+./run_main_benchmarks.sh [fs|raw] [<set of benchmarks>] [<set of schedulers>] [also-rand]
 
 If fs mode is selected, or if no value, i.e., \"\", is given, then file
 reads and writes are used as background workloads. Instead, if raw
 mode is selected, then only raw reads are executed in the background
 workloads (this option also avoids intense writes). Raw mode is not
 yet implemented.
+
+If also-rand is passed, then also random background workloads are considered.
 
 The set of benchmarks can be built out of the following benchmarks:
 throughput startup replaied-startup fairness video-playing kernel-devel interleaved-io
@@ -45,6 +47,10 @@ sudo ./run_main_benchmarks.sh \"\" \"throughput startup\" \"cfq noop\"
 MODE=${1-}
 BENCHMARKS=${2-}
 SCHEDULERS=${3-}
+
+if [[ "$4" == also-rand ]]; then
+    RAND_WL=yes
+fi
 
 # number of time each type of benchmark is repeated: increase this
 # number to increase the accuracy of the results
@@ -286,7 +292,8 @@ if [[ "$MODE" == "" ]]; then
     MODE=fs
 fi
 
-if [[ "$MODE" == fs ]]; then
+# next four cases are mutually exclusive
+if [[ "$MODE" == fs && "$RAND_WL" == yes ]]; then
     latency_workloads=("0 0 seq" "10 0 seq" "5 5 seq" "10 0 rand" "5 5 rand")
     wl_infix=("0r0w-seq" "10r0w-seq" "5r5w-seq" "10r0w-rand" "5r5w-rand")
 
@@ -294,7 +301,8 @@ if [[ "$MODE" == fs ]]; then
     thr_wl_infix=("1r0w-seq" "10r0w-seq" "10r0w-rand" "5r5w-seq" "5r5w-rand")
 
     kern_workloads=("0 0 seq" "10 0 seq" "10 0 rand")
-else
+fi
+if [[  "$MODE" == raw && "$RAND_WL" == yes ]]; then
     latency_workloads=("0 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
     wl_infix=("0r0w-raw_seq" "10r0w-raw_seq" "10r0w-raw_rand")
 
@@ -302,6 +310,24 @@ else
     thr_wl_infix=("1r0w-raw_seq" "10r0w-raw_seq" "10r0w-raw_rand")
 
     kern_workloads=("0 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
+fi
+if [[ "$MODE" == fs && "$RAND_WL" != yes ]]; then
+    latency_workloads=("0 0 seq" "10 0 seq" "5 5 seq")
+    wl_infix=("0r0w-seq" "10r0w-seq" "5r5w-seq")
+
+    thr_workloads=("1 0 seq" "10 0 seq" "5 5 seq")
+    thr_wl_infix=("1r0w-seq" "10r0w-seq" "5r5w-seq")
+
+    kern_workloads=("0 0 seq" "10 0 seq")
+fi
+if [[  "$MODE" == raw && "$RAND_WL" != yes ]]; then
+    latency_workloads=("0 0 raw_seq" "10 0 raw_seq")
+    wl_infix=("0r0w-raw_seq" "10r0w-raw_seq")
+
+    thr_workloads=("1 0 raw_seq" "10 0 raw_seq")
+    thr_wl_infix=("1r0w-raw_seq" "10r0w-raw_seq")
+
+    kern_workloads=("0 0 raw_seq" "10 0 raw_seq")
 fi
 
 if [[ "$BENCHMARKS" == "" ]]; then
