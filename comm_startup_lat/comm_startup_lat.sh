@@ -127,7 +127,7 @@ function clean_and_exit {
     rm -rf results-$sched
     rm -f Stop-iterations current-pid # remove possible garbage
     if [[ "$XHOST_CONTROL" != "" ]]; then
-	   xhost -
+	   xhost - > /dev/null 2>&1
     fi
     exit
 }
@@ -153,7 +153,7 @@ function invoke_commands {
 	    # increase difficulty by periodically syncing (in
 	    # parallel, as sync is blocking)
 	    (while true; do echo ; echo Syncing again in parallel; \
-		sync & sleep 2; done) &
+		sync & sleep 2; done) > $REDIRECT &
 	fi
 
 	for ((i = 0 ; $NUM_ITER == 0 || i < $NUM_ITER ; i++)) ; do
@@ -312,9 +312,9 @@ else
     enable_X_access_and_test_cmd "$COMMAND"
 fi
 
-set_scheduler
+set_scheduler > $REDIRECT
 
-echo Preliminary sync to block until previous writes have been completed
+echo Preliminary sync to block until previous writes have been completed > $REDIRECT
 sync
 
 # create and enter work dir
@@ -359,7 +359,7 @@ invoke_commands
 shutdwn 'fio iostat'
 
 if [[ "$XHOST_CONTROL" != "" ]]; then
-	xhost -
+	xhost - > /dev/null 2>&1
 fi
 
 compute_statistics

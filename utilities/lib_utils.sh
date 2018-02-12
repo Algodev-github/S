@@ -187,8 +187,8 @@ function set_scheduler
 		PIPE_STATUS=${PIPESTATUS[0]}
 		NEW_SCHED=$(cat /sys/block/$DEV/queue/scheduler | egrep "\[$sched\]")
 		if [[ $PIPE_STATUS -ne 0 || "$NEW_SCHED" == "" ]]; then
-			echo "Switch to $sched failed:"
-			cat /sys/block/${DEV}/queue/scheduler
+			echo "Switch to $sched failed:" > /dev/tty
+			cat /sys/block/${DEV}/queue/scheduler > /dev/tty
 			exit 1
 		fi
 	else
