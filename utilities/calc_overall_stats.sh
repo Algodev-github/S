@@ -7,11 +7,11 @@ usage_msg="\
 Usage:\n\
 calc_overall_stats.sh test_result_dir \
 [<Scheduler array>] [<Reference case>]
-   [aggthr | startup_lat | kern_task] [verbose]\n\
+   [throughput | startup_lat | kern_task] [verbose]\n\
    \n\
    The last param is needed only if the type(s) of the results cannot be
    inferred from the name of the test-result directory.
-   Use aggthr for the results of agg_thr-with-greedy_rw.sh and\n\
+   Use throughput for the results of agg_thr-with-greedy_rw.sh and\n\
    interleaved_io.sh., startup_lat for the results of comm_startup_lat.sh,\n\
    and kern_task for the results of task_vs_rw.sh. \n\
    The computation of kern_task statistics is still to be completed.\n\
@@ -121,8 +121,8 @@ function write_header
 function set_res_type
 {
     case $1 in
-	aggthr)
-	    res_type=aggthr
+	throughput)
+	    res_type=throughput
 	    ;;
 	startup)
 	    res_type=startup_lat
@@ -145,10 +145,10 @@ function per_subdirectory_loop
     set_res_type $2
 
     case $res_type in
-	aggthr)
+	throughput)
 		num_quants=3
 		record_lines=$((1 + $num_quants * 3))
-		thr_table_file=`pwd`/`basename $single_test_res_dir`oughput-table.txt
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-table.txt
 		reference_value_label="Device peak rate"
 		;;
 	startup_lat)
@@ -187,7 +187,7 @@ function per_subdirectory_loop
     out_file=`pwd`/overall_stats-`basename $single_test_res_dir`.txt
     rm -f $out_file
 
-    if [[ $res_type == aggthr ]]; then
+    if [[ $res_type == throughput ]]; then
 	write_header $thr_table_file "Aggregate throughput [MB/sec]" \
             $thr_reference_case "$reference_value_label"
     else
@@ -219,7 +219,7 @@ function per_subdirectory_loop
 		if [[ "$line_created" == True ]]; then
 		    printf "%12s" X >> $thr_table_file
 
-		    if [[ $res_type != aggthr ]]; then
+		    if [[ $res_type != throughput ]]; then
 			printf "%12s" X >> $target_quantity_table_file
 		    fi
 		fi
@@ -244,7 +244,7 @@ function per_subdirectory_loop
 			printf "%12s" X >> $thr_table_file
 		    done
 
-		    if [[ $res_type != aggthr ]]; then
+		    if [[ $res_type != throughput ]]; then
 			printf "  %-10s" $wl_improved_name \
 			    >> $target_quantity_table_file
 			for ((i = 0 ; i < numX ; i++)) ; do
@@ -254,7 +254,7 @@ function per_subdirectory_loop
 		    line_created=True
 		fi
 
-		if [[ $cur_quant -eq 0 && "$res_type" != aggthr && \
+		if [[ $cur_quant -eq 0 && "$res_type" != throughput && \
 		      "$res_type" != video_playing ]] ||
 		   [[ $cur_quant -eq 1 && \
 		      "$res_type" == video_playing ]] ; then
@@ -277,7 +277,7 @@ function per_subdirectory_loop
 		    printf "%12s" $target_field >> $target_quantity_table_file
 		elif (((cur_quant == 0)) && \
 		      [[ "$res_type" != video_playing ]]) ||
-		     ((( cur_quant == 1)) && [[ $res_type != aggthr ]] && \
+		     ((( cur_quant == 1)) && [[ $res_type != throughput ]] && \
 		      [[ $res_type != video_playing ]]) ||
 		     ((( cur_quant == 3)) && \
 		      [[ $res_type == video_playing ]]); then
@@ -297,7 +297,7 @@ function per_subdirectory_loop
 	if [[ "$line_created" == True ]]; then
 	    printf "\n" >> $thr_table_file
 
-	    if [[ $res_type != aggthr ]]; then
+	    if [[ $res_type != throughput ]]; then
 		printf "\n" >> $target_quantity_table_file
 	    fi
 	fi
@@ -344,7 +344,7 @@ echo Searching for benchmark results ... > $REDIRECT
 num_dir_visited=0
 # filters make, checkout, merge, grep and interleaved-io not yet
 # added, because the code for these cases is not yet complete
-for filter in aggthr startup video_playing; do
+for filter in throughput startup video_playing; do
     for single_test_res_dir in `find $results_dir -name "*$filter*" -type d`; do
 	echo Computing $filter overall stats in $single_test_res_dir > $REDIRECT
 	per_subdirectory_loop $single_test_res_dir $filter
