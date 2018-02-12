@@ -10,15 +10,7 @@ fi
 # see the following string for usage, or invoke ./run_main_benchmarks.sh -h
 usage_msg="\
 Usage (as root):\n\
-./run_main_benchmarks.sh [fs|raw] [<set of benchmarks>] [<set of schedulers>] [also-rand]
-
-If fs mode is selected, or if no value, i.e., \"\", is given, then file
-reads and writes are used as background workloads. Instead, if raw
-mode is selected, then only raw reads are executed in the background
-workloads (this option also avoids intense writes). Raw mode is not
-yet implemented.
-
-If also-rand is passed, then also random background workloads are considered.
+./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>] [fs|raw] [also-rand]
 
 The set of benchmarks can be built out of the following benchmarks:
 throughput startup replaied-startup fairness video-playing kernel-devel interleaved-io
@@ -29,24 +21,32 @@ executed.
 If no set of schedulers or an empty set of schedulers, i.e., \"\", is
 given, then all available schedulers are tested.
 
+If fs mode is selected, or if no value, i.e., \"\", is given, then file
+reads and writes are used as background workloads. Instead, if raw
+mode is selected, then only raw reads are executed in the background
+workloads (this option also avoids intense writes). Raw mode is not
+yet implemented.
+
+If also-rand is passed, then also random background workloads are considered.
+
 Examples
 # run all available benchmarks for all available schedulers, using fs
 sudo ./run_main_benchmarks.sh
 
 # run all available benchmarks for all available schedulers, using raw device
-sudo ./run_main_benchmarks.sh raw
+sudo ./run_main_benchmarks.sh \"\" \"\" raw
 
 # run selected benchmarks for all available schedulers, using fs
-sudo ./run_main_benchmarks.sh \"\" \"throughput startup\"
+sudo ./run_main_benchmarks.sh \"throughput startup\"
 
 # run selected benchmarks for cfq and noop, using fs
-sudo ./run_main_benchmarks.sh \"\" \"throughput startup\" \"cfq noop\"
+sudo ./run_main_benchmarks.sh \"throughput startup\" \"cfq noop\"
 
 "
 
-MODE=${1-}
-BENCHMARKS=${2-}
-SCHEDULERS=${3-}
+BENCHMARKS=${1-}
+SCHEDULERS=${2-}
+MODE=${3-}
 
 if [[ "$4" == also-rand ]]; then
     RAND_WL=yes
@@ -395,8 +395,9 @@ if [ "${NCQ_QUEUE_DEPTH}" != "" ]; then
 fi
 
 send_email "S main-benchmark run started"
-echo Schedulers: $SCHEDULERS
+echo
 echo Benchmarks: $BENCHMARKS
+echo Schedulers: $SCHEDULERS
 
 num_scheds=0
 for sched in $SCHEDULERS; do
