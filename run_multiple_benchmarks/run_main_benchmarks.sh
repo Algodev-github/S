@@ -340,17 +340,21 @@ fi
 
 echo Tests beginning on $cur_date
 
-echo Stopping services, check that they are restarted at the end of the tests!!
-
 if command -v tracker-control >/dev/null 2>&1; then
+        echo Stopping services, check that they are restarted
+        echo at the end of the tests!!
 	echo systemctl stop crond.service
 	systemctl stop crond.service
 	echo systemctl stop abrtd.service
 	systemctl stop abrtd.service
 else
+    if [ -f /etc/init.d/cron ]; then
+        echo Stopping services, check that they are restarted
+        echo at the end of the tests!!
 	# this causes warnings if upstart is used ...
 	echo /etc/init.d/cron stop
 	/etc/init.d/cron stop
+    fi
 fi
 
 if command -v tracker-control >/dev/null 2>&1; then
@@ -408,9 +412,11 @@ if command -v tracker-control >/dev/null 2>&1; then
 	echo systemctl restart abrtd.service
 	systemctl restart abrtd.service
 else
-	# this generates warnings if upstart is used ...
-	echo /etc/init.d/cron restart
-	/etc/init.d/cron restart
+        if [ -f /etc/init.d/cron ]; then
+	    # this generates warnings if upstart is used ...
+	    echo /etc/init.d/cron restart
+	    /etc/init.d/cron restart
+	fi
 fi
 
 if command -v tracker-control >/dev/null 2>&1; then
