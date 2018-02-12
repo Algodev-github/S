@@ -336,8 +336,6 @@ else
 		if [[ "$PRINT_TABLES" == yes ]]; then
 		    echo -------------------------------------------------------
 		    cat $table_file
-		else
-		    echo Plotting $table_file
 		fi
 		parse_table $table_file
 		num_tables_parsed=$(($num_tables_parsed+1))
