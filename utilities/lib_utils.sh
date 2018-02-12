@@ -313,6 +313,10 @@ function start_readers_writers
 	RW_TYPE=$3
 	MAXRATE=${4-0}
 
+	if [[ ${NUM_READERS} -eq 0 && ${NUM_WRITERS} -eq 0 ]]; then
+	    return
+	fi
+
 	printf "Started"
 
 	if [[ $NUM_READERS -gt 0 ]]; then
@@ -324,7 +328,7 @@ function start_readers_writers
 		if [[ "$RW_TYPE" != seq ]]; then
 		    MAXRATE=$(($MAXRATE / 60))
 		fi
-		SETMAXRATE="--rate=$(($MAXRATE / $NUM_WRITERS))k"
+		SETMAXRATE="rate=$(($MAXRATE / $NUM_WRITERS))k"
 	    fi
 	fi
 	echo
@@ -336,18 +340,37 @@ function start_readers_writers
 	do
 		rm -f ${BASE_FILE_PATH}_write$i
 	done
+
+	num_jobs=$(( ${NUM_READERS} + ${NUM_WRITERS} ))
+
+	jobvar="
+[global]\n
+thread=0\n
+invalidate=1\n
+\n
+"
+
 	for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 	do
-		$FIO --name=${RW_TYPE}reader$i -rw=${TYPE_PREF}read --numjobs=1 \
-		    --filename=${BASE_FILE_PATH}$i > /dev/null &
+	    jobvar=$jobvar"
+[${RW_TYPE}reader$i]\n
+readwrite=${TYPE_PREF}read\n
+filename=${BASE_FILE_PATH}$i\n
+"
 	done
+
 	for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 	do
-		$FIO --name=${RW_TYPE}writer$i -rw=${TYPE_PREF}write $SETMAXRATE \
-		    --numjobs=1 --size=${FILE_SIZE_MB}M \
-		    --filename=${BASE_FILE_PATH}_write$i \
-		    > /dev/null &
+	    jobvar=$jobvar"
+[${RW_TYPE}writer$i]\n
+readwrite=${TYPE_PREF}write\n
+filename=${BASE_FILE_PATH}_write$i\n
+size=${FILE_SIZE_MB}M\n
+$SETMAXRATE\n
+"
 	done
+
+	echo -e $jobvar | $FIO - > /dev/null 2>&1 &
 }
 
 function start_readers_writers_rw_type
