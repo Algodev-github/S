@@ -42,6 +42,9 @@ function set_tracing {
 # Check whether an X display can be accessed.
 function test_X_access {
 	COMMAND="$1"
+	if [[ "$SUDO_USER" != "" ]]; then
+	    SUDO_PREFIX="sudo -u $SUDO_USER"
+	fi
 
 	ACCESS_OK=no
 	for dis in `ls /tmp/.X11-unix | tr 'X' ':'`; do
@@ -58,9 +61,9 @@ function test_X_access {
 		# turn off access control temporarily. Before turning it
 		# off, save previous access-control state, to re-enable it
 		# again at the end of the test, if needed.
-		XHOST_CONTROL=$(sudo -u $SUDO_USER xhost 2> /dev/null |\
+		XHOST_CONTROL=$($SUDO_PREFIX xhost 2> /dev/null |\
 				egrep "enabled")
-		sudo -u $SUDO_USER xhost + > /dev/null 2>&1
+		$SUDO_PREFIX xhost + > /dev/null 2>&1
 
 		if [[ $? -ne 0 ]]; then
 			continue
@@ -85,6 +88,9 @@ function test_X_access {
 # first argument, if any is passed.
 function enable_X_access_and_test_cmd {
 	COMMAND="$1"
+	if [[ "$SUDO_USER" != "" ]]; then
+	    SUDO_PREFIX="sudo -u $SUDO_USER"
+	fi
 
 	COMM_OK=no
 	for dis in `ls /tmp/.X11-unix | tr 'X' ':'`; do
@@ -101,9 +107,9 @@ function enable_X_access_and_test_cmd {
 		# turn off access control temporarily. Before turning it
 		# off, save previous access-control state, to re-enable it
 		# again at the end of the benchmark, if needed.
-		XHOST_CONTROL=$(sudo -u $SUDO_USER xhost 2> /dev/null |\
+		XHOST_CONTROL=$($SUDO_PREFIX xhost 2> /dev/null |\
 				egrep "enabled")
-		sudo -u $SUDO_USER xhost + > /dev/null 2>&1
+		$SUDO_PREFIX xhost + > /dev/null 2>&1
 
 		if [[ $? -ne 0 && "$COMMAND" == "" ]]; then
 			continue
