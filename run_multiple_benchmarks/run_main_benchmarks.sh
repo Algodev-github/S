@@ -87,7 +87,7 @@ function send_partial_stats
 	fi
 }
 
-function send_email_announce_test
+function send_email
 {
 	if [ "$MAIL_REPORTS" == "1" ]; then
 		if [ "$MAIL_REPORTS_RECIPIENT" == "" ]; then
@@ -100,11 +100,6 @@ function send_email_announce_test
 		echo "$1 on $HNAME with scheduler $sched and kernel $KVER at $TSTAMP" | \
 			mail -s "$1 on $HNAME" $MAIL_REPORTS_RECIPIENT
 	fi
-
-	echo -n "Warning: " > msg
-	echo "$1" >> msg
-	cat msg | wall
-	rm msg
 }
 
 function repeat
@@ -380,7 +375,7 @@ if [ "${NCQ_QUEUE_DEPTH}" != "" ]; then
     fi
 fi
 
-send_email_announce_test "S main-benchmark run started"
+send_email "S main-benchmark run started"
 echo Schedulers: $SCHEDULERS
 echo Benchmarks: $BENCHMARKS
 
@@ -388,14 +383,14 @@ echo Benchmarks: $BENCHMARKS
 for sched in $SCHEDULERS; do
     for benchmark in $BENCHMARKS
     do
-	send_email_announce_test "$benchmark tests beginning"
+	send_email "$benchmark tests beginning"
 	$benchmark $sched
-	send_email_announce_test "$benchmark tests finished"
+	send_email "$benchmark tests finished"
 	echo Letting the system rest for 5 seconds ...
 	sleep 5
     done
 done
-send_email_announce_test "S main-benchmark run finished"
+send_email "S main-benchmark run finished"
 
 echo Computing overall stats
 cd ../utilities
