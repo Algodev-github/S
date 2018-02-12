@@ -432,15 +432,6 @@ echo
 echo All benchmarks finished on $cur_date
 echo
 
-echo Computing overall stats
-cd ../utilities
-./calc_overall_stats.sh $RES_DIR "${SCHEDULERS[@]}"
-
-if [[ test_X_access ]]; then
-    ./plot_stats.sh $RES_DIR
-fi
-./plot_stats.sh $RES_DIR ref gif 1.55 print_tables
-
 if command -v tracker-control >/dev/null 2>&1; then
 	echo systemctl restart crond.service
 	systemctl restart crond.service
@@ -458,3 +449,13 @@ if command -v tracker-control >/dev/null 2>&1; then
     echo tracker-control -s
     tracker-control -s
 fi
+
+echo
+echo Computing overall stats
+cd ../utilities
+./calc_overall_stats.sh $RES_DIR "${SCHEDULERS[@]}"
+
+if [[ test_X_access ]]; then
+    ./plot_stats.sh $RES_DIR
+fi
+./plot_stats.sh $RES_DIR ref gif 1.55 print_tables
