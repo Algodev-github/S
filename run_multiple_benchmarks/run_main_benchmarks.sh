@@ -135,7 +135,7 @@ function repeat
 		echo Syncing and waiting for a few seconds, to better mimick real usage,
 		echo and let benchmarks start in more homogeneous conditions.
 		sync
-		sleep 5
+		sleep 2
 	done
 
 	if [[ $1 == interleaved-io || $1 == kernel_devel \
