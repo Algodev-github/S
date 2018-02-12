@@ -292,7 +292,7 @@ function parse_table
 	fi
 
 	reference_case_label=$(echo ${lines[$(($line_idx + 1))]} | \
-	    sed 's/# Reference-case label: //')
+	    sed 's/# Reference-case meaning: //')
     else
 	reference_case=none
     fi

@@ -109,7 +109,7 @@ function write_header
     echo "# X-Axis: Workload" >> $1
     echo "# Y-Axis: $2" >> $1
     echo "# Reference case: $3" >> $1
-    echo "# Reference-case label: $4" >> $1
+    echo "# Reference-case meaning: $4" >> $1
     echo "#" >> $1
     echo -en "# Workload  " >> $1
     for sched in $SCHEDULERS; do
