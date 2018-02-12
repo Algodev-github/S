@@ -410,5 +410,4 @@ function print_save_agg_thr
 	print_save $1 "Write throughput:" 'print $4'
 
 	echo
-	echo Stats written to $1
 }
