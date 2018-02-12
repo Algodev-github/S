@@ -198,7 +198,7 @@ function plot_histograms()
     echo $plot_curves >> tmp.txt
 
     if [ $term_mode == "x11" ] ; then
-	enable_X_access_and_test_cmd
+	enable_X_access_and_test_cmd "" just_test_display
     fi
 
     gnuplot $options < tmp.txt

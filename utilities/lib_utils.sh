@@ -39,6 +39,47 @@ function set_tracing {
 	fi
 }
 
+# Check whether an X display can be accessed.
+function test_X_access {
+	COMMAND="$1"
+
+	ACCESS_OK=no
+	for dis in `ls /tmp/.X11-unix | tr 'X' ':'`; do
+		# Tentatively set display so as to allow applications with a
+		# GUI to be started remotely too (a session must however be
+		# open on the target machine)
+		export DISPLAY=$dis
+
+		# To run, an X application needs to access the X server. In
+		# this respect, these scripts may be executed as root (e.g.,
+		# using sudo) by a different, non-root user. And the latter may
+		# be the actual owner the current X session.  To guarantee that
+		# the X application can access the X server also in this case,
+		# turn off access control temporarily. Before turning it
+		# off, save previous access-control state, to re-enable it
+		# again at the end of the test, if needed.
+		XHOST_CONTROL=$(sudo -u $SUDO_USER xhost 2> /dev/null |\
+				egrep "enabled")
+		sudo -u $SUDO_USER xhost + > /dev/null 2>&1
+
+		if [[ $? -ne 0 ]]; then
+			continue
+		fi
+		ACCESS_OK=yes
+		break
+	done
+	if [[ "$ACCESS_OK" != "yes" ]]; then
+		echo Sorry, failed to get access to any display.
+		return 1
+	else
+	    if [[ "$XHOST_CONTROL" != "" ]]; then
+		xhost - > /dev/null 2>&1
+	    fi
+	fi
+	return 0
+}
+
+
 # Try to open access to an X display; then set DISPLAY, plus XHOST_CONTROL, for
 # that display. In addition, test the execution of the command line passed as
 # first argument, if any is passed.

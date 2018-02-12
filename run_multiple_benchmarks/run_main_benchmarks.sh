@@ -401,7 +401,9 @@ echo Computing overall stats
 cd ../utilities
 ./calc_overall_stats.sh $RES_DIR "${SCHEDULERS[@]}"
 
-./plot_stats.sh $RES_DIR
+if [[ test_X_access ]]; then
+    ./plot_stats.sh $RES_DIR
+fi
 
 cur_date=`date +%y%m%d_%H%M`
 echo
