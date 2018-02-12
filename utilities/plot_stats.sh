@@ -332,15 +332,34 @@ else
     if [ -d "$1" ]; then
 	num_tables_parsed=0
 	for table_file in "$1"/*-table.txt; do
+	    thr_component=$(echo $table_file | egrep throughput)
+	    startup_component=$(echo $table_file | egrep startup)
+	    video_component=$(echo $table_file | egrep video)
+
+	    if [[ "$thr_component" != "" && \
+		    ( "$startup_component" != "" || "$video_component" != "" ) ]]
+	    then
+		mixed_thr_lat_table=yes
+	    else
+		mixed_thr_lat_table=no
+	    fi
+
 	    if [[ -f "$table_file" ]]; then
-		if [[ "$PRINT_TABLES" == yes ]]; then
+		if [[ ( $term_mode != "x11" && $term_mode != "aqua" ) || \
+		      "$mixed_thr_lat_table" != yes ]]; then
+		    parse_table $table_file
+		fi
+
+		if [[ "$PRINT_TABLES" == yes && "$mixed_thr_lat_table" != yes ]]
+		then
 		    echo -------------------------------------------------------
 		    cat $table_file
 		fi
-		parse_table $table_file
+
 		num_tables_parsed=$(($num_tables_parsed+1))
 	    fi
 	done
+
 	if (($num_tables_parsed == 0)); then
 	    echo No table found, maybe you forgot to run calc_overall_stats.sh?
 	else
