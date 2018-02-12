@@ -386,8 +386,6 @@ for sched in $SCHEDULERS; do
 	send_email "$benchmark tests beginning"
 	$benchmark $sched
 	send_email "$benchmark tests finished"
-	echo Letting the system rest for 5 seconds ...
-	sleep 5
     done
 done
 send_email "S main-benchmark run finished"
