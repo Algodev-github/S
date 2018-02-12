@@ -118,8 +118,6 @@ function repeat
 		echo Repetition $(($i + 1)) / $NUM_REPETITIONS \($sched, $1\)
 		echo
 
-		echo bash $2 $3 $RES_DIR/$1/repetition$i $4
-
 		# make sure that I/O generators/monitors are dead
 		# (sometimes shutdown does not work properly)
 		sudo killall dd fio iostat 2> /dev/null
