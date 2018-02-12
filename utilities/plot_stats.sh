@@ -209,7 +209,7 @@ function plot_histograms()
     gnuplot $options < tmp.txt
 
     if [[ "$XHOST_CONTROL" != "" ]]; then
-	xhost -
+	xhost - > /dev/null 2>&1
 	XHOST_CONTROL=
     fi
 
