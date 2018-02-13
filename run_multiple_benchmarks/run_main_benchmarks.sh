@@ -7,40 +7,52 @@ if [[ $? -ne 0 ]]; then
 	exit
 fi
 
+DEF_BENCHMARKS="throughput startup video-playing"
+
 # see the following string for usage, or invoke ./run_main_benchmarks.sh -h
 usage_msg="\
 Usage (as root):\n\
-./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>] [fs|raw] [also-rand]
+./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>] [fs|raw]
+			 [also-rand]
 
 The set of benchmarks can be built out of the following benchmarks:
 throughput startup replaied-startup fairness video-playing kernel-devel interleaved-io
 
-If no set or an empty set, i.e., \"\", is given, then all benchmarks are
-executed.
+If no set or an empty set, i.e., \"\", is given, then all default benchmarks are
+executed. Default benchmarks are: $DEF_BENCHMARKS.
 
-If no set of schedulers or an empty set of schedulers, i.e., \"\", is
-given, then all available schedulers are tested.
+The startup benchmark excercises X applications, which must therefore
+be installed and properly working. If this is a problem, run
+replaied-startup instead (see the simple invocation examples
+below). The latter usually provides accurate results, without
+executing any X application.
+
+If no set of I/O schedulers or an empty set of I/O schedulers, i.e.,
+\"\", is given, then all available schedulers are tested. Recall that,
+if a scheduler is built as a module, then the module must be loaded
+for the scheduler to be present in the list of available schedulers.
 
 If fs mode is selected, or if no value, i.e., \"\", is given, then file
-reads and writes are used as background workloads. Instead, if raw
-mode is selected, then only raw reads are executed in the background
-workloads (this option also avoids intense writes). Raw mode is not
-yet implemented.
+reads and writes are generated as background workloads. Instead, if raw
+mode is selected, then only (raw) reads are allowed.
 
-If also-rand is passed, then also random background workloads are considered.
+If also-rand is passed, then random background workloads are generated too.
 
 Examples
-# run all available benchmarks for all available schedulers, using fs
+# run all default benchmarks for all available schedulers, using fs, without
+# random-I/O workoads in the background
 sudo ./run_main_benchmarks.sh
 
-# run all available benchmarks for all available schedulers, using raw device
-sudo ./run_main_benchmarks.sh \"\" \"\" raw
+# run selected benchmarks for all available schedulers, using fs, no random I/O
+# (remove video-playing too, if mplayer is not available or working)
+sudo ./run_main_benchmarks.sh \"throughput replaied-startup video-playing\"
 
-# run selected benchmarks for all available schedulers, using fs
-sudo ./run_main_benchmarks.sh \"throughput startup\"
+# run selected benchmarks for bfq and none, using fs, no random I/O
+sudo ./run_main_benchmarks.sh \"throughput replaied-startup video-playing\" \"bfq none\"
 
-# run selected benchmarks for cfq and noop, using fs
-sudo ./run_main_benchmarks.sh \"throughput startup\" \"cfq noop\"
+# run all default benchmarks for all available schedulers, using raw device,
+# considering also random-I/O workoads in the background
+sudo ./run_main_benchmarks.sh \"\" \"\" raw also-rand
 
 "
 
@@ -347,7 +359,7 @@ if [[ "$BENCHMARKS" == "" ]]; then
 	exit
     fi
 
-    BENCHMARKS="throughput startup video-playing"
+    BENCHMARKS=$DEF_BENCHMARKS
 fi
 
 if [[ "$SCHEDULERS" == "" ]]; then
