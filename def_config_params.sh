@@ -64,10 +64,10 @@ NUM_BLOCKS=2000
 
 # where files are read from or written to
 BASE_DIR=/var/lib/S
-if test ! -d $BASE_DIR ; then
+if [[ "$1" != "-h" && ! -d $BASE_DIR ]]; then
     mkdir $BASE_DIR
 fi
-if test ! -w $BASE_DIR ; then
+if [[ "$1" != "-h" && ! -w $BASE_DIR ]]; then
     echo "$BASE_DIR is not writeable, reverting to /tmp/test"
     BASE_DIR=/tmp/test
 fi
