@@ -432,9 +432,16 @@ for sched in $SCHEDULERS; do
 	echo "for $benchmark ($bench_id/$num_benchs)"
 	send_email "$benchmark tests beginning"
 	$benchmark $sched
+	if [[ $? -ne 0 ]]; then
+	    FAILURE=yes
+	    break
+	fi
 	send_email "$benchmark tests finished"
 	((++bench_id))
     done
+    if [[ "$FAILURE" == yes ]]; then
+	break
+    fi
     ((++sched_id))
 done
 send_email "S main-benchmark run finished"
@@ -460,6 +467,10 @@ fi
 if command -v tracker-control >/dev/null 2>&1; then
     echo tracker-control -s
     tracker-control -s
+fi
+
+if [[ "$FAILURE" == yes ]]; then
+    exit 1
 fi
 
 echo
