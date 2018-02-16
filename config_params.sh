@@ -12,7 +12,10 @@ if [ ! -f $CONF_DEST_DIR/.S-config.sh ]; then
 		chown $SUDO_USER:$SUDO_USER $CONF_DEST_DIR/.S-config.sh
 	fi
 else
-	if [ ../def_config_params.sh -nt $CONF_DEST_DIR/.S-config.sh ]; then
+	sed 's/^#.*//g' ../def_config_params.sh > def_file
+	sed 's/^#.*//g' $CONF_DEST_DIR/.S-config.sh > user_file
+	if [[ "$(diff -d -B def_file user_file)" != "" && \
+		../def_config_params.sh -nt $CONF_DEST_DIR/.S-config.sh ]]; then
 		echo Your config file \($CONF_DEST_DIR/.S-config.sh\) is older
 		echo than my default config file. If this is ok for you,
 		echo then just
@@ -21,8 +24,10 @@ else
 		echo Otherwise
 		echo rm $CONF_DEST_DIR/.S-config.sh
 		echo to have your config file updated automatically.
+		rm def_file user_file
 		exit
 	fi
+	rm def_file user_file
 fi
 
 . $CONF_DEST_DIR/.S-config.sh
