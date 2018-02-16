@@ -12,8 +12,9 @@ DEF_BENCHMARKS="throughput startup video-playing"
 # see the following string for usage, or invoke ./run_main_benchmarks.sh -h
 usage_msg="\
 Usage (as root):\n\
-./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>] [fs|raw]
-			 [also-rand] [<number of repetitions (default: 2)>]
+./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>]
+	[fs|raw] [also-rand] [<number of repetitions (default: 2)>]
+	[<result dir (default: ../results/run_main_benchmarks/<date_time>)>]
 
 The set of benchmarks can be built out of the following benchmarks:
 throughput startup replayed-startup fairness video-playing kernel-devel interleaved-io
@@ -72,7 +73,7 @@ NUM_ITER_STARTUP=$NUM_REPETITIONS # number of iterations for each repetition
 # provides many fram-drop samples
 NUM_ITER_VIDEO=2
 cur_date=`date +%y%m%d_%H%M`
-RES_DIR=../results/run_main_benchmarks/$cur_date
+RES_DIR=${6-../results/run_main_benchmarks/$cur_date}
 
 # startup test cases
 testcases=(xterm_startup gnome_terminal_startup lowriter_startup)
