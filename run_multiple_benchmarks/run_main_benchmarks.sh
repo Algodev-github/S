@@ -13,7 +13,7 @@ DEF_BENCHMARKS="throughput startup video-playing"
 usage_msg="\
 Usage (as root):\n\
 ./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>] [fs|raw]
-			 [also-rand]
+			 [also-rand] [<number of repetitions (default: 2)>]
 
 The set of benchmarks can be built out of the following benchmarks:
 throughput startup replaied-startup fairness video-playing kernel-devel interleaved-io
@@ -66,7 +66,7 @@ fi
 
 # number of time each type of benchmark is repeated: increase this
 # number to increase the accuracy of the results
-NUM_REPETITIONS=2
+NUM_REPETITIONS=${5-2}
 NUM_ITER_STARTUP=$NUM_REPETITIONS # number of iterations for each repetition
 # only two iterations for video playing: every single playback already
 # provides many fram-drop samples
