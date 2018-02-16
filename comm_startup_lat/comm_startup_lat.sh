@@ -243,7 +243,6 @@ function calc_latency {
 }
 
 function compute_statistics {
-	mkdir -p $STAT_DEST_DIR
 	file_name=$STAT_DEST_DIR/\
 ${sched}-${NUM_READERS}r${NUM_WRITERS}w-${RW_TYPE}-lat_thr_stat.txt
 
@@ -289,8 +288,9 @@ if [[ "$FIRSTWORD" != replay-startup-io && $(which $SHORTNAME) == "" ]] ; then
     exit
 fi
 
-# turn to an absolute path (needed later)
-STAT_DEST_DIR=`pwd`/$STAT_DEST_DIR
+mkdir -p $STAT_DEST_DIR
+# turn to an absolute path (needed because current directory will be changed)
+STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 
 rm -f $FILE_TO_WRITE
 
