@@ -480,6 +480,6 @@ cd ../utilities
 ./calc_overall_stats.sh $RES_DIR "${SCHEDULERS[@]}"
 
 if [[ test_X_access ]]; then
-    ./plot_stats.sh $RES_DIR
+    ./plot_stats.sh $RES_DIR > /dev/null 2>&1
 fi
 ./plot_stats.sh $RES_DIR ref gif 1.55 print_tables
