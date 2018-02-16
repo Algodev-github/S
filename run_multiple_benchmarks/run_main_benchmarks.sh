@@ -16,14 +16,14 @@ Usage (as root):\n\
 			 [also-rand] [<number of repetitions (default: 2)>]
 
 The set of benchmarks can be built out of the following benchmarks:
-throughput startup replaied-startup fairness video-playing kernel-devel interleaved-io
+throughput startup replayed-startup fairness video-playing kernel-devel interleaved-io
 
 If no set or an empty set, i.e., \"\", is given, then all default benchmarks are
 executed. Default benchmarks are: $DEF_BENCHMARKS.
 
 The startup benchmark excercises X applications, which must therefore
 be installed and properly working. If this is a problem, run
-replaied-startup instead (see the simple invocation examples
+replayed-startup instead (see the simple invocation examples
 below). The latter usually provides accurate results, without
 executing any X application.
 
@@ -45,10 +45,10 @@ sudo ./run_main_benchmarks.sh
 
 # run selected benchmarks for all available schedulers, using fs, no random I/O
 # (remove video-playing too, if mplayer is not available or working)
-sudo ./run_main_benchmarks.sh \"throughput replaied-startup video-playing\"
+sudo ./run_main_benchmarks.sh \"throughput replayed-startup video-playing\"
 
 # run selected benchmarks for bfq and none, using fs, no random I/O
-sudo ./run_main_benchmarks.sh \"throughput replaied-startup video-playing\" \"bfq none\"
+sudo ./run_main_benchmarks.sh \"throughput replayed-startup video-playing\" \"bfq none\"
 
 # run all default benchmarks for all available schedulers, using raw device,
 # considering also random-I/O workoads in the background
@@ -76,13 +76,13 @@ RES_DIR=../results/run_main_benchmarks/$cur_date
 
 # startup test cases
 testcases=(xterm_startup gnome_terminal_startup lowriter_startup)
-# replaied-startup test cases
-replaied_testcases=(replaied_xterm_startup replaied_gnome_terminal_startup replaied_lowriter_startup)
+# replayed-startup test cases
+replayed_testcases=(replayed_xterm_startup replayed_gnome_terminal_startup replayed_lowriter_startup)
 # reference start-up times for test cases, will be set during execution
 reftimes=(0 0 0)
 # command for each test case
 commands=("xterm /bin/true" "gnome-terminal -e /bin/true" "lowriter --terminate_after_init")
-# replay command for each replaied-startup test case
+# replay command for each replayed-startup test case
 replay_commands=("replay-startup-io xterm" "replay-startup-io gnometerm" "replay-startup-io lowriter")
 
 function send_partial_stats
@@ -241,10 +241,10 @@ function startup
     do_startup $1
 }
 
-function replaied-startup
+function replayed-startup
 {
     cmd_lines=("${replay_commands[@]}")
-    actual_testcases=("${replaied_testcases[@]}");
+    actual_testcases=("${replayed_testcases[@]}");
 
     do_startup $1
 }
