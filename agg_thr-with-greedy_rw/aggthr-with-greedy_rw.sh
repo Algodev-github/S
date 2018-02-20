@@ -34,13 +34,13 @@ fi
 # see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
 usage_msg="\
 Usage (as root):\n\
-./aggthr-with-greedy_rw.sh [\"\" | bfq | cfq | ...]\n\
+./aggthr-with-greedy_rw.sh [\"\" | cur-sched | bfq | cfq | ...]\n\
                            [num_readers] [num_writers]\n\
                            [seq | rand | raw_seq | raw_rand ]\n\
                            [stat_dest_dir] [duration] [sync]\n\
                            [max_write-kB-per-sec] [verbose]\n\
 \n\
-first parameter equal to \"\" -> do not change scheduler\n\
+first parameter equal to \"\" or cur-sched -> do not change scheduler\n\
 raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
 sync parameter equal to yes -> invoke sync before starting readers/writers\n\
 \n\

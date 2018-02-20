@@ -19,7 +19,7 @@ DIS_LOW_LATENCY=NO # If set to YES, then also disable low latency
 # see the following string for usage, or invoke interleaved_io.sh -h
 usage_msg="\
 Usage (as root):\n\
-./interleaved_io.sh [bfq | cfq | ...] [num_readers]\n\
+./interleaved_io.sh [cur-sched | bfq | cfq | ...] [num_readers]\n\
 [stat_dest_dir] [duration]\n\
 \n\
 For example:\n\

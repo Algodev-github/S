@@ -40,12 +40,13 @@ enable_X_access_and_test_cmd
 function show_usage {
 	echo "\
 Usage (as root):
-./video_play_vs_comms.sh [\"\" | bfq | cfq | ...] [num_readers] [num_writers]
-				 [seq | rand | raw_seq | raw_rand] [<num_iterations>]
-				 [real | fake] [<cache_toggle>: y|n] [<stat_dest_dir>]
-				 [<max_write-kB-per-sec>] [verbose]
+./video_play_vs_comms.sh [\"\" | cur_sched | bfq | cfq | ...]
+			 [num_readers] [num_writers]
+			 [seq | rand | raw_seq | raw_rand] [<num_iterations>]
+			 [real | fake] [<cache_toggle>: y|n] [<stat_dest_dir>]
+			 [<max_write-kB-per-sec>] [verbose]
 
-first parameter equal to \"\" -> do not change scheduler
+first parameter equal to \"\" or cur-sched -> do not change scheduler
 
 fake implies that \"-vo null\" and \"-ao null\" are passed to mplayer.
 

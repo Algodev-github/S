@@ -180,7 +180,7 @@ function get_scheduler
 
 function set_scheduler
 {
-	if [ "$sched" != "" ] ; then
+	if [[ "$sched" != "" && "$sched" != cur-sched ]] ; then
 		# Switch to the desired scheduler
 		echo Switching to $sched for /dev/$DEV
 		echo $sched > /sys/block/$DEV/queue/scheduler |& echo &> /dev/null

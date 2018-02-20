@@ -12,7 +12,7 @@ DEF_BENCHMARKS="throughput startup video-playing"
 # see the following string for usage, or invoke ./run_main_benchmarks.sh -h
 usage_msg="\
 Usage (as root):\n\
-./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>]
+./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>|cur-sched]
 	[fs|raw] [also-rand] [<number of repetitions (default: 2)>]
 	[<result dir (default: ../results/run_main_benchmarks/<date_time>)>]
 
@@ -31,7 +31,9 @@ executing any X application.
 If no set of I/O schedulers or an empty set of I/O schedulers, i.e.,
 \"\", is given, then all available schedulers are tested. Recall that,
 if a scheduler is built as a module, then the module must be loaded
-for the scheduler to be present in the list of available schedulers.
+for the scheduler to be present in the list of available
+schedulers. In contrast, if cur-sched is passed, then benchmarks will
+be run only with the current I/O scheduler.
 
 If fs mode is selected, or if no value, i.e., \"\", is given, then file
 reads and writes are generated as background workloads. Instead, if raw
@@ -115,7 +117,7 @@ function send_email
 		HNAME=`uname -n`
 		KVER=`uname -r`
 		TSTAMP=`date +%y%m%d_%H%M%S`
-		echo "$1 on $HNAME with scheduler $sched and kernel $KVER at $TSTAMP" | \
+		echo "$1 on $HNAME with scheduler $schedname and kernel $KVER at $TSTAMP" | \
 			mail -s "$1 on $HNAME" $MAIL_REPORTS_RECIPIENT
 	fi
 }
@@ -134,7 +136,7 @@ function repeat
 	do
 		echo
 		echo -n "Repetition $(($i + 1)) / $NUM_REPETITIONS "
-		echo -n "[$sched ($sched_id/$num_scheds), "
+		echo -n "[$schedname ($sched_id/$num_scheds), "
 		echo "$1 ($bench_id/$num_benchs)]"
 
 		# make sure that I/O generators/monitors are dead
@@ -164,7 +166,7 @@ function repeat
 
 	cur_dir_repetitions=`pwd`
 	cd ../utilities
-	./calc_overall_stats.sh $RES_DIR/$1 "${SCHEDULERS[@]}"
+	./calc_overall_stats.sh $RES_DIR/$1 "${SCHEDNAMES[@]}"
 	strid="$2"
 	if [[ "$3" != "" ]]; then
 		strid="$strid $3"
@@ -183,7 +185,7 @@ function throughput
 	    echo
 	    echo Testing workload \"$wl\" \($wl_id/${#thr_workloads[@]}\)
 	    repeat throughput "aggthr-with-greedy_rw.sh $1 $wl" \
-		$1-${thr_wl_infix[w]}-10sec-aggthr_stat.txt
+		$schedname-${thr_wl_infix[w]}-10sec-aggthr_stat.txt
 	    ((++wl_id))
 	done
 }
@@ -217,12 +219,12 @@ function do_startup
                         repeat ${actual_testcases[t]} \
 			    "comm_startup_lat.sh $1 $wl $NUM_ITER_STARTUP" \
                                 "${cmd_lines[t]}" "60 ${reftimes[t]}" \
-			    $1-${wl_infix[w]}-lat_thr_stat.txt
+			    $schedname-${wl_infix[w]}-lat_thr_stat.txt
 
                         # If less than 2 repetitions were completed for this
                         # testcase, abort all heavier testcases
                         if [ $NUM_REPETITIONS -gt 1 ] && \
-			   [ ! -f $RES_DIR/${actual_testcases[t]}/repetition1/$1-${wl_infix[w]}-lat_thr_stat.txt ]; then
+			   [ ! -f $RES_DIR/${actual_testcases[t]}/repetition1/$schedname-${wl_infix[w]}-lat_thr_stat.txt ]; then
                                 break
                         fi
 			if [[ $wl == "0 0 seq" ]]; then
@@ -281,7 +283,7 @@ function video-playing
 	    echo
 	    echo Testing workload \"$wl\" \($wl_id/${#latency_workloads[@]}\)
             repeat video_playing "$VIDEOCMD $1 $wl $NUM_ITER_VIDEO $type n" \
-		$1-${wl_infix[w]}-video_playing_stat.txt
+		$schedname-${wl_infix[w]}-video_playing_stat.txt
 	    ((++wl_id))
         done
 }
@@ -373,6 +375,13 @@ if [[ "$SCHEDULERS" == "" ]]; then
 	sed 's/\[//' | sed 's/\]//')"
 fi
 
+if [[ "$SCHEDULERS" == "cur-sched" ]]; then
+    SCHEDNAMES=$(get_scheduler)
+else
+    SCHEDNAMES=$SCHEDULERS
+fi
+
+
 echo Benchmarks beginning on `date +%y%m%d\ %H:%M`
 
 if command -v tracker-control >/dev/null 2>&1; then
@@ -415,7 +424,7 @@ fi
 send_email "S main-benchmark run started"
 echo
 echo Benchmarks: $BENCHMARKS
-echo Schedulers: $SCHEDULERS
+echo Schedulers: $SCHEDNAMES
 
 num_scheds=0
 for sched in $SCHEDULERS; do
@@ -433,10 +442,17 @@ for sched in $SCHEDULERS; do
     bench_id=1
     for benchmark in $BENCHMARKS
     do
+	if [[ "$sched" == cur-sched ]]; then
+	    schedname=$(get_scheduler)
+	else
+	    schedname=$sched
+	fi
+
 	echo
-	echo -n "Testing $sched scheduler ($sched_id/$num_scheds) "
+	echo -n "Testing $schedname scheduler ($sched_id/$num_scheds) "
 	echo "for $benchmark ($bench_id/$num_benchs)"
 	send_email "$benchmark tests beginning"
+
 	$benchmark $sched
 	if [[ $? -ne 0 ]]; then
 	    FAILURE=yes
@@ -481,8 +497,9 @@ fi
 
 echo
 echo Computing overall stats
+
 cd ../utilities
-./calc_overall_stats.sh $RES_DIR "${SCHEDULERS[@]}"
+./calc_overall_stats.sh $RES_DIR "${SCHEDNAMES[@]}"
 
 if [[ test_X_access ]]; then
     ./plot_stats.sh $RES_DIR > /dev/null 2>&1

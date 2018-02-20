@@ -45,7 +45,7 @@ fi
 
 function show_usage {
 	echo "\
-Usage (as root): ./comm_startup_lat.sh [\"\" | <I/O scheduler name>]
+Usage (as root): ./comm_startup_lat.sh [\"\" | <I/O scheduler name> | cur-sched]
 			      [<num_readers>]
 			      [<num_writers>] [seq | rand | raw_seq | raw_rand]
 			      [<num_iterations>]
@@ -55,7 +55,7 @@ Usage (as root): ./comm_startup_lat.sh [\"\" | <I/O scheduler name>]
 			      [<max_startup-time>] [<idle-device-lat>]
 			      [<max_write-kB-per-sec>] [verbose]
 
-first parameter equal to \"\" -> do not change scheduler
+first parameter equal to \"\" or to cur-sched -> do not change scheduler
 
 raw_seq/raw_rand -> read directly from device (no writers allowed)
 

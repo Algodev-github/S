@@ -14,7 +14,7 @@ CALC_AVG_AND_CO=`cd ../utilities; pwd`/calc_avg_and_co.sh
 # see the following string for usage, or invoke fairness -h
 usage_msg="\
 Usage (as root):\n\
-./fairness.sh [bfq | cfq | ...] [num_files] [iterations] [file_size_MB] \n\
+./fairness.sh [cur-sched | bfq | cfq | ...] [num_files] [iterations] [file_size_MB] \n\
 	      [seq | rand] [weights]\n\
 \n\
 For example:\n\
