@@ -2,6 +2,42 @@
 # in your home directory. The latter gets created on the very first execution
 # of some benchmark script (even if only the option -h is passed to the script).
 
+# first, a little code for automatic stuff, configuration parameters
+# then follow
+
+function find_dev_for_root_dir
+{
+    # The device on which you are about to run the tests, by default
+    # tries to peek the device used for / If it does not work or is
+    # not want you want, replace next lines with just an
+    # assignment. For example:
+    # DEV=sda
+    DEV=$(mount | grep "on / " | cut -f 1 -d " ")
+    DEV=$(readlink -f $DEV) # moves to /dev/dm-X in case of device mapper
+    DEV=$(basename $DEV)
+
+    # get physical partition if $DEV is a device mapper
+    if [ "$(echo $DEV | egrep dm-)" != "" ] ; then
+	DEV=$(ls /sys/block/$DEV/slaves | cut -f 1 -d " ")
+    fi
+
+    # get three-character prefix of device name, to detect device type
+    DEV_PREFIX=$(echo $DEV | sed 's/\(...\).*/\1/g')
+
+    # detect device type and strip partition number accordingly
+    if [ "$(echo "$DEV_PREFIX" | egrep "sd[a-z]")" != "" ]; then # scsi device
+	DEV=$DEV_PREFIX
+    else
+	if [ "$(echo "$DEV_PREFIX" | egrep "nvm")" != "" ]; then # nvme device
+	    DEV=$(echo $DEV | sed 's/\(nvme[0-9]*n[0-9]*\).*/\1/g')
+	else
+	    echo Block device for root directory unrecongnized. Try setting
+	    echo your target device manually in ~/.S-config.sh
+	    exit
+	fi
+    fi
+}
+
 if [[ "$1" != "-h" && "$(id -u)" -ne "0" ]]; then
     echo "You are currently executing me as $(whoami),"
     echo "but I need root privileges (e.g., to switch"
@@ -10,37 +46,33 @@ if [[ "$1" != "-h" && "$(id -u)" -ne "0" ]]; then
     exit 1
 fi
 
-# If equal to 1, tracing is enabled during each test
-TRACE=0
+if [[ "$SCSI_DEBUG" == yes ]]; then
+    if [[ "$(lsmod | egrep scsi_debug)" == "" ]]; then
+	sudo modprobe scsi_debug ndelay=80000000 dev_size_mb=1000 max_queue=4
+    fi
 
-# The device on which you are about to run the tests, by default tries to peek
-# the device used for /
-# If it does not work or is not want you want, replace next lines with just an
-# assignment. For example:
-# DEV=sda
-DEV=$(mount | grep "on / " | cut -f 1 -d " ")
-DEV=$(readlink -f $DEV) # moves to /dev/dm-X in case of device mapper
-DEV=$(basename $DEV)
+    DEV=$(lsscsi | egrep scsi_debug | sed 's<\(.*\)/dev/</dev/<')
+    DEV=$(echo $DEV | awk '{print $1}')
 
-# get physical partition if $DEV is a device mapper
-if [ "$(echo $DEV | egrep dm-)" != "" ] ; then
-	DEV=$(ls /sys/block/$DEV/slaves | cut -f 1 -d " ")
-fi
+    if [[ ! -b ${DEV}1 ]]; then
+	echo 'start=2048, type=83' | sfdisk $DEV
+    fi
 
-# get three-character prefix of device name, to detect device type
-DEV_PREFIX=$(echo $DEV | sed 's/\(...\).*/\1/g')
-
-# detect device type and strip partition number accordingly
-if [ "$(echo "$DEV_PREFIX" | egrep "sd[a-z]")" != "" ]; then # scsi device
-	DEV=$DEV_PREFIX
-else
-	if [ "$(echo "$DEV_PREFIX" | egrep "nvm")" != "" ]; then # nvme device
-		DEV=$(echo $DEV | sed 's/\(nvme[0-9]*n[0-9]*\).*/\1/g')
-	else
-		echo Block device for root directory unrecongnized. Try setting
-		echo your target device manually in ~/.S-config.sh
-		exit
+    if [[ "$(mount | egrep /mnt/scsi_debug)" == "" ]]; then
+	fsck.ext4 /dev/sdb1
+	if [[ $? -ne 0 ]]; then
+	    mkfs.ext4 ${DEV}1
 	fi
+
+	mkdir -p /mnt/scsi_debug
+	mount ${DEV}1 /mnt/scsi_debug
+    fi
+
+    DEV=$(basename $DEV)
+    BASE_DIR=/mnt/scsi_debug/S
+else
+    find_dev_for_root_dir
+    BASE_DIR=/var/lib/S
 fi
 
 # test target device
@@ -52,6 +84,9 @@ if [ $? -ne 0 ]; then
 	exit
 fi
 
+# If equal to 1, tracing is enabled during each test
+TRACE=0
+
 # Size of the files to create for reading/writing, in MB.
 # For random I/O with rotational devices, consider that the
 # size of the files may heavily influence throughput and, in
@@ -62,8 +97,7 @@ FILE_SIZE_MB=500
 # make sure it is not larger than $FILE_SIZE_MB
 NUM_BLOCKS=2000
 
-# where files are read from or written to
-BASE_DIR=/var/lib/S
+# BASE_DIR is where files are read from or written to
 if [[ "$1" != "-h" && ! -d $BASE_DIR ]]; then
     mkdir $BASE_DIR
 fi
