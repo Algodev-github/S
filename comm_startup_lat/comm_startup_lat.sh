@@ -38,7 +38,7 @@ fi
 VERBOSITY=${11}
 
 if [[ "$VERBOSITY" == verbose ]]; then
-    REDIRECT=/dev/stdio
+    REDIRECT=/dev/stdout
 else
     REDIRECT=/dev/null
 fi

@@ -26,7 +26,7 @@ MAXRATE=${8-0} # If useful with other schedulers than bfq, 16500
 VERBOSITY=$9
 
 if [[ "$VERBOSITY" == verbose ]]; then
-    REDIRECT=/dev/stdio
+    REDIRECT=/dev/stdout
 else
     REDIRECT=/dev/null
 fi

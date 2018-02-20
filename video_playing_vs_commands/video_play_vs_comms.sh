@@ -29,7 +29,7 @@ MAXRATE=${9-4000} # maximum total sequential write rate for which the
 VERBOSITY=${10}
 
 if [[ "$VERBOSITY" == verbose ]]; then
-    REDIRECT=/dev/stdio
+    REDIRECT=/dev/stdout
 else
     REDIRECT=/dev/null
 fi
