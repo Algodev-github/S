@@ -39,13 +39,18 @@ mode is selected, then only (raw) reads are allowed.
 
 If also-rand is passed, then random background workloads are generated too.
 
-Examples
-# run all default benchmarks for all available schedulers, using fs, without
-# random-I/O workoads in the background
+Examples.
+# Run all default benchmarks for all available schedulers, using fs, without
+# random-I/O workoads in the background. This invocation is the one requiring
+# most dependincies, plus the execution of X applications. Check next example
+# for lighter requirements.
 sudo ./run_main_benchmarks.sh
 
-# run selected benchmarks for all available schedulers, using fs, no random I/O
-# (remove video-playing too, if mplayer is not available or working)
+# Run replayed-startup and video-playing benchmarks for all available
+# schedulers, using fs, no random I/O. replayed-startup does not invoke
+# any X application, while video-playing invokes mplayer. So, remove
+# video-playing too, if mplayer is not available/affordable or not
+# working.
 sudo ./run_main_benchmarks.sh \"throughput replayed-startup video-playing\"
 
 # run selected benchmarks for bfq and none, using fs, no random I/O
