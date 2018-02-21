@@ -24,7 +24,7 @@ STAT_DEST_DIR=${7-.}
 MAX_STARTUP=${8-120}
 IDLE_DISK_LAT=${9-0}
 
-if [[ "${10}" == "" ]]; then # compute MAXRATE automatically
+if [[ "${10}" == "" && "$1" != "-h" ]]; then # compute MAXRATE automatically
 	if [[ "$(cat /sys/block/$DEV/queue/rotational)" == "1" ]]; then
 	        MAXRATE=4000
 	        echo Automatically limiting write rate to ${MAXRATE}KB/s
