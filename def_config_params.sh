@@ -16,7 +16,12 @@ fi
 function find_dev_for_dir
 {
     PART=$(df -P $1 | awk 'END{print $1}')
+    OLDPART=$PART
     PART=$(readlink -f $PART) # moves to /dev/dm-X in case of device mapper
+    if [[ "$PART" == "" ]]; then
+	echo Could not follow link for $OLDPART, probably a remote file system
+	exit
+    fi
     PART=$(basename $PART)
 
     # get physical partition if $PART is a device mapper
