@@ -11,6 +11,16 @@ fi
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 CURDIR=$(pwd)
+
+# put into BACKING_DEV the backing device for $CURDIR
+find_dev_for_dir $CURDIR
+
+if [[ "$BACKING_DEV" != "$DEV" ]]; then
+    echo Video file is on a different device \($BACKING_DEV\)
+    echo from that of test files \($DEV\)
+    exit
+fi
+
 UTIL_DIR=`cd ../utilities; pwd`
 
 sched=${1-bfq}
