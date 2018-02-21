@@ -314,6 +314,16 @@ if [ $FIRSTWORD == replay-startup-io ]; then
 	fi
     fi
 else
+    PATH_TO_CMD=$(dirname $(which $SHORTNAME))
+
+    # put into BACKING_DEV the backing device for $PATH_TO_CMD
+    find_dev_for_dir $PATH_TO_CMD
+
+    if [[ "$BACKING_DEV" != "$DEV" ]]; then
+	echo Command exec is on a different device \($BACKING_DEV\)
+	echo from that of test files \($DEV\)
+	exit
+    fi
     enable_X_access_and_test_cmd "$COMMAND"
 fi
 
