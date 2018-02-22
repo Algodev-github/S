@@ -87,7 +87,7 @@ testcases=(xterm_startup gnome_terminal_startup lowriter_startup)
 # replayed-startup test cases
 replayed_testcases=(replayed_xterm_startup replayed_gnome_terminal_startup replayed_lowriter_startup)
 # reference start-up times for test cases, will be set during execution
-reftimes=(0 0 0)
+reftimes=("" "" "")
 # command for each test case
 commands=("xterm /bin/true" "gnome-terminal -e /bin/true" "lowriter --terminate_after_init")
 # replay command for each replayed-startup test case
