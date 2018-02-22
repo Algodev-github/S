@@ -263,7 +263,7 @@ function compile_replayer
 	echo g++ not found: I need it to compile replay-startup-io
 	exit
     fi
-    g++ -pthread -Wall replay-startup-io.cc -o replay-startup-io -laio
+    g++ -std=c++11 -pthread -Wall replay-startup-io.cc -o replay-startup-io -laio
     if [ $? -ne 0 ]; then
 	echo Failed to compile replay-startup-io
 	echo Maybe libaio-dev/libaio-devel is not installed?
