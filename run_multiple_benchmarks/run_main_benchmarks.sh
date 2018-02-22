@@ -180,11 +180,13 @@ function throughput
 {
 	cd ../agg_thr-with-greedy_rw
 
+	echo
+	echo Workloads: ${thr_wl_infix[@]}
 	wl_id=1
         for ((w=0 ; w<${#thr_workloads[@]};w++)); do
 	    wl=${thr_workloads[w]}
 	    echo
-	    echo Testing workload \"$wl\" \($wl_id/${#thr_workloads[@]}\)
+	    echo Testing workload ${thr_wl_infix[w]} \($wl_id/${#thr_workloads[@]}\)
 	    repeat throughput "aggthr-with-greedy_rw.sh $1 $wl" \
 		$schedname-${thr_wl_infix[w]}-10sec-aggthr_stat.txt
 	    ((++wl_id))
@@ -195,6 +197,8 @@ function kernel-devel
 {
 	cd ../kern_dev_tasks-vs-rw
 
+	echo
+	echo Workloads: ${kern_workloads[@]}
 	wl_id=1
         for ((w=0 ; w<${#kern_workloads[@]};w++)); do
 	    wl=${kern_workloads[w]}
@@ -211,11 +215,13 @@ function do_startup
 {
 	cd ../comm_startup_lat
 
+	echo
+	echo Workloads: ${wl_infix[@]}
 	wl_id=1
         for ((w=0 ; w<${#latency_workloads[@]};w++)); do
 	    wl=${latency_workloads[w]}
 	    echo
-	    echo Testing workload \"$wl\" \($wl_id/${#latency_workloads[@]}\)
+	    echo Testing workload ${wl_infix[w]} \($wl_id/${#latency_workloads[@]}\)
             for ((t=0 ; t<${#actual_testcases[@]} ; ++t)); do
                         repeat ${actual_testcases[t]} \
 			    "comm_startup_lat.sh $1 $wl $NUM_ITER_STARTUP" \
@@ -278,11 +284,13 @@ function video-playing
 	type=real
 	VIDEOCMD=video_play_vs_comms.sh
 
+	echo
+	echo Workloads: ${wl_infix[@]}
 	wl_id=1
         for ((w=0 ; w<${#latency_workloads[@]};w++)); do
 	    wl=${latency_workloads[w]}
 	    echo
-	    echo Testing workload \"$wl\" \($wl_id/${#latency_workloads[@]}\)
+	    echo Testing workload ${wl_infix[w]} \($wl_id/${#latency_workloads[@]}\)
             repeat video_playing "$VIDEOCMD $1 $wl $NUM_ITER_VIDEO $type n" \
 		$schedname-${wl_infix[w]}-video_playing_stat.txt
 	    ((++wl_id))
