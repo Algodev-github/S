@@ -3,7 +3,7 @@
 #                    Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
 
-../utilities/check_dependencies.sh awk dd fio iostat time mplayer
+../utilities/check_dependencies.sh awk dd fio iostat /usr/bin/time mplayer
 if [[ $? -ne 0 ]]; then
 	exit
 fi

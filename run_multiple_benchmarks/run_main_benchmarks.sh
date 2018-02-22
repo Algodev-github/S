@@ -381,7 +381,7 @@ if [[  "$MODE" == raw && "$RAND_WL" != yes ]]; then
 fi
 
 if [[ "$BENCHMARKS" == "" ]]; then
-    ../utilities/check_dependencies.sh dd fio iostat time mplayer \
+    ../utilities/check_dependencies.sh dd fio iostat /usr/bin/time mplayer \
 	git xterm gnome-terminal lowriter
     if [[ $? -ne 0 ]]; then
 	exit

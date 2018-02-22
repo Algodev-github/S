@@ -2,7 +2,7 @@
 # Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
 
-../utilities/check_dependencies.sh awk dd fio time iostat
+../utilities/check_dependencies.sh awk dd fio /usr/bin/time iostat
 if [[ $? -ne 0 ]]; then
 	exit
 fi
