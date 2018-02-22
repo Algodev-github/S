@@ -22,7 +22,7 @@ NUM_ITER=${5-5}
 COMMAND=${6-"gnome-terminal -e /bin/true"}
 STAT_DEST_DIR=${7-.}
 MAX_STARTUP=${8-120}
-IDLE_DISK_LAT=${9-0}
+IDLE_DISK_LAT=$9
 
 if [[ "${10}" == "" && "$1" != "-h" ]]; then # compute MAXRATE automatically
 	if [[ "$(cat /sys/block/$DEV/queue/rotational)" == "1" ]]; then
@@ -78,7 +78,7 @@ max_startup-time  ->  maximum duration allowed for each command
                       is set to 0, then no control is performed.
 
 idle_device_lat -> reference command start-up time to print in each iteration,
-                   nothing is printed if this parameter is equal to \"\"
+		   nothing printed if this option is not given or is set to \"\"
 
 max_write-kB-per-sec -> maximum total sequential write rate [kB/s],
 			used to reduce the risk that the system
@@ -133,7 +133,7 @@ function clean_and_exit {
 }
 
 function invoke_commands {
-	if [[ $IDLE_DISK_LAT != 0 ]]; then
+	if [[ "$IDLE_DISK_LAT" != "" ]]; then
 	    REF_TIME=$IDLE_DISK_LAT
 
 	    # do not tolerate an unbearable inflation of the start-up time
@@ -219,7 +219,7 @@ function invoke_commands {
 			printf \#
 		done
 		echo " $TIME sec"
-		if [[ $IDLE_DISK_LAT != 0 ]]; then
+		if [[ "$IDLE_DISK_LAT" != "" ]]; then
 		    echo Idle-device start-up time: \#\# $IDLE_DISK_LAT sec
 		fi
 		if [[ -f Stop-iterations || "$TIME" == "" || \
