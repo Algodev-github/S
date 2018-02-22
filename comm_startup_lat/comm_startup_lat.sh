@@ -210,7 +210,7 @@ function invoke_commands {
 		fi
 		echo done
 		echo "$TIME" >> lat-${sched}
-		printf "          Start-up time: "
+		printf "            Start-up time: "
 
 		NUM=`echo "( $TIME / $REF_TIME ) * 2" | bc -l`
 		NUM=`printf "%0.f" $NUM`
