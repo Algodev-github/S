@@ -39,7 +39,8 @@ If fs mode is selected, or if no value, i.e., \"\", is given, then file
 reads and writes are generated as background workloads. Instead, if raw
 mode is selected, then only (raw) reads are allowed.
 
-If also-rand is passed, then random background workloads are generated too.
+If also-rand is passed, then random background workloads are generated
+for startup, replayed-startup and video-playing tests too.
 
 Examples.
 # Run all default benchmarks for all available schedulers, using fs, without
@@ -345,8 +346,8 @@ if [[ "$MODE" == fs && "$RAND_WL" != yes ]]; then
     latency_workloads=("0 0 seq" "10 0 seq" "5 5 seq")
     wl_infix=("0r0w-seq" "10r0w-seq" "5r5w-seq")
 
-    thr_workloads=("1 0 seq" "10 0 seq" "5 5 seq")
-    thr_wl_infix=("1r0w-seq" "10r0w-seq" "5r5w-seq")
+    thr_workloads=("1 0 seq" "10 0 seq" "10 0 rand" "5 5 seq" "5 5 rand")
+    thr_wl_infix=("1r0w-seq" "10r0w-seq" "10r0w-rand" "5r5w-seq" "5r5w-rand")
 
     kern_workloads=("0 0 seq" "10 0 seq")
 fi
@@ -354,8 +355,8 @@ if [[  "$MODE" == raw && "$RAND_WL" != yes ]]; then
     latency_workloads=("0 0 raw_seq" "10 0 raw_seq")
     wl_infix=("0r0w-raw_seq" "10r0w-raw_seq")
 
-    thr_workloads=("1 0 raw_seq" "10 0 raw_seq")
-    thr_wl_infix=("1r0w-raw_seq" "10r0w-raw_seq")
+    thr_workloads=("1 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
+    thr_wl_infix=("1r0w-raw_seq" "10r0w-raw_seq" "10r0w-raw_rand")
 
     kern_workloads=("0 0 raw_seq" "10 0 raw_seq")
 fi
