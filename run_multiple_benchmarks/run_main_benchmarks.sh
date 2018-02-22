@@ -136,9 +136,13 @@ function repeat
 	for ((i = 0 ; $i < $NUM_REPETITIONS ; i++))
 	do
 		echo
-		echo -n "Repetition $(($i + 1)) / $NUM_REPETITIONS "
 		echo -n "[$schedname ($sched_id/$num_scheds), "
-		echo "$1 ($bench_id/$num_benchs)]"
+		echo -n "$1 "
+		if [[ "$(echo $1 | sed 's/_/-/g')" != $benchmark ]]; then
+		    echo -n "for $benchmark "
+		fi
+		echo "($bench_id/$num_benchs), $wl_string]"
+		echo -e " -> Repetition $(($i + 1)) / $NUM_REPETITIONS"
 
 		# make sure that I/O generators/monitors are dead
 		# (sometimes shutdown does not work properly)
@@ -185,8 +189,10 @@ function throughput
 	wl_id=1
         for ((w=0 ; w<${#thr_workloads[@]};w++)); do
 	    wl=${thr_workloads[w]}
+	    wl_name=${thr_wl_infix[w]}
+	    wl_string="$wl_name ($wl_id/${#thr_workloads[@]})"
 	    echo
-	    echo Testing workload ${thr_wl_infix[w]} \($wl_id/${#thr_workloads[@]}\)
+	    echo Testing workload $wl_string
 	    repeat throughput "aggthr-with-greedy_rw.sh $1 $wl" \
 		$schedname-${thr_wl_infix[w]}-10sec-aggthr_stat.txt
 	    ((++wl_id))
@@ -202,8 +208,9 @@ function kernel-devel
 	wl_id=1
         for ((w=0 ; w<${#kern_workloads[@]};w++)); do
 	    wl=${kern_workloads[w]}
+	    wl_string="\"$wl\" ($wl_id/${#kern_workloads[@]})"
 	    echo
-	    echo Testing workload \"$wl\" \($wl_id/${#kern_workloads[@]}\)
+	    echo Testing $wl_string
 	    repeat make "kern_dev_tasks_vs_rw.sh $1 $wl make"
 	    ((++wl_id))
 	done
@@ -220,8 +227,10 @@ function do_startup
 	wl_id=1
         for ((w=0 ; w<${#latency_workloads[@]};w++)); do
 	    wl=${latency_workloads[w]}
+	    wl_name=${wl_infix[w]}
+	    wl_string="$wl_name ($wl_id/${#latency_workloads[@]})"
 	    echo
-	    echo Testing workload ${wl_infix[w]} \($wl_id/${#latency_workloads[@]}\)
+	    echo Testing workload $wl_string
             for ((t=0 ; t<${#actual_testcases[@]} ; ++t)); do
                         repeat ${actual_testcases[t]} \
 			    "comm_startup_lat.sh $1 $wl $NUM_ITER_STARTUP" \
@@ -289,8 +298,10 @@ function video-playing
 	wl_id=1
         for ((w=0 ; w<${#latency_workloads[@]};w++)); do
 	    wl=${latency_workloads[w]}
+	    wl_name=${wl_infix[w]}
+	    wl_string="$wl_name ($wl_id/${#latency_workloads[@]})"
 	    echo
-	    echo Testing workload ${wl_infix[w]} \($wl_id/${#latency_workloads[@]}\)
+	    echo Testing workload $wl_string
             repeat video_playing "$VIDEOCMD $1 $wl $NUM_ITER_VIDEO $type n" \
 		$schedname-${wl_infix[w]}-video_playing_stat.txt
 	    ((++wl_id))
