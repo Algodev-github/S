@@ -107,7 +107,8 @@ function write_header
 
     echo "# $table_title" > $1
     echo "# X-Axis: Workload" >> $1
-    echo "# Y-Axis: $2" >> $1
+    echo "# Y-Axis: $2$5" >> $1
+    echo "#         $6" >> $1
     echo "# Reference case: $3" >> $1
     echo "# Reference-case meaning: $4" >> $1
     echo "#" >> $1
@@ -189,13 +190,19 @@ function per_subdirectory_loop
 
     if [[ $res_type == throughput ]]; then
 	write_header $thr_table_file "Aggregate throughput [MB/sec]" \
-            $thr_reference_case "$reference_value_label"
+		     $thr_reference_case "$reference_value_label" \
+		     ", or X if results are" \
+		     "unreliable because workloads did not stop when asked to"
     else
 	write_header $thr_table_file "Aggregate throughput [MB/sec]" \
-            none ""
+		     none ""\
+		     ", or X if application did not" \
+		     "start up in 120 seconds (and a timeout fired)"
 
 	write_header $target_quantity_table_file "$target_quantity_type" \
-            $target_reference_case "$reference_value_label"
+		     $target_reference_case "$reference_value_label" \
+		     ", or X if application did not" \
+		     "start up in 120 seconds (and a timeout fired)"
     fi
 
     # remove, create and enter work dir

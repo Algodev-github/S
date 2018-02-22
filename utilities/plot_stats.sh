@@ -276,7 +276,10 @@ function parse_table
     x_label=$(echo ${lines[$line_idx]} | sed 's/# X-Axis: //')
     ((line_idx++))
 
-    y_label=$(echo ${lines[$line_idx]} | sed 's/# Y-Axis: //')
+    y_label=$(echo ${lines[$line_idx]} | sed 's/# Y-Axis: //' \
+		  | sed 's/\(.*\), or -1.*/\1/')
+    y_label="$y_label, or X in case of failure"
+    ((line_idx++))
     ((line_idx++))
 
     if [[ $ref_mode == ref ]]; then
