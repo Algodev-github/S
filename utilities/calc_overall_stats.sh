@@ -106,9 +106,9 @@ function write_header
     table_title=$(echo $table_title | sed 's/-/ /g')
 
     echo "# $table_title" > $1
-    echo "# X-Axis: Workload" >> $1
-    echo "# Y-Axis: $2$5" >> $1
-    echo "#         $6" >> $1
+    echo "# First column: Workload" >> $1
+    echo "# Next columns: $2$5" >> $1
+    echo "#               $6" >> $1
     echo "# Reference case: $3" >> $1
     echo "# Reference-case meaning: $4" >> $1
     echo "#" >> $1
@@ -150,7 +150,7 @@ function per_subdirectory_loop
 		num_quants=3
 		record_lines=$((1 + $num_quants * 3))
 		thr_table_file=`pwd`/`basename $single_test_res_dir`-table.txt
-		reference_value_label="Device peak rate"
+		reference_value_label="Peak rate with one sequential reader"
 		;;
 	startup_lat)
 		num_quants=4
@@ -177,7 +177,7 @@ function per_subdirectory_loop
 		target_quantity_table_file=\
 `pwd`/`basename $single_test_res_dir`-drop_rate-table.txt
 		target_quantity_type="Drop rate"
-		reference_value_label="Drop rate with no greedy background workload"
+		reference_value_label="Drop rate with no heavy background workload"
 		;;
 	*)
 		echo Undefined or wrong result type $res_type

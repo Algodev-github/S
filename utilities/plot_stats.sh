@@ -273,10 +273,10 @@ function parse_table
 
     line_idx=1 # second line
 
-    x_label=$(echo ${lines[$line_idx]} | sed 's/# X-Axis: //')
+    x_label=$(echo ${lines[$line_idx]} | sed 's/# First column: //')
     ((line_idx++))
 
-    y_label=$(echo ${lines[$line_idx]} | sed 's/# Y-Axis: //' \
+    y_label=$(echo ${lines[$line_idx]} | sed 's/# Next columns: //' \
 		  | sed 's/\(.*\), or -1.*/\1/')
     y_label="$y_label, or X in case of failure"
     ((line_idx++))
