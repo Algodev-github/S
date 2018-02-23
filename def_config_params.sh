@@ -79,6 +79,7 @@ function get_max_affordable_file_size
     MAXTOTSIZE=$((($FREESPACE + $BASE_DIR_SIZE) / 2))
     MAXTOTSIZE_MiB=$(($MAXTOTSIZE / 1024))
     MAXSIZE_MiB=$((MAXTOTSIZE_MiB / 15))
+    MAXSIZE_MiB=$(( $MAXSIZE_MiB<500 ? $MAXSIZE_MiB : 500 ))
 
     if [[ -f ${BASE_FILE_PATH}0 ]]; then
 	file_size=$(du --apparent-size -B 1024 ${BASE_FILE_PATH}0 |\
