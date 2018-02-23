@@ -106,6 +106,17 @@ else
 	BASE_DIR=/tmp/test
 	mkdir -p $BASE_DIR
     fi
+
+    PART=$(df -P $BASE_DIR | awk 'END{print $1}')
+    FREESPACE=$(df | egrep $PART | awk '{print $4}')
+
+    BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
+
+    if [[ $(( ($FREESPACE + $BASE_DIR_SIZE) / 1024 )) -lt 500 ]]; then
+	echo Not enogh free space for test files: I need at least 500MB
+	exit
+    fi
+
     if [[ "$FIRST_PARAM" != "-h" && -d $BASE_DIR ]]; then
 	find_dev_for_dir $BASE_DIR
     fi
