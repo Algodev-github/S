@@ -11,6 +11,8 @@ if [[ "$1" != "-h" && "$(id -u)" -ne "0" ]]; then
     echo "between schedulers)."
     echo "Please run me as root."
     exit 1
+else
+    FIRST_PARAM=$1
 fi
 
 function find_dev_for_dir
@@ -63,20 +65,32 @@ function use_scsi_debug_dev
     fi
 }
 
+function get_max_affordable_file_size
+{
+    if [[ "$FIRST_PARAM" == "-h" || ! -d $BASE_DIR ]]; then
+	echo
+	exit
+    fi
+
+    PART=$(df -P $BASE_DIR | awk 'END{print $1}')
+
+    BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
+    FREESPACE=$(df | egrep $PART | awk '{print $4}')
+    MAXTOTSIZE=$((($FREESPACE + $BASE_DIR_SIZE) / 2))
+    MAXTOTSIZE_MiB=$(($MAXTOTSIZE / 1024))
+    MAXSIZE_MiB=$((MAXTOTSIZE_MiB / 15))
+
+    if [[ -f ${BASE_FILE_PATH}0 ]]; then
+	file_size=$(du --apparent-size -B 1024 ${BASE_FILE_PATH}0 |\
+			col -x | cut -f 1 -d " ")
+	file_size_MiB=$(($file_size / 1024))
+    else
+	file_size_MiB=$MAXSIZE_MiB
+    fi
+    echo $(( $MAXSIZE_MiB>$file_size_MiB ? $file_size_MiB : $MAXSIZE_MiB ))
+}
+
 # BEGINNING OF CONFIGURATION PARAMETERS
-
-# If equal to 1, tracing is enabled during each test
-TRACE=0
-
-# Size of the files to create for reading/writing, in MB.
-# For random I/O with rotational devices, consider that the
-# size of the files may heavily influence throughput and, in
-# general, service properties
-FILE_SIZE_MB=500
-
-# portion, in 1M blocks, to read for each file, used only in fairness.sh;
-# make sure it is not larger than $FILE_SIZE_MB
-NUM_BLOCKS=2000
 
 # BASE_DIR is where test files are read from or written to
 if [[ "$SCSI_DEBUG" == yes ]]; then
@@ -84,15 +98,15 @@ if [[ "$SCSI_DEBUG" == yes ]]; then
 else
     BASE_DIR=/var/lib/S # or the directory you prefer
 
-    if [[ "$1" != "-h" && ! -d $BASE_DIR ]]; then
+    if [[ "$FIRST_PARAM" != "-h" && ! -d $BASE_DIR ]]; then
 	mkdir $BASE_DIR
     fi
-    if [[ "$1" != "-h" && ! -w $BASE_DIR ]]; then
+    if [[ "$FIRST_PARAM" != "-h" && ! -w $BASE_DIR ]]; then
 	echo "$BASE_DIR is not writeable, reverting to /tmp/test"
 	BASE_DIR=/tmp/test
 	mkdir -p $BASE_DIR
     fi
-    if [[ "$1" != "-h" && -d $BASE_DIR ]]; then
+    if [[ "$FIRST_PARAM" != "-h" && -d $BASE_DIR ]]; then
 	find_dev_for_dir $BASE_DIR
     fi
 fi
@@ -108,6 +122,22 @@ DEV=$BACKING_DEV
 
 # file names
 BASE_FILE_PATH=$BASE_DIR/largefile
+
+# Size of (each of) the files to create for reading/writing, in
+# MiB. Set to the maximum value that guarantees at most 50% of the
+# free space, or left to the value used in last file creation, if
+# lower than the above threshold.  For random I/O with rotational
+# devices, consider that the size of the files may heavily influence
+# throughput and, in general, service properties. Change at your will,
+# if you prefer a different value.
+FILE_SIZE_MB=$(get_max_affordable_file_size)
+
+# portion, in 1M blocks, to read for each file, used only in fairness.sh;
+# make sure it is not larger than $FILE_SIZE_MB
+NUM_BLOCKS=2000
+
+# If equal to 1, tracing is enabled during each test
+TRACE=0
 
 # The kernel-development benchmarks expect a repository in the
 # following directory. In particular, they play with v4.0, v4.1 and
@@ -128,7 +158,7 @@ NCQ_QUEUE_DEPTH=
 MAIL_REPORTS=0
 MAIL_REPORTS_RECIPIENT=
 
-if [[ "$1" != "-h" ]]; then
+if [[ "$FIRST_PARAM" != "-h" ]]; then
     # test target device
     cat /sys/block/$DEV/queue/scheduler >/dev/null 2>&1
     if [ $? -ne 0 ]; then
