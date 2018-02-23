@@ -139,7 +139,7 @@ function repeat
 		echo -n "[$schedname ($sched_id/$num_scheds), "
 		echo -n "$1 "
 		if [[ "$(echo $1 | sed 's/_/-/g')" != $benchmark ]]; then
-		    echo -n "for $benchmark "
+		    echo -n "of $benchmark "
 		fi
 		echo "($bench_id/$num_benchs), $wl_string]"
 		echo -e " -> Repetition $(($i + 1)) / $NUM_REPETITIONS"
