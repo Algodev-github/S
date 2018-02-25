@@ -377,7 +377,9 @@ if [[ "$XHOST_CONTROL" != "" ]]; then
 	xhost - > /dev/null 2>&1
 fi
 
-compute_statistics
+if [[ $NUM_ITER -ge 2 ]]; then
+    compute_statistics
+fi
 
 cd ..
 
