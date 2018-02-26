@@ -2,7 +2,7 @@
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 
-../utilities/check_dependencies.sh bash awk gnuplot
+../utilities/check_dependencies.sh bash awk gnuplot bc
 if [[ $? -ne 0 ]]; then
 	exit
 fi
