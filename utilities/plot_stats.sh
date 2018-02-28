@@ -22,7 +22,7 @@ plot_stats.sh <table_file>|<table_dir> [<ref_mode>] [<term_mode>]
 
 "
 
-../utilities/check_dependencies.sh bash awk gnuplot
+../utilities/check_dependencies.sh bash awk gnuplot bc
 . ../utilities/lib_utils.sh
 
 if [ $term_mode == "eps" ] ; then
