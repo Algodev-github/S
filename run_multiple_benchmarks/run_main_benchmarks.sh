@@ -152,7 +152,7 @@ function repeat
 		else
 			bash $2 $RES_DIR/$1/repetition$i
 		fi
-		if [[ "$out_filename" != "" && \
+		if [[ $NUM_REPETITIONS -gt 1 && "$out_filename" != "" && \
 			! -f $RES_DIR/$1/repetition$i/$out_filename ]] ; then
 		    echo Stats file $RES_DIR/$1/repetition$i/$out_filename not found
 		    echo No stats produced: aborting repetitions for $1 $2 \"$3\"
@@ -169,15 +169,17 @@ function repeat
 	    return
 	fi
 
-	cur_dir_repetitions=`pwd`
-	cd ../utilities
-	./calc_overall_stats.sh $RES_DIR/$1 "${SCHEDNAMES[@]}"
-	strid="$2"
-	if [[ "$3" != "" ]]; then
+	if [[ $NUM_REPETITIONS -gt 1 ]]; then
+	    cur_dir_repetitions=`pwd`
+	    cd ../utilities
+	    ./calc_overall_stats.sh $RES_DIR/$1 "${SCHEDNAMES[@]}"
+	    strid="$2"
+	    if [[ "$3" != "" ]]; then
 		strid="$strid $3"
+	    fi
+	    send_partial_stats "$strid" $RES_DIR/$1/overall_stats-$1.txt
+	    cd $cur_dir_repetitions
 	fi
-	send_partial_stats "$strid" $RES_DIR/$1/overall_stats-$1.txt
-	cd $cur_dir_repetitions
 }
 
 function throughput
@@ -243,7 +245,7 @@ function do_startup
 			   [ ! -f $RES_DIR/${actual_testcases[t]}/repetition1/$schedname-${wl_infix[w]}-lat_thr_stat.txt ]; then
                                 break
                         fi
-			if [[ $wl == "0 0 seq" ]]; then
+			if [[ $wl == "0 0 seq" && $NUM_REPETITIONS -gt 1 ]]; then
 			    stat_file=$RES_DIR/${actual_testcases[t]}/overall_stats-${actual_testcases[t]}.txt
 			    reftimes[t]=$(head -n 5 $stat_file | tail -n 1 | \
 				awk '{print $2;}')
@@ -515,13 +517,15 @@ if [[ "$FAILURE" == yes ]]; then
     exit 1
 fi
 
-echo
-echo Computing overall stats
+if [[ $NUM_REPETITIONS -gt 1 ]]; then
+    echo
+    echo Computing overall stats
 
-cd ../utilities
-./calc_overall_stats.sh $RES_DIR "${SCHEDNAMES[@]}"
+    cd ../utilities
+    ./calc_overall_stats.sh $RES_DIR "${SCHEDNAMES[@]}"
 
-if [[ test_X_access ]]; then
-    ./plot_stats.sh $RES_DIR > /dev/null 2>&1
+    if [[ test_X_access ]]; then
+	./plot_stats.sh $RES_DIR > /dev/null 2>&1
+    fi
+    ./plot_stats.sh $RES_DIR ref gif 1.55 print_tables
 fi
-./plot_stats.sh $RES_DIR ref gif 1.55 print_tables
