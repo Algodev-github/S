@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (C) 2017 Paolo Valente <paolo.valente@linaro.org>
+# Copyright (C) 2018 Paolo Valente <paolo.valente@linaro.org>
 
 # set next parameter to a path to fio, if you want to use a different
 # version of fio than the installed one
@@ -105,6 +105,13 @@ function clean_and_exit {
 	for ((i = 0 ; $i < $num_groups ; i++)) ; do
 		rmdir /cgroup/InterfererGroup$i
 	done
+	rmdir /cgroup/interferer
+
+	if [[ $controller == io ]]; then
+	    echo "-io" > /cgroup/cgroup.subtree_control
+	    mount -t cgroup -o blkio cgroup $groupdirs
+	fi
+
 	umount /cgroup
 	rm -rf /cgroup
 
@@ -125,7 +132,7 @@ function start_fio_jobs {
 	direct=$9
 	filename=${10}
 
-	echo $BASHPID > /cgroup/$name/tasks
+	echo $BASHPID > /cgroup/$name/cgroup.procs
 
 	if [ $depth -gt 1 ]; then
 		ioengine=libaio
@@ -137,12 +144,14 @@ function start_fio_jobs {
 		dur=10000
 	fi
 
-	jobvar="
-[global]\n
-ioengine=$ioengine\n
+	jobvar="[global]\n "
+	if [ $rate -gt 0 ]; then
+	    jobvar=$jobvar"rate=${rate}k\n "
+	fi
+	jobvar=$jobvar\
+"ioengine=$ioengine\n
 time_based=1\n
 runtime=$dur\n
-#rate=$rate\n
 #rate_process=$process\n
 direct=$direct\n
 readwrite=$IOtype\n
@@ -155,7 +164,6 @@ ramp_time=5\n
 invalidate=1\n
 [$name]
 "
-	echo Comando: $FIO_PATH
 	echo -e $jobvar | $FIO_PATH --minimal - | \
 	awk 'BEGIN{FS=";"}{print $42, $43, $7, $46, $83, $84, $48, $87,\
 		$38, $39, $40, $41, $79, $80, $81, $82}' \
@@ -326,18 +334,54 @@ elif [ "${sched}" == "cfq" ] ; then
 	PREFIX=""
 fi
 
+if [[ "$type_bw_control" == p ]]; then
+    controller=blkio
+else
+    groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
+    if [[ "$groupdirs" != "" ]]; then
+	umount $groupdirs
+    fi
+    if [[ $? -ne 0 ]]; then
+	exit 1
+    fi
+    controller=io
+fi
+
 # create groups
 mkdir -p /cgroup
 umount /cgroup
-echo mount -t cgroup -o blkio none /cgroup
-mount -t cgroup -o blkio none /cgroup
+
+if [[ $controller == blkio ]]; then
+    echo mount -t cgroup -o blkio none /cgroup
+    mount -t cgroup -o blkio none /cgroup
+else
+    echo mount -t cgroup2 none /cgroup
+    mount -t cgroup2 none /cgroup
+    echo "+io" > /cgroup/cgroup.subtree_control
+fi
+
 for ((i = 0 ; $i < $num_groups ; i++)) ; do
-	mkdir -p /cgroup/InterfererGroup$i
+    mkdir -p /cgroup/InterfererGroup$i
+    if [[ "$type_bw_control" == p ]]; then
 	echo ${I_weight_thresholds[$i]} \
-		> /cgroup/InterfererGroup$i/blkio.${PREFIX}weight
+	     > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
+    else
+	echo "$(cat /sys/block/$DEV/dev) rbps=${I_weight_thresholds[$i]}" \
+	     > /cgroup/InterfererGroup$i/${controller}.low
+	echo /cgroup/InterfererGroup$i/${controller}.low:
+	cat /cgroup/InterfererGroup$i/${controller}.low
+    fi
 done
+
 mkdir -p /cgroup/interfered
-echo $i_weight_threshold > /cgroup/interfered/blkio.${PREFIX}weight
+if [[ "$type_bw_control" == p ]]; then
+    echo $i_weight_threshold > /cgroup/interfered/${controller}.${PREFIX}weight
+else
+    echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold" \
+	 > /cgroup/interfered/${controller}.low
+    echo /cgroup/interfered/${controller}.low:
+    cat /cgroup/interfered/${controller}.low
+fi
 
 # start interferers in parallel
 for i in $(seq 0 $((num_groups - 1))); do
