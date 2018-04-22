@@ -233,8 +233,8 @@ function restore_low_latency
 
 # MAIN
 
-echo Comando check version: $FIO_PATH
 VER=$($FIO_PATH -v | sed 's/fio-//')
+VER=$(echo $VER | sed 's/-.*//')
 RES=$(echo "$VER >= 3.2" | bc -l)
 if [ $RES -eq 0 ]; then
 	echo You have fio-$VER, but at least fio-3.2 is required
