@@ -105,7 +105,7 @@ function clean_and_exit {
 	for ((i = 0 ; $i < $num_groups ; i++)) ; do
 		rmdir /cgroup/InterfererGroup$i
 	done
-	rmdir /cgroup/interferer
+	rmdir /cgroup/interfered
 
 	if [[ $controller == io ]]; then
 	    echo "-io" > /cgroup/cgroup.subtree_control
