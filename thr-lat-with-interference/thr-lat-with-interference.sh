@@ -111,6 +111,9 @@ the three groups will be limited to 1000KB/s. Similarly, if no value
 is passed at all, then the same, default value will be used for every
 group.
 
+For the values passed with options -w, -r, -W and -R, if an M is
+appended to the last digit, then the value is interpreted as MB/s.
+
 "
 }
 
@@ -161,6 +164,11 @@ function start_fio_jobs {
 	fi
 
 	jobvar="[global]\n "
+
+	if [[ "${rate: -1}" == M ]]; then
+	    rate=$(echo $rate | sed 's/M/000/')
+	fi
+
 	if [ $rate -gt 0 ]; then
 	    jobvar=$jobvar"rate=${rate}k\n "
 	fi
@@ -195,7 +203,6 @@ invalidate=1\n
 }
 
 function execute_intfered_and_shutdwn_intferers {
-
 	# start interfered in parallel
 	echo start_fio_jobs interfered $duration ${i_weight_threshold} \
 		${i_IO_type} ${i_rate} linear $i_IO_depth \
@@ -395,6 +402,10 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
     if [[ "$type_bw_control" == p ]]; then
 	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
     else
+	if [[ "${wthr: -1}" == M ]]; then
+	    wthr=$(echo $wthr | sed 's/M/000000/')
+	fi
+
 	if (( ${#I_thrtl_lats[@]} > 1 )); then
 	    lat=${I_thrtl_lats[$i]}
 	else
@@ -412,6 +423,10 @@ mkdir -p /cgroup/interfered
 if [[ "$type_bw_control" == p ]]; then
     echo $i_weight_threshold > /cgroup/interfered/${controller}.${PREFIX}weight
 else
+    if [[ "${i_weight_threshold: -1}" == M ]]; then
+	i_weight_threshold=$(echo $i_weight_threshold | sed 's/M/000000/')
+    fi
+
     echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
 	 > /cgroup/interfered/${controller}.low
     echo /cgroup/interfered/${controller}.low:
