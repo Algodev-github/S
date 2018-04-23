@@ -33,6 +33,8 @@ duration=10
 # i stands for interfered in next parameter names
 # weight or bandwidth threshold (throttling) for interfered
 i_weight_threshold="100"
+# target latency for the interfered in the io.low limit for blk-throttle (usec)
+i_thrtl_lat=100
 # I/O type for the interfered (read|write|randread|randwrite)
 i_IO_type=read
 # limit to the rate at which interfered does I/O
@@ -60,6 +62,9 @@ num_I_per_group=1
 num_groups=1
 # weight or bandwidth thresholds (throttling) for the groups of interferers
 I_weight_thresholds=(100)
+# target latencies for the groups of interferers in the io.low limit
+# for blk-throttle (usec)
+I_thrtl_lats=(100)
 # I/O types for the groups of interferers (read|write|randread|randwrite)
 I_IO_types=(read)
 # limits to the rates at which interferers do I/O
@@ -80,7 +85,8 @@ $0 [-h]
    [-s I/O Scheduler] (\"$sched\")
    [-b <type of bandwidth control (p for proportional share, t for throttling)] ($type_bw_control)
    [-d <test duration in seconds>] ($duration)
-   [-w <weights or bandwidth thresholds for the interfered>] ($i_weight_threshold)
+   [-w <weight or bandwidth threshold for the interfered>] ($i_weight_threshold)
+   [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
    [-t <I/O type for the interfered (read|write|randread|randwrite)>] ($i_IO_type)
    [-r <rate limit, in KB/s, for I/O generation of the interfered (0=no limit)>] ($i_rate)
    [-p <rate process for the interfered (linear|poisson)>] ($i_process)
@@ -90,6 +96,7 @@ $0 [-h]
    [-n <number of groups of interferers>] ($num_I_per_group)
    [-i <number of interferers in each group>] ($num_groups)
    [-W <weights or bandwidth thresholds for the groups of interferers>] (${I_weight_thresholds[*]})
+   [-L <target latencies for the groups of interferers in io.low limit for blk-throttle> (${I_thrtl_lats[*]})
    [-T <I/O types of the groups of interferers (read|write|randread|randwrite)>] (${I_IO_types[*]})
    [-R <rate limits, in KB/s, for I/O generation of the interferers (0=no limit)>] (${I_rates[*]})
    [-Q <I/O depth for all interferers>] ($I_IO_depth)
@@ -265,6 +272,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 	-b) type_bw_control="$2";;
 	-d) duration="$2";;
 	-w) i_weight_threshold="$2";;
+	-l) i_thrtl_lat="$2";;
 	-t) i_IO_type="$2";;
 	-r) i_rate="$2";;
 	-p) i_process="$2";;
@@ -274,6 +282,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 	-i) num_I_per_group="$2";;
 	-n) num_groups="$2";;
 	-W) I_weight_thresholds=($2);;
+	-L) I_thrtl_lats=($2);;
 	-T) I_IO_types=($2);;
 	-R) I_rates=($2);;
 	-Q) I_IO_depth="$2";;
@@ -294,7 +303,9 @@ if (( num_groups > 0 && \
 		  num_groups != ${#I_weight_thresholds[@]} ) || \
 	    ( ${#I_dirnames[@]} > 0 && num_groups != ${#I_dirnames[@]} ) || \
 	    ( ${#I_rates[@]} > 1 && num_groups != ${#I_rates[@]} ) || \
-	    ( ${#I_IO_types[@]} > 1 && num_groups != ${#I_IO_types[@]} ) ) ))
+	    ( ${#I_IO_types[@]} > 1 && num_groups != ${#I_IO_types[@]} ) || \
+	    ( ${#I_thrtl_lats[@]} > 1 && num_groups != ${#I_thrtl_lats[@]} ) \
+	  ) ))
 then
 	echo Number of group parameters and number of groups do not match!
 	show_usage
@@ -384,7 +395,13 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
     if [[ "$type_bw_control" == p ]]; then
 	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
     else
-	echo "$(cat /sys/block/$DEV/dev) rbps=$wthr" \
+	if (( ${#I_thrtl_lats[@]} > 1 )); then
+	    lat=${I_thrtl_lats[$i]}
+	else
+	    lat=${I_thrtl_lats[0]}
+	fi
+
+	echo "$(cat /sys/block/$DEV/dev) rbps=$wthr latency=$lat idle=1000" \
 	     > /cgroup/InterfererGroup$i/${controller}.low
 	echo /cgroup/InterfererGroup$i/${controller}.low:
 	cat /cgroup/InterfererGroup$i/${controller}.low
@@ -395,7 +412,7 @@ mkdir -p /cgroup/interfered
 if [[ "$type_bw_control" == p ]]; then
     echo $i_weight_threshold > /cgroup/interfered/${controller}.${PREFIX}weight
 else
-    echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold" \
+    echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
 	 > /cgroup/interfered/${controller}.low
     echo /cgroup/interfered/${controller}.low:
     cat /cgroup/interfered/${controller}.low
