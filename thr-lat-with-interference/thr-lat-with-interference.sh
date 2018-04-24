@@ -82,7 +82,7 @@ $0 [-h]
    [-d <test duration in seconds>] ($duration)
    [-w <weights or bandwidth thresholds for the interfered>] ($i_weight_threshold)
    [-t <I/O type for the interfered (read|write|randread|randwrite)>] ($i_IO_type)
-   [-r <rate limit for I/O generation of the interfered (0=no limit)>] ($i_rate)
+   [-r <rate limit, in KB/s, for I/O generation of the interfered (0=no limit)>] ($i_rate)
    [-p <rate process for the interfered (linear|poisson)>] ($i_process)
    [-q <I/O depth for interfered>] ($i_IO_depth)
    [-c <1=direct I/O, 0=non direct I/O for interfered>] ($i_direct)
@@ -91,10 +91,19 @@ $0 [-h]
    [-i <number of interferers in each group>] ($num_groups)
    [-W <weights or bandwidth thresholds for the groups of interferers>] (${I_weight_thresholds[*]})
    [-T <I/O types of the groups of interferers (read|write|randread|randwrite)>] (${I_IO_types[*]})
-   [-R <rate limits for I/O generation of the interferers (0=no limit)>] (${I_rates[*]})
+   [-R <rate limits, in KB/s, for I/O generation of the interferers (0=no limit)>] (${I_rates[*]})
    [-Q <I/O depth for all interferers>] ($I_IO_depth)
    [-C <1=direct I/O, 0=non direct I/O for all interferers> ($I_direct)
    [-F <dirnames for files read/written by interferers] ($I_dirnames)
+
+For options that contain one value for each group of interferers, such
+as, e.g., rate limits (-R), it is also possible to provide only one
+value, which will be used for all groups. For example, if there are 3
+groups of interferers, and only \"-R 1000\" is passed, then each of
+the three groups will be limited to 1000KB/s. Similarly, if no value
+is passed at all, then the same, default value will be used for every
+group.
+
 "
 }
 
@@ -280,10 +289,13 @@ if [ $num_I_per_group -gt 1 ]; then
 	exit
 fi
 
-if (( num_groups > 0 && (num_groups != ${#I_weight_thresholds[@]} || \
-	( ${#I_dirnames[@]} > 0 && num_groups != ${#I_dirnames[@]} ) || \
-	num_groups != ${#I_rates[@]} || \
-	num_groups != ${#I_IO_types[@]}) )) ; then
+if (( num_groups > 0 && \
+	  ( ( ${#I_weight_thresholds[@]} > 1 && \
+		  num_groups != ${#I_weight_thresholds[@]} ) || \
+	    ( ${#I_dirnames[@]} > 0 && num_groups != ${#I_dirnames[@]} ) || \
+	    ( ${#I_rates[@]} > 1 && num_groups != ${#I_rates[@]} ) || \
+	    ( ${#I_IO_types[@]} > 1 && num_groups != ${#I_IO_types[@]} ) ) ))
+then
 	echo Number of group parameters and number of groups do not match!
 	show_usage
 	exit
@@ -362,11 +374,17 @@ fi
 
 for ((i = 0 ; $i < $num_groups ; i++)) ; do
     mkdir -p /cgroup/InterfererGroup$i
-    if [[ "$type_bw_control" == p ]]; then
-	echo ${I_weight_thresholds[$i]} \
-	     > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
+
+    if (( ${#I_weight_thresholds[@]} > 1 )); then
+	wthr=${I_weight_thresholds[$i]}
     else
-	echo "$(cat /sys/block/$DEV/dev) rbps=${I_weight_thresholds[$i]}" \
+	wthr=${I_weight_thresholds[0]}
+    fi
+
+    if [[ "$type_bw_control" == p ]]; then
+	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
+    else
+	echo "$(cat /sys/block/$DEV/dev) rbps=$wthr" \
 	     > /cgroup/InterfererGroup$i/${controller}.low
 	echo /cgroup/InterfererGroup$i/${controller}.low:
 	cat /cgroup/InterfererGroup$i/${controller}.low
@@ -385,13 +403,32 @@ fi
 
 # start interferers in parallel
 for i in $(seq 0 $((num_groups - 1))); do
-	echo Starting Interferer group $i
-	echo start_fio_jobs InterfererGroup$i 0 ${I_weight_thresholds[$i]} \
-		${I_IO_types[$i]} ${I_rates[$i]} linear $I_IO_depth \
-		$num_I_per_group $I_direct ${I_filenames[$i]}
-	(start_fio_jobs InterfererGroup$i 0 ${I_weight_thresholds[$i]} \
-		${I_IO_types[$i]} ${I_rates[$i]} linear $I_IO_depth \
-		$num_I_per_group $I_direct ${I_filenames[$i]}) &
+    echo Starting Interferer group $i
+
+    if (( ${#I_weight_thresholds[@]} > 1 )); then
+	wthr=${I_weight_thresholds[$i]}
+    else
+	wthr=${I_weight_thresholds[0]}
+    fi
+
+    if (( ${#I_IO_types[@]} > 1 )); then
+	iot=${I_IO_types[$i]}
+    else
+	iot=${I_IO_types[0]}
+    fi
+
+    if (( ${#I_rates[@]} > 1 )); then
+	rat=${I_rates[$i]}
+    else
+	rat=${I_rates[0]}
+    fi
+
+    echo start_fio_jobs InterfererGroup$i 0 $wthr \
+	 $iot $rat linear $I_IO_depth \
+	 $num_I_per_group $I_direct ${I_filenames[$i]}
+    (start_fio_jobs InterfererGroup$i 0 $wthr \
+		    $iot $rat linear $I_IO_depth \
+		    $num_I_per_group $I_direct ${I_filenames[$i]}) &
 done
 
 # start iostat
