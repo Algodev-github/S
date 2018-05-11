@@ -26,7 +26,10 @@ STAT_DEST_DIR=.
 
 # I/O Scheduler (blank -> leave scheduler unchanged)
 sched=
-# type of bandwidth control (p->proportional share | t->throttling)
+# type of bandwidth control
+# (p->proportional share | l->low limits | m->max limits)
+# cgroups-v2 is needed to use low limits
+# (which must also be enabled in the kernel)
 type_bw_control=p
 # test duration (interferer execution time)
 duration=10
@@ -83,9 +86,10 @@ Usage and default values:
 
 $0 [-h]
    [-s I/O Scheduler] (\"$sched\")
-   [-b <type of bandwidth control (p for proportional share, t for throttling)] ($type_bw_control)
+   [-b <type of bandwidth control
+    (p -> proportional share, l -> low limits, m -> max limits)] ($type_bw_control)
    [-d <test duration in seconds>] ($duration)
-   [-w <weight or bandwidth threshold for the interfered>] ($i_weight_threshold)
+   [-w <weight, low limit or max limit for the interfered>] ($i_weight_threshold)
    [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
    [-t <I/O type for the interfered (read|write|randread|randwrite)>] ($i_IO_type)
    [-r <rate limit, in KB/s, for I/O generation of the interfered (0=no limit)>] ($i_rate)
@@ -95,7 +99,7 @@ $0 [-h]
    [-f <dirname for file read/written by interfered] ($i_dirname)
    [-n <number of groups of interferers>] ($num_I_per_group)
    [-i <number of interferers in each group>] ($num_groups)
-   [-W <weights or bandwidth thresholds for the groups of interferers>] (${I_weight_thresholds[*]})
+   [-W <weights, low limits or max limits for the groups of interferers>] (${I_weight_thresholds[*]})
    [-L <target latencies for the groups of interferers in io.low limit for blk-throttle> (${I_thrtl_lats[*]})
    [-T <I/O types of the groups of interferers (read|write|randread|randwrite)>] (${I_IO_types[*]})
    [-R <rate limits, in KB/s, for I/O generation of the interferers (0=no limit)>] (${I_rates[*]})
@@ -364,12 +368,14 @@ elif [ "${sched}" == "cfq" ] ; then
 	PREFIX=""
 fi
 
-if [[ "$type_bw_control" == p ]]; then
-    controller=blkio
-else
+controller=blkio
+
+if [[ "$type_bw_control" == l ]]; then
+    # NOTE: cgroups-v2 needed to use low limits
+    # (which must also be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
     if [[ "$groupdirs" != "" ]]; then
-	umount $groupdirs
+	umount $groupdirs # to make the io controller available
     fi
     if [[ $? -ne 0 ]]; then
 	exit 1
@@ -413,10 +419,21 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	    lat=${I_thrtl_lats[0]}
 	fi
 
-	echo "$(cat /sys/block/$DEV/dev) rbps=$wthr wbps=$wthr latency=$lat idle=1000" \
-	     > /cgroup/InterfererGroup$i/${controller}.low
-	echo /cgroup/InterfererGroup$i/${controller}.low:
-	cat /cgroup/InterfererGroup$i/${controller}.low
+	if [[ "$type_bw_control" == l ]]; then
+	    echo "$(cat /sys/block/$DEV/dev) rbps=$wthr wbps=$wthr latency=$lat idle=1000" \
+		 > /cgroup/InterfererGroup$i/${controller}.low
+	    echo /cgroup/InterfererGroup$i/${controller}.low:
+	    cat /cgroup/InterfererGroup$i/${controller}.low
+	else
+	    echo "$(cat /sys/block/$DEV/dev) $wthr" \
+		 > /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
+	    echo /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device:
+	    cat /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
+	    echo "$(cat /sys/block/$DEV/dev) $wthr" \
+		 > /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device
+	    echo /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device:
+	    cat /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device
+	fi
     fi
 done
 
@@ -428,10 +445,21 @@ else
 	i_weight_threshold=$(echo $i_weight_threshold | sed 's/M/000000/')
     fi
 
-    echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold wbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
-	 > /cgroup/interfered/${controller}.low
-    echo /cgroup/interfered/${controller}.low:
-    cat /cgroup/interfered/${controller}.low
+    if [[ "$type_bw_control" == l ]]; then
+	echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold wbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
+	     > /cgroup/interfered/${controller}.low
+	echo /cgroup/interfered/${controller}.low:
+	cat /cgroup/interfered/${controller}.low
+    else
+	echo "$(cat /sys/block/$DEV/dev) $i_weight_threshold" \
+	     > /cgroup/interfered/${controller}.throttle.read_bps_device
+	echo /cgroup/interfered/${controller}.throttle.read_bps_device:
+	cat /cgroup/interfered/${controller}.throttle.read_bps_device
+	echo "$(cat /sys/block/$DEV/dev) $wthr" \
+	     > /cgroup/interfered/${controller}.throttle.write_bps_device
+	echo /cgroup/interfered/${controller}.throttle.write_bps_device:
+	cat /cgroup/interfered/${controller}.throttle.write_bps_device
+    fi
 fi
 
 # start interferers in parallel
