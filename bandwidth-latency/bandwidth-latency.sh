@@ -413,7 +413,7 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	    lat=${I_thrtl_lats[0]}
 	fi
 
-	echo "$(cat /sys/block/$DEV/dev) rbps=$wthr latency=$lat idle=1000" \
+	echo "$(cat /sys/block/$DEV/dev) rbps=$wthr wbps=$wthr latency=$lat idle=1000" \
 	     > /cgroup/InterfererGroup$i/${controller}.low
 	echo /cgroup/InterfererGroup$i/${controller}.low:
 	cat /cgroup/InterfererGroup$i/${controller}.low
@@ -428,7 +428,7 @@ else
 	i_weight_threshold=$(echo $i_weight_threshold | sed 's/M/000000/')
     fi
 
-    echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
+    echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold wbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
 	 > /cgroup/interfered/${controller}.low
     echo /cgroup/interfered/${controller}.low:
     cat /cgroup/interfered/${controller}.low
