@@ -22,7 +22,6 @@ LC_NUMERIC=C
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 UTIL_DIR=`cd ../utilities; pwd`
-STAT_DEST_DIR=.
 
 # I/O Scheduler (blank -> leave scheduler unchanged)
 sched=
@@ -80,6 +79,9 @@ I_direct=0
 # if empty, then the per-config default directories are used
 I_dirname=
 
+# destination directory for output statistics
+STAT_DEST_DIR=.
+
 function show_usage {
 	echo "\
 Usage and default values:
@@ -106,6 +108,7 @@ $0 [-h]
    [-Q <I/O depth for all interferers>] ($I_IO_depth)
    [-C <1=direct I/O, 0=non direct I/O for all interferers> ($I_direct)
    [-F <dirnames for files read/written by interferers] ($I_dirnames)
+   [-o <destination directory for output files (statistics)>] ($STAT_DEST_DIR)
 
 For options that contain one value for each group of interferers, such
 as, e.g., rate limits (-R), it is also possible to provide only one
@@ -137,6 +140,9 @@ function clean_and_exit {
 
 	umount /cgroup
 	rm -rf /cgroup
+
+	rm interfered*-stats.txt Interfer*-stats.txt
+	rm iostat.out iostat-aggthr
 
 	restore_low_latency
 
@@ -220,7 +226,7 @@ function execute_intfered_and_shutdwn_intferers {
 }
 
 function print_save_stat_line {
-	echo $1:
+	echo $1: | tee -a $file_name
 	printf "%12s%12s%12s%12s\n" "min" "max" "avg" \
 		"std_dev" | tee -a $file_name
 	printf "%12g%12g%12g%12g\n" $2 $3 $4 $5 | tee -a $file_name
@@ -228,7 +234,16 @@ function print_save_stat_line {
 
 function compute_statistics {
 	mkdir -p $STAT_DEST_DIR
-	file_name=$STAT_DEST_DIR/bw_lat_stat.txt
+	file_name=$STAT_DEST_DIR/bw-lat-$sched-$type_bw_control-$duration-$i_weight_threshold
+	file_name=$file_name-$i_thrtl_lat-$i_IO_type-$i_rate-$i_process
+	file_name=$file_name-$i_IO_depth-$i_direct-$i_dirname
+	file_name=$file_name-$num_I_per_group-$num_groups
+	file_name=$file_name-${I_weight_thresholds[@]}-${I_thrtl_lats[@]}
+	file_name=$file_name-${I_IO_types[@]}-${I_rates[@]}
+	file_name=$file_name-$I_IO_depth-$I_direct-$I_dirname-stat.txt
+
+	file_name=${file_name// /_}
+
 	i_tot_bw_min=$(awk '{print $1+$5}' < interfered-stats.txt)
 	i_tot_bw_max=$(awk '{print $2+$6}' < interfered-stats.txt)
 	i_tot_bw_avg=$(awk '{print $3+$7}' < interfered-stats.txt)
@@ -300,6 +315,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 	-C) I_direct="$2";;
 	-h) show_usage; exit;;
 	-F) I_dirnames=($2);;
+	-o) STAT_DEST_DIR="$2";;
 	*) show_usage; exit;;
   esac; shift; shift
 done
