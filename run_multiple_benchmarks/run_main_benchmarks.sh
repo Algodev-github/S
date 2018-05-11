@@ -12,12 +12,14 @@ DEF_BENCHMARKS="throughput startup video-playing"
 # see the following string for usage, or invoke ./run_main_benchmarks.sh -h
 usage_msg="\
 Usage (as root):\n\
-./run_main_benchmarks.sh [<set of benchmarks>] [<set of schedulers>|cur-sched]
+./run_main_benchmarks.sh [<set of benchmarks>]
+	[<set of schedulers or throttle limits>|cur-sched]
 	[fs|raw] [also-rand] [<number of repetitions (default: 2)>]
 	[<result dir (default: ../results/run_main_benchmarks/<date_time>)>]
 
 The set of benchmarks can be built out of the following benchmarks:
 throughput startup replayed-startup fairness video-playing kernel-devel interleaved-io
+bandwidth-latency
 
 If no set or an empty set, i.e., \"\", is given, then all default benchmarks are
 executed. Default benchmarks are: $DEF_BENCHMARKS.
@@ -34,6 +36,10 @@ if a scheduler is built as a module, then the module must be loaded
 for the scheduler to be present in the list of available
 schedulers. In contrast, if cur-sched is passed, then benchmarks will
 be run only with the current I/O scheduler.
+
+In addition to scheduler names, throttle limits can be typed too. The
+available limits are low and max. These limits make sense only for the
+benchmark
 
 If fs mode is selected, or if no value, i.e., \"\", is given, then file
 reads and writes are generated as background workloads. Instead, if raw
@@ -129,7 +135,7 @@ function repeat
 	if [ "$test_suffix" == startup ] ; then
 		out_filename=$5
 	else
-	    if [ "$3" != "" ]; then
+	    if [[ "$3" != "" && $1 != bandwidth-latency ]]; then
 		out_filename=$3
 	    else
 		out_filename=
@@ -137,6 +143,7 @@ function repeat
 	fi
 
 	mkdir -p $RES_DIR/$1
+
 	for ((i = 0 ; $i < $NUM_REPETITIONS ; i++))
 	do
 		echo
@@ -156,12 +163,18 @@ function repeat
 		mkdir -p $RES_DIR/$1/repetition$i
 
 		# save num files to check whether it grows
-		oldnumfiles=$(ls -1U $RES_DIR/$1/repetition$i | wc -l)
+		oldnumfiles=$(ls -1U $RES_DIR/$1/repetition$i/*-stat.txt \
+				 2>/dev/null | \
+				  wc -l)
 
 		if [ "$test_suffix" == startup ] ; then
 			bash $2 "$3" $RES_DIR/$1/repetition$i $4
-		else
-			bash $2 $RES_DIR/$1/repetition$i
+		else if [[ $1 == bandwidth-latency ]]; then
+			 # use eval to handle double quotes in $2
+			 eval $2 -o $RES_DIR/$1/repetition$i
+		     else
+			 bash $2 $RES_DIR/$1/repetition$i
+		     fi
 		fi
 		if [[ $NUM_REPETITIONS -gt 1 ]]; then
 		    failed=false
@@ -170,7 +183,9 @@ function repeat
 			echo Stats file $RES_DIR/$1/repetition$i/$out_filename not found
 			failed=true
 		    else
-			newnumfiles=$(ls -1U $RES_DIR/$1/repetition$i | wc -l)
+			newnumfiles=$(ls -1U $RES_DIR/$1/repetition$i/*-stat.txt \
+					 2> /dev/null|\
+					  wc -l)
 			if [[ $newnumfiles -le $oldnumfiles ]]; then
 			    failed=true
 			fi
@@ -354,6 +369,16 @@ function fairness
 	# no overall stat files generated for this benchmark for the
 	# moment: remove temporary results
 	rm results-$1
+}
+
+function bandwidth-latency
+{
+    cd ../bandwidth-latency
+    rep_bw_lat="repeat bandwidth-latency"
+
+    #./bandwidth-latency.sh -h
+    $rep_bw_lat "./bandwidth-latency.sh -d 3 -s $1 -b prop -t randread -n 2 -w 100 -W \"50 30\"" \
+		"Random read against sequential read"
 }
 
 # MAIN

@@ -23,13 +23,13 @@ LC_NUMERIC=C
 . ../utilities/lib_utils.sh
 UTIL_DIR=`cd ../utilities; pwd`
 
-# I/O Scheduler (blank -> leave scheduler unchanged)
-sched=
 # type of bandwidth control
-# (p->proportional share | l->low limits | m->max limits)
+# (prop->proportional share | low->low limits | max->max limits)
 # cgroups-v2 is needed to use low limits
 # (which must also be enabled in the kernel)
-type_bw_control=p
+type_bw_control=prop
+# I/O Scheduler (blank -> leave scheduler unchanged)
+sched=
 # test duration (interferer execution time)
 duration=10
 # i stands for interfered in next parameter names
@@ -87,9 +87,9 @@ function show_usage {
 Usage and default values:
 
 $0 [-h]
-   [-s I/O Scheduler] (\"$sched\")
    [-b <type of bandwidth control
-    (p -> proportional share, l -> low limits, m -> max limits)] ($type_bw_control)
+    (prop -> proportional share, low -> low limits, max -> max limits)] ($type_bw_control)
+   [-s I/O Scheduler] (\"$sched\")
    [-d <test duration in seconds>] ($duration)
    [-w <weight, low limit or max limit for the interfered>] ($i_weight_threshold)
    [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
@@ -234,15 +234,18 @@ function print_save_stat_line {
 
 function compute_statistics {
 	mkdir -p $STAT_DEST_DIR
-	file_name=$STAT_DEST_DIR/bw-lat-$sched-$type_bw_control-$duration-$i_weight_threshold
+	file_name=$STAT_DEST_DIR/bw_lat-$type_bw_control-$sched---$duration
+	file_name=$file_name-$i_weight_threshold
 	file_name=$file_name-$i_thrtl_lat-$i_IO_type-$i_rate-$i_process
 	file_name=$file_name-$i_IO_depth-$i_direct-$i_dirname
 	file_name=$file_name-$num_I_per_group-$num_groups
 	file_name=$file_name-${I_weight_thresholds[@]}-${I_thrtl_lats[@]}
 	file_name=$file_name-${I_IO_types[@]}-${I_rates[@]}
-	file_name=$file_name-$I_IO_depth-$I_direct-$I_dirname-stat.txt
+	file_name=$file_name-$I_IO_depth-$I_direct-$I_dirname
 
 	file_name=${file_name// /_}
+
+	file_name=$file_name-stat.txt
 
 	i_tot_bw_min=$(awk '{print $1+$5}' < interfered-stats.txt)
 	i_tot_bw_max=$(awk '{print $2+$6}' < interfered-stats.txt)
@@ -259,7 +262,7 @@ function compute_statistics {
 
 	print_save_stat_line "Interfered total throughput" \
 		$i_tot_bw_min $i_tot_bw_max $i_tot_bw_avg $i_tot_bw_dev
-	print_save_stat_line "Interfered total latency" \
+	print_save_stat_line "Interfered per-request total latency" \
 		$i_tot_lat_min $i_tot_lat_max $i_tot_lat_avg $i_tot_lat_dev
 }
 
@@ -295,7 +298,14 @@ trap 'kill -HUP $(jobs -lp) >/dev/null 2>&1 || true' EXIT
 
 while [[ "$#" > 0 ]]; do case $1 in
 	-s) sched="$2";;
-	-b) type_bw_control="$2";;
+	-b) type_bw_control="$2"
+	    if [[ "$type_bw_control" != prop && \
+		      "$type_bw_control" != low && \
+		      "$type_bw_control" != max ]]; then
+		echo Policy $type_bw_control not recognized
+		exit
+	    fi
+	    ;;
 	-d) duration="$2";;
 	-w) i_weight_threshold="$2";;
 	-l) i_thrtl_lat="$2";;
@@ -386,7 +396,7 @@ fi
 
 controller=blkio
 
-if [[ "$type_bw_control" == l ]]; then
+if [[ "$type_bw_control" == low ]]; then
     # NOTE: cgroups-v2 needed to use low limits
     # (which must also be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
@@ -422,7 +432,7 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	wthr=${I_weight_thresholds[0]}
     fi
 
-    if [[ "$type_bw_control" == p ]]; then
+    if [[ "$type_bw_control" == prop ]]; then
 	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
     else
 	if [[ "${wthr: -1}" == M ]]; then
@@ -435,7 +445,7 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	    lat=${I_thrtl_lats[0]}
 	fi
 
-	if [[ "$type_bw_control" == l ]]; then
+	if [[ "$type_bw_control" == low ]]; then
 	    echo "$(cat /sys/block/$DEV/dev) rbps=$wthr wbps=$wthr latency=$lat idle=1000" \
 		 > /cgroup/InterfererGroup$i/${controller}.low
 	    echo /cgroup/InterfererGroup$i/${controller}.low:
@@ -454,14 +464,14 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 done
 
 mkdir -p /cgroup/interfered
-if [[ "$type_bw_control" == p ]]; then
+if [[ "$type_bw_control" == prop ]]; then
     echo $i_weight_threshold > /cgroup/interfered/${controller}.${PREFIX}weight
 else
     if [[ "${i_weight_threshold: -1}" == M ]]; then
 	i_weight_threshold=$(echo $i_weight_threshold | sed 's/M/000000/')
     fi
 
-    if [[ "$type_bw_control" == l ]]; then
+    if [[ "$type_bw_control" == low ]]; then
 	echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold wbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
 	     > /cgroup/interfered/${controller}.low
 	echo /cgroup/interfered/${controller}.low:

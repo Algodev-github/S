@@ -6,8 +6,8 @@
 usage_msg="\
 Usage:\n\
 calc_overall_stats.sh test_result_dir \
-[<Scheduler array>] [<Reference case>]
-   [throughput | startup_lat | kern_task] [verbose]\n\
+<Scheduler array> [<Reference case>]
+   [throughput | startup_lat | kern_task | bandwidth-latency] [verbose]\n\
    \n\
    The last param is needed only if the type(s) of the results cannot be
    inferred from the name of the test-result directory.
@@ -24,13 +24,21 @@ calc_overall_stats.sh test_result_dir \
 
    Passing the array of schedulers of interest explicitly is instead a
    way to select only part of the results (e.g., \"bfq noop\"), and
-   not the default schedulers (${schedulers[@]}). There is no
-   constraint on the possible values of each item, hence this array
+   not the default schedulers (${schedulers[@]}). For the
+   bandwidth-latency benchmark, you should give not only scheduler
+   names, but pairs \"policy name\"-\"scheduler name\". For example:
+   prop-bfq, low-none, max-mq-deadline.
+
+   Actually, scheduler names are just filter for file names. There is
+   no constraint on the possible values of each item, hence this array
    can be used to select files whose names do not begin with the usual
    "bfq-" or "cfq-". For example, suppose that the results are about
    the same scheduler, used in a guest, while different workloads are
    run in the host. The array to select the different result files may
-   be: \"no-host-wl 1r-seq 5r-seq\".
+   be: \"no-host-wl 1r-seq 5r-seq\". Be very careful with these
+   keywords, because you risk to mix files of a different nature: for
+   example, in case of the bandwidth-latency benchmarks, different
+   policies (prop, low and max) can be used with the same scheduler.
 
    Finally, it is possible to change the reference case with respect
    to the default cases, which otherwise vary with the type of benchmark.
@@ -82,7 +90,15 @@ function quant_loops
 function file_loop
 {
 	n=0
-	for in_file in `find $1 -name "*$sched[-]$workload*.txt"`; do
+
+	if [[ $res_type == bandwidth-latency ]]; then
+	    in_files=$(find $1 -name "bw_lat-*-$sched---${workload_filter}")
+	    in_files=$(echo $in_files | egrep $sched)
+	else
+	    in_files=$(find $1 -name "*$sched[-]${workload_filter}*.txt")
+	fi
+
+	for in_file in $in_files; do
 		if ((`cat $in_file | wc -l` < $record_lines)); then
 			continue
 		fi
@@ -114,7 +130,7 @@ function write_header
     echo "#" >> $1
     echo -en "# Workload  " >> $1
     for sched in $SCHEDULERS; do
-	printf "%12s" $sched >> $1
+	printf "%16s" $sched >> $1
     done
     echo >> $1
 }
@@ -134,6 +150,9 @@ function set_res_type
 	video_playing)
 	    res_type=video_playing
 	    ;;
+	bandwidth-latency)
+	    res_type=bandwidth-latency
+	    ;;
 	*)
 	    echo Fatal: no known type found for $1!
 	    ;;
@@ -147,13 +166,18 @@ function per_subdirectory_loop
 
     case $res_type in
 	throughput)
-		num_quants=3
+		num_quants=3 # Aggregated throughput, read thr and write thr
+		# One line for the header of the file, then every
+		# quantity occupies three lines: one for the name of
+		# quantity, one for the names of the statistics (min,
+		# max, avg, ...) and one for the actual statistics for
+		# the quantity
 		record_lines=$((1 + $num_quants * 3))
 		thr_table_file=`pwd`/`basename $single_test_res_dir`-table.txt
 		reference_value_label="Peak rate with one sequential reader"
 		;;
 	startup_lat)
-		num_quants=4
+		num_quants=4 # Start-up time, plus throughput quantities
 		record_lines=$((1 + ($num_quants) * 3))
 		thr_table_file=`pwd`/`basename $single_test_res_dir`-throughput-table.txt
 		target_quantity_table_file=\
@@ -179,6 +203,16 @@ function per_subdirectory_loop
 		target_quantity_type="Drop rate"
 		reference_value_label="Drop rate with no heavy background workload"
 		;;
+	bandwidth-latency)
+		# Aggregated throughputs, plus interfered throughput and latency
+		num_quants=5
+		record_lines=$((1 + $num_quants * 3))
+		thr_table_file=`pwd`/`basename $single_test_res_dir`-bw-table.txt
+		target_quantity_table_file=\
+`pwd`/`basename $single_test_res_dir`-lat-table.txt
+		target_quantity_type="I/O-request latency"
+		reference_value_label=""
+		;;
 	*)
 		echo Undefined or wrong result type $res_type
 		return
@@ -188,21 +222,48 @@ function per_subdirectory_loop
     out_file=`pwd`/overall_stats-`basename $single_test_res_dir`.txt
     rm -f $out_file
 
-    if [[ $res_type == throughput ]]; then
-	write_header $thr_table_file "Aggregate throughput [MB/sec]" \
-		     $thr_reference_case "$reference_value_label" \
-		     ", or X if results are" \
-		     "unreliable because workloads did not stop when asked to"
-    else
-	write_header $thr_table_file "Aggregate throughput [MB/sec]" \
-		     none ""\
-		     ", or X if application did not" \
-		     "start up in 120 seconds (and a timeout fired)"
+    case $res_type in
+	throughput)
+	    write_header $thr_table_file "Aggregate throughput [MB/sec]" \
+		$thr_reference_case "$reference_value_label" \
+		", or X if results are" \
+		"unreliable because workloads did not stop when asked to"
+	    ;;
+	bandwidth-latency)
+	    write_header $thr_table_file "Pair (avg throughput of interfered, " \
+		none ""\
+		"avg total throughput of interferers)" \
+		""
+	    write_header $target_quantity_table_file "Pair (avg latency, " \
+		none "" \
+		"std deviation)" \
+		"of I/O requests of interfered"
+	    ;;
+	*)
+	    write_header $thr_table_file "Aggregate throughput [MB/sec]" \
+		none ""\
+		", or X if application did not" \
+		"start up in 120 seconds (and a timeout fired)"
+	    write_header $target_quantity_table_file "$target_quantity_type" \
+		$target_reference_case "$reference_value_label" \
+		", or X if application did not" \
+		"start up in 120 seconds (and a timeout fired)"
+	    ;;
+    esac
 
-	write_header $target_quantity_table_file "$target_quantity_type" \
-		     $target_reference_case "$reference_value_label" \
-		     ", or X if application did not" \
-		     "start up in 120 seconds (and a timeout fired)"
+    if [[ $res_type == bandwidth-latency ]]; then
+	for file_path in $(find $1/repetition0 -name "bw_lat-*-stat.txt"); do
+	    bw_lat_file_name=$(basename $file_path)
+	    workload_filter=$(echo $bw_lat_file_name | sed 's/.*---//')
+	    workload_filters="$workload_filters $workload_filter"
+	done
+    else
+	workload_filters= "0r0w-seq 1r0w-seq 5r0w-seq 10r0w-seq
+	1r0w-rand 5r0w-rand 10r0w-rand
+	2r2w-seq 5r5w-seq 2r2w-rand 5r5w-rand
+	0r0w-raw_seq 1r0w-raw_seq 10r0w-raw_seq
+	1r0w-raw_rand 10r0w-raw_rand
+	3r-int_io 5r-int_io 6r-int_io 7r-int_io 9r-int_io";
     fi
 
     # remove, create and enter work dir
@@ -210,12 +271,7 @@ function per_subdirectory_loop
     mkdir -p work_dir
     cd work_dir
 
-    for workload in "0r0w-seq" "1r0w-seq" "5r0w-seq" "10r0w-seq" \
-	"1r0w-rand" "5r0w-rand" "10r0w-rand"   \
-	"2r2w-seq" "5r5w-seq" "2r2w-rand" "5r5w-rand" \
-	"0r0w-raw_seq" "1r0w-raw_seq" "10r0w-raw_seq" \
-	"1r0w-raw_rand" "10r0w-raw_rand" \
-	"3r-int_io" "5r-int_io" "6r-int_io" "7r-int_io" "9r-int_io"; do
+    for workload_filter in $workload_filters; do
 
 	line_created=False
 	numX=0
@@ -224,10 +280,10 @@ function per_subdirectory_loop
 	    file_loop $single_test_res_dir
 	    if [ ! -f line_file0 ]; then
 		if [[ "$line_created" == True ]]; then
-		    printf "%12s" X >> $thr_table_file
+		    printf "%16s" X >> $thr_table_file
 
 		    if [[ $res_type != throughput ]]; then
-			printf "%12s" X >> $target_quantity_table_file
+			printf "%16s" X >> $target_quantity_table_file
 		    fi
 		fi
 		numX=$((numX + 1))
@@ -243,26 +299,63 @@ function per_subdirectory_loop
 		    tee -a $out_file > $REDIRECT
 
 		if [[ "$line_created" != True ]] ; then
-		    wl_improved_name=`echo $workload | sed 's/0w//'`
+		    wl_improved_name=`echo $workload_filter | sed 's/0w//'`
 
 		    printf "  %-10s" $wl_improved_name >> $thr_table_file
 
 		    for ((i = 0 ; i < numX ; i++)) ; do
-			printf "%12s" X >> $thr_table_file
+			printf "%16s" X >> $thr_table_file
 		    done
 
 		    if [[ $res_type != throughput ]]; then
 			printf "  %-10s" $wl_improved_name \
 			    >> $target_quantity_table_file
 			for ((i = 0 ; i < numX ; i++)) ; do
-			    printf "%12s" X >> $target_quantity_table_file
+			    printf "%16s" X >> $target_quantity_table_file
 			done
 		    fi
 		    line_created=True
 		fi
 
+		if [[ "$res_type" == bandwidth-latency ]]; then
+		    target_field=$(tail -n 1 $out_file |\
+				       awk '{printf "%.3f\n", $3}')
+		    if [[ "$target_field" == "" || \
+			      ! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+			target_field=X
+		    fi
+
+		    if [[ $cur_quant -eq 0 ]]; then
+			# cur_quant is total throughput, store it for
+			# later use
+			tot_thr=$target_field
+		    fi
+
+		    if [[ $cur_quant -eq 3 || $cur_quant -eq 4 ]]; then
+			# cur_quant is either throughput or latency
+			# for interfered, put it in the right table
+
+			if [[ $cur_quant -eq 3 ]]; then
+			    # it's interfered throughput
+			    if [[ "$target_field" != X ]]; then
+				interf_tot_thr=$(echo "$tot_thr - $target_field" | bc -l)
+			    else
+				interf_tot_thr=$tot_thr
+			    fi
+			    printf "%8s%8s" $target_field $interf_tot_thr >> \
+				   $thr_table_file
+			else # it's interfered latency
+			    std_dev=$(tail -n 1 $out_file |\
+					  awk '{printf "%.3f\n", $4}')
+			    printf "%8s%8s" $target_field $std_dev >> \
+				   $target_quantity_table_file
+			fi
+		    fi
+		fi
+
 		if [[ $cur_quant -eq 0 && "$res_type" != throughput && \
-		      "$res_type" != video_playing ]] ||
+			  "$res_type" != video_playing && \
+			  "$res_type" != bandwidth-latency ]] ||
 		   [[ $cur_quant -eq 1 && \
 		      "$res_type" == video_playing ]] ; then
 
@@ -281,20 +374,21 @@ function per_subdirectory_loop
 			target_field=X
 		    fi
 
-		    printf "%12s" $target_field >> $target_quantity_table_file
-		elif (((cur_quant == 0)) && \
+		    printf "%16s" $target_field >> $target_quantity_table_file
+		elif [[ "$res_type" != bandwidth-latency ]] && \
+			 ((((cur_quant == 0)) && \
 		      [[ "$res_type" != video_playing ]]) ||
 		     ((( cur_quant == 1)) && [[ $res_type != throughput ]] && \
 		      [[ $res_type != video_playing ]]) ||
 		     ((( cur_quant == 3)) && \
-		      [[ $res_type == video_playing ]]); then
+		      [[ $res_type == video_playing ]])); then
 		    target_field=`tail -n 1 $out_file | awk '{print $3}'`
 
 		    if [[ "$target_field" == "" || \
 			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
 		    fi
-		    printf "%12s" $target_field  >> $thr_table_file
+		    printf "%16s" $target_field  >> $thr_table_file
 		fi
 
 		rm line_file$cur_quant number_file$cur_quant
@@ -351,7 +445,7 @@ echo Searching for benchmark results ... > $REDIRECT
 num_dir_visited=0
 # filters make, checkout, merge, grep and interleaved-io not yet
 # added, because the code for these cases is not yet complete
-for filter in throughput startup video_playing; do
+for filter in throughput startup video_playing bandwidth-latency; do
     for single_test_res_dir in `find $results_dir -name "*$filter*" -type d`; do
 	echo Computing $filter overall stats in $single_test_res_dir > $REDIRECT
 	per_subdirectory_loop $single_test_res_dir $filter
