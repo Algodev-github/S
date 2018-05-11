@@ -224,11 +224,11 @@ function print_save_stat_line {
 
 function compute_statistics {
 	mkdir -p $STAT_DEST_DIR
-	file_name=$STAT_DEST_DIR/thr_lat_stat.txt
-	i_tot_thr_min=$(awk '{print $1+$5}' < interfered-stats.txt)
-	i_tot_thr_max=$(awk '{print $2+$6}' < interfered-stats.txt)
-	i_tot_thr_avg=$(awk '{print $3+$7}' < interfered-stats.txt)
-	i_tot_thr_dev=$(awk '{print $4+$8}' < interfered-stats.txt)
+	file_name=$STAT_DEST_DIR/bw_lat_stat.txt
+	i_tot_bw_min=$(awk '{print $1+$5}' < interfered-stats.txt)
+	i_tot_bw_max=$(awk '{print $2+$6}' < interfered-stats.txt)
+	i_tot_bw_avg=$(awk '{print $3+$7}' < interfered-stats.txt)
+	i_tot_bw_dev=$(awk '{print $4+$8}' < interfered-stats.txt)
 	i_tot_lat_min=$(awk '{print $9+$13}' < interfered-stats.txt)
 	i_tot_lat_max=$(awk '{print $10+$14}' < interfered-stats.txt)
 	i_tot_lat_avg=$(awk '{print $11+$15}' < interfered-stats.txt)
@@ -239,7 +239,7 @@ function compute_statistics {
 	print_save_agg_thr $file_name
 
 	print_save_stat_line "Interfered total throughput" \
-		$i_tot_thr_min $i_tot_thr_max $i_tot_thr_avg $i_tot_thr_dev
+		$i_tot_bw_min $i_tot_bw_max $i_tot_bw_avg $i_tot_bw_dev
 	print_save_stat_line "Interfered total latency" \
 		$i_tot_lat_min $i_tot_lat_max $i_tot_lat_avg $i_tot_lat_dev
 }
