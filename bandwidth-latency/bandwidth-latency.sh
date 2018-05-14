@@ -514,7 +514,7 @@ iostat -tmd /dev/$DEV 3 | tee iostat.out &
 while true ; do
 	uptime=$(</proc/uptime)
 	uptime=${uptime%%.*}
-	if [ $(wc -l < iostat.out) -gt 0 ]; then
+	if [[ -f iostat.out && $(wc -l < iostat.out) -gt 0 ]]; then
 		break
 	fi
 done
