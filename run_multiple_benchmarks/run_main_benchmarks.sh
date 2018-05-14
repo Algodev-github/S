@@ -129,7 +129,11 @@ function repeat
 	if [ "$test_suffix" == startup ] ; then
 		out_filename=$5
 	else
+	    if [ "$3" != "" ]; then
 		out_filename=$3
+	    else
+		out_filename=
+	    fi
 	fi
 
 	mkdir -p $RES_DIR/$1
@@ -147,17 +151,36 @@ function repeat
 		# make sure that I/O generators/monitors are dead
 		# (sometimes shutdown does not work properly)
 		sudo killall dd fio iostat 2> /dev/null
+
+		# create destination directory for stats, if not existing
+		mkdir -p $RES_DIR/$1/repetition$i
+
+		# save num files to check whether it grows
+		oldnumfiles=$(ls -1U $RES_DIR/$1/repetition$i | wc -l)
+
 		if [ "$test_suffix" == startup ] ; then
 			bash $2 "$3" $RES_DIR/$1/repetition$i $4
 		else
 			bash $2 $RES_DIR/$1/repetition$i
 		fi
-		if [[ $NUM_REPETITIONS -gt 1 && "$out_filename" != "" && \
-			! -f $RES_DIR/$1/repetition$i/$out_filename ]] ; then
-		    echo Stats file $RES_DIR/$1/repetition$i/$out_filename not found
-		    echo No stats produced: aborting repetitions for $1 $2 \"$3\"
-		    break
+		if [[ $NUM_REPETITIONS -gt 1 ]]; then
+		    failed=false
+		    if [[ "$out_filename" != "" && \
+			  ! -f $RES_DIR/$1/repetition$i/$out_filename ]] ; then
+			echo Stats file $RES_DIR/$1/repetition$i/$out_filename not found
+			failed=true
+		    else
+			newnumfiles=$(ls -1U $RES_DIR/$1/repetition$i | wc -l)
+			if [[ $newnumfiles -le $oldnumfiles ]]; then
+			    failed=true
+			fi
+		    fi
+		    if [[ $failed == true ]]; then
+			echo No stats produced: aborting repetitions for $1 $2 \"$3\"
+			break
+		    fi
 		fi
+
 		echo Syncing and waiting for a few seconds, to better mimick real usage,
 		echo and let benchmarks start in more homogeneous conditions.
 		sync
