@@ -377,8 +377,8 @@ function bandwidth-latency
     rep_bw_lat="repeat bandwidth-latency"
 
     #./bandwidth-latency.sh -h
-    $rep_bw_lat "./bandwidth-latency.sh -d 3 -s $1 -b prop -t randread -n 2 -w 100 -W \"50 30\"" \
-		"Random read against sequential read"
+    $rep_bw_lat "./bandwidth-latency.sh -s $1 -b prop -t randread -n 5 -w 100 -W 50"
+    $rep_bw_lat "./bandwidth-latency.sh -s none -b low -n 4 -w 12M -W 12M -t randread -L 2000"
 }
 
 # MAIN

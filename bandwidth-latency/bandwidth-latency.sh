@@ -40,8 +40,8 @@ i_thrtl_lat=100
 # I/O type for the interfered (read|write|randread|randwrite)
 i_IO_type=read
 # limit to the rate at which interfered does I/O
-i_rate=0 # 0 means no rate limit
-# rate process for the interfered, used only if i_rate != 0
+i_rate=MAX # MAX means no rate limit
+# rate process for the interfered, used only if i_rate != MAX
 # This option controls how fio manages rated IO submissions. The default is
 # linear, which submits IO in a linear fashion with fixed delays between IOs
 # that gets adjusted based on IO completion rates. If this is set to poisson,
@@ -70,7 +70,7 @@ I_thrtl_lats=(100)
 # I/O types for the groups of interferers (read|write|randread|randwrite)
 I_IO_types=(read)
 # limits to the rates at which interferers do I/O
-I_rates=(0) # 0 means no rate limit
+I_rates=(MAX) # max means no rate limit
 # I/O depth for the interferers, 1 equals sync I/O
 I_IO_depth=1
 # Direct I/O for all interferers, 1 means Direct I/O on
@@ -94,7 +94,7 @@ $0 [-h]
    [-w <weight, low limit or max limit for the interfered>] ($i_weight_threshold)
    [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
    [-t <I/O type for the interfered (read|write|randread|randwrite)>] ($i_IO_type)
-   [-r <rate limit, in KB/s, for I/O generation of the interfered (0=no limit)>] ($i_rate)
+   [-r <rate limit, in KB/s, for I/O generation of the interfered (MAX=no limit)>] ($i_rate)
    [-p <rate process for the interfered (linear|poisson)>] ($i_process)
    [-q <I/O depth for interfered>] ($i_IO_depth)
    [-c <1=direct I/O, 0=non direct I/O for interfered>] ($i_direct)
@@ -104,7 +104,7 @@ $0 [-h]
    [-W <weights, low limits or max limits for the groups of interferers>] (${I_weight_thresholds[*]})
    [-L <target latencies for the groups of interferers in io.low limit for blk-throttle> (${I_thrtl_lats[*]})
    [-T <I/O types of the groups of interferers (read|write|randread|randwrite)>] (${I_IO_types[*]})
-   [-R <rate limits, in KB/s, for I/O generation of the interferers (0=no limit)>] (${I_rates[*]})
+   [-R <rate limits, in KB/s, for I/O generation of the interferers (MAX=no limit)>] (${I_rates[*]})
    [-Q <I/O depth for all interferers>] ($I_IO_depth)
    [-C <1=direct I/O, 0=non direct I/O for all interferers> ($I_direct)
    [-F <dirnames for files read/written by interferers] ($I_dirnames)
@@ -141,7 +141,7 @@ function clean_and_exit {
 	umount /cgroup
 	rm -rf /cgroup
 
-	rm interfered*-stats.txt Interfer*-stats.txt
+	rm -f interfered*-stats.txt Interfer*-stats.txt
 	rm iostat.out iostat-aggthr
 
 	restore_low_latency
@@ -175,11 +175,10 @@ function start_fio_jobs {
 
 	jobvar="[global]\n "
 
-	if [[ "${rate: -1}" == M ]]; then
-	    rate=$(echo $rate | sed 's/M/000/')
-	fi
-
-	if [ $rate -gt 0 ]; then
+	if [ "$rate" != MAX ]; then
+	    if [[ "${rate: -1}" == M ]]; then
+		rate=$(echo $rate | sed 's/M/000/')
+	    fi
 	    jobvar=$jobvar"rate=${rate}k\n "
 	fi
 	jobvar=$jobvar\
@@ -490,7 +489,18 @@ fi
 
 # start interferers in parallel
 for i in $(seq 0 $((num_groups - 1))); do
-    echo Starting Interferer group $i
+    if (( ${#I_rates[@]} > 1 )); then
+	rat=${I_rates[$i]}
+    else
+	rat=${I_rates[0]}
+    fi
+
+    if [[ "$rat" == 0 ]]; then
+	echo Not starting Interferer group $i at all: null rate
+	continue
+    else
+	echo Starting Interferer group $i
+    fi
 
     if (( ${#I_weight_thresholds[@]} > 1 )); then
 	wthr=${I_weight_thresholds[$i]}
@@ -502,12 +512,6 @@ for i in $(seq 0 $((num_groups - 1))); do
 	iot=${I_IO_types[$i]}
     else
 	iot=${I_IO_types[0]}
-    fi
-
-    if (( ${#I_rates[@]} > 1 )); then
-	rat=${I_rates[$i]}
-    else
-	rat=${I_rates[0]}
     fi
 
     echo start_fio_jobs InterfererGroup$i 0 $wthr \
