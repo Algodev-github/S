@@ -447,6 +447,12 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	if [[ "$type_bw_control" == low ]]; then
 	    echo "$(cat /sys/block/$DEV/dev) rbps=$wthr wbps=$wthr latency=$lat idle=1000" \
 		 > /cgroup/InterfererGroup$i/${controller}.low
+
+	    if [[ $? -ne 0 ]]; then
+		echo Failed to set low limit for interferer group $i
+		exit 1
+	    fi
+
 	    echo /cgroup/InterfererGroup$i/${controller}.low:
 	    cat /cgroup/InterfererGroup$i/${controller}.low
 	else
