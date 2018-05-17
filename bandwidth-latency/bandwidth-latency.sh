@@ -24,7 +24,7 @@ LC_NUMERIC=C
 UTIL_DIR=`cd ../utilities; pwd`
 
 # type of bandwidth control
-# (prop->proportional share | low->low limits | max->max limits)
+# (none-> no control | prop->proportional share | low->low limits | max->max limits)
 # cgroups-v2 is needed to use low limits
 # (which must also be enabled in the kernel)
 type_bw_control=prop
@@ -87,8 +87,8 @@ function show_usage {
 Usage and default values:
 
 $0 [-h]
-   [-b <type of bandwidth control
-    (prop -> proportional share, low -> low limits, max -> max limits)] ($type_bw_control)
+   [-b <type of bandwidth control (none -> no control | prop -> proportional share,
+	low -> low limits, max -> max limits)>] ($type_bw_control)
    [-s I/O Scheduler] (\"$sched\")
    [-d <test duration in seconds>] ($duration)
    [-w <weight, low limit or max limit for the interfered>] ($i_weight_threshold)
@@ -161,7 +161,9 @@ function start_fio_jobs {
 	direct=$9
 	filename=${10}
 
-	echo $BASHPID > /cgroup/$name/cgroup.procs
+	if [[ $type_bw_control != "none" ]]; then
+	    echo $BASHPID > /cgroup/$name/cgroup.procs
+	fi
 
 	if [ $depth -gt 1 ]; then
 		ioengine=libaio
@@ -298,7 +300,8 @@ trap 'kill -HUP $(jobs -lp) >/dev/null 2>&1 || true' EXIT
 while [[ "$#" > 0 ]]; do case $1 in
 	-s) sched="$2";;
 	-b) type_bw_control="$2"
-	    if [[ "$type_bw_control" != prop && \
+	    if [[ "$type_bw_control" != none && \
+		      "$type_bw_control" != prop && \
 		      "$type_bw_control" != low && \
 		      "$type_bw_control" != max ]]; then
 		echo Policy $type_bw_control not recognized
@@ -433,7 +436,8 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 
     if [[ "$type_bw_control" == prop ]]; then
 	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
-    else
+	echo "echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight"
+    elif [[ "$type_bw_control" != none ]]; then
 	if [[ "${wthr: -1}" == M ]]; then
 	    wthr=$(echo $wthr | sed 's/M/000000/')
 	fi
@@ -471,7 +475,7 @@ done
 mkdir -p /cgroup/interfered
 if [[ "$type_bw_control" == prop ]]; then
     echo $i_weight_threshold > /cgroup/interfered/${controller}.${PREFIX}weight
-else
+elif [[ "$type_bw_control" != none ]]; then
     if [[ "${i_weight_threshold: -1}" == M ]]; then
 	i_weight_threshold=$(echo $i_weight_threshold | sed 's/M/000000/')
     fi
