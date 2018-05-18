@@ -34,8 +34,9 @@ sched=
 duration=10
 # i stands for interfered in next parameter names.
 #
-# weight or bandwidth threshold (throttling) for interfered
-i_weight_threshold="def"
+# weight or bandwidth threshold (throttling) for interfered;
+# or 'unset' to not set the parameter at all
+i_weight_threshold="unset"
 # target latency for the interfered in the io.low limit for blk-throttle (usec)
 i_thrtl_lat=100
 # I/O type for the interfered (read|write|randread|randwrite)
@@ -64,8 +65,9 @@ i_dirname=
 num_I_per_group=1
 # number of groups of interferers
 num_groups=1
-# weight or bandwidth thresholds (throttling) for the groups of interferers
-I_weight_thresholds=(100)
+# weights or bandwidth thresholds (throttling) for the groups of interferers;
+# use 'unset' to not set this parameter at all for a group of interferers
+I_weight_thresholds=(unset)
 # target latencies for the groups of interferers in the io.low limit
 # for blk-throttle (usec)
 I_thrtl_lats=(100)
@@ -279,6 +281,34 @@ function restore_low_latency
 	fi
 }
 
+function set_weight_limit_for_interfered
+{
+    if [[ "$type_bw_control" == prop ]]; then
+	echo $i_weight_threshold > \
+	     /cgroup/interfered/${controller}.${PREFIX}weight
+    elif [[ "$type_bw_control" != none ]]; then
+	if [[ "${i_weight_threshold: -1}" == M ]]; then
+	    i_weight_threshold=$(echo $i_weight_threshold | sed 's/M/000000/')
+	fi
+
+	if [[ "$type_bw_control" == low ]]; then
+	    echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold wbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
+		 > /cgroup/interfered/${controller}.low
+	    echo /cgroup/interfered/${controller}.low:
+	    cat /cgroup/interfered/${controller}.low
+	else
+	    echo "$(cat /sys/block/$DEV/dev) $i_weight_threshold" \
+		 > /cgroup/interfered/${controller}.throttle.read_bps_device
+	    echo /cgroup/interfered/${controller}.throttle.read_bps_device:
+	    cat /cgroup/interfered/${controller}.throttle.read_bps_device
+	    echo "$(cat /sys/block/$DEV/dev) $wthr" \
+		 > /cgroup/interfered/${controller}.throttle.write_bps_device
+	    echo /cgroup/interfered/${controller}.throttle.write_bps_device:
+	    cat /cgroup/interfered/${controller}.throttle.write_bps_device
+	fi
+    fi
+}
+
 # MAIN
 
 VER=$($FIO_PATH -v | sed 's/fio-//')
@@ -436,6 +466,11 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	wthr=${I_weight_thresholds[0]}
     fi
 
+    if [[ "$wthr" == "unset" ]]; then
+	echo Not setting weight/limits for interferer group $i
+	continue
+    fi
+
     if [[ "$type_bw_control" == prop ]]; then
 	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
 	echo "echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight"
@@ -475,28 +510,10 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 done
 
 mkdir -p /cgroup/interfered
-if [[ "$type_bw_control" == prop ]]; then
-    echo $i_weight_threshold > /cgroup/interfered/${controller}.${PREFIX}weight
-elif [[ "$type_bw_control" != none ]]; then
-    if [[ "${i_weight_threshold: -1}" == M ]]; then
-	i_weight_threshold=$(echo $i_weight_threshold | sed 's/M/000000/')
-    fi
-
-    if [[ "$type_bw_control" == low ]]; then
-	echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold wbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
-	     > /cgroup/interfered/${controller}.low
-	echo /cgroup/interfered/${controller}.low:
-	cat /cgroup/interfered/${controller}.low
-    else
-	echo "$(cat /sys/block/$DEV/dev) $i_weight_threshold" \
-	     > /cgroup/interfered/${controller}.throttle.read_bps_device
-	echo /cgroup/interfered/${controller}.throttle.read_bps_device:
-	cat /cgroup/interfered/${controller}.throttle.read_bps_device
-	echo "$(cat /sys/block/$DEV/dev) $wthr" \
-	     > /cgroup/interfered/${controller}.throttle.write_bps_device
-	echo /cgroup/interfered/${controller}.throttle.write_bps_device:
-	cat /cgroup/interfered/${controller}.throttle.write_bps_device
-    fi
+if [[ "$i_weight_threshold" == unset ]]; then
+    echo Not setting weight/limits for interfered
+else
+    set_weight_limit_for_interfered
 fi
 
 # start interferers in parallel
