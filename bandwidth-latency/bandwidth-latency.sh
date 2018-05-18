@@ -32,9 +32,10 @@ type_bw_control=prop
 sched=
 # test duration (interferer execution time)
 duration=10
-# i stands for interfered in next parameter names
+# i stands for interfered in next parameter names.
+#
 # weight or bandwidth threshold (throttling) for interfered
-i_weight_threshold="100"
+i_weight_threshold="def"
 # target latency for the interfered in the io.low limit for blk-throttle (usec)
 i_thrtl_lat=100
 # I/O type for the interfered (read|write|randread|randwrite)
@@ -57,7 +58,8 @@ i_direct=0
 # empty, then the per-config default directory is used
 i_dirname=
 
-# I stands for interferer in next parameter names
+# I stands for interferer in next parameter names.
+#
 # number of interferers in each group of interferers
 num_I_per_group=1
 # number of groups of interferers
