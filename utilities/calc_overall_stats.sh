@@ -45,6 +45,7 @@ calc_overall_stats.sh test_result_dir \
    to the default cases, which otherwise vary with the type of benchmark.
  "
 
+export LC_ALL=C
 SCHEDULERS=${2:-"bfq kyber mq-deadline none"}
 reference_case=$3
 if [ "$5" == verbose ]; then
