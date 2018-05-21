@@ -170,7 +170,7 @@ function repeat
 
 		if [ "$test_suffix" == startup ] ; then
 			bash $2 "$3" $RES_DIR/$1/repetition$i $4
-		else if [[ $1 == bandwidth-latency ]]; then
+		else if [[ "$(echo $1 | egrep bandwidth-latency)" != "" ]]; then
 			 # use eval to handle double quotes in $2
 			 eval $2 -o $RES_DIR/$1/repetition$i
 		     else
@@ -375,7 +375,6 @@ function fairness
 function bandwidth-latency
 {
     cd ../bandwidth-latency
-    rep_bw_lat="repeat bandwidth-latency"
 
     # get scheduler name
     schedname=$(echo $sched | sed 's/.*-//g')
@@ -383,17 +382,27 @@ function bandwidth-latency
 
     case $policy in
 	prop)
+	    rep_bw_lat="repeat bandwidth-latency-read-sync-static"
 	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b prop -t randread -n 4 -w 100 -W 50"
+	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b prop -t read -n 4 -w 100 -W 50"
 	;;
 	low)
-	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b low -n 4 -w 12M -W 12M -t randread -L 2000"
+	    rep_bw_lat="repeat bandwidth-latency-read-sync-static"
+	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b low -t randread -n 4 -w 12M -W 12M -L 2000"
 	;;
 	max)
-	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b max -n 4 -w 12M -W 12M -t randread"
+	    rep_bw_lat="repeat bandwidth-latency-read-sync-static"
+	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b max -t randread -n 4 -w 12M -W 12M"
+	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b max -t read -n 4 -w 12M -W 12M"
 	;;
 	*)
 	    echo Unrecognized policy $policy
     esac
+
+    if [[ -d $RES_DIR/bandwidth-latency-read-sync-static ]]; then
+	echo "Static workload made of only reads, with IO-depth=1" > \
+	     $RES_DIR/bandwidth-latency-read-sync-static/title.txt
+    fi
 }
 
 # MAIN
