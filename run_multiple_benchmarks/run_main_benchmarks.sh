@@ -380,24 +380,35 @@ function bandwidth-latency
     schedname=$(echo $sched | sed 's/.*-//g')
     policy=$(echo $sched | sed "s/-$schedname//g")
 
+    # tests for a Plextor SSD with a 515 MB/s peak rate
     case $policy in
 	prop)
-	    rep_bw_lat="repeat bandwidth-latency-read-sync-static"
-	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b prop -t randread -n 4 -w 100 -W 50"
-	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b prop -t read -n 4 -w 100 -W 50"
-	;;
+	    i_weight_limit=100
+	    I_weights_limits="50 50 50 50 100 100 100 100 100"
+	    ;;
 	low)
-	    rep_bw_lat="repeat bandwidth-latency-read-sync-static"
-	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b low -t randread -n 4 -w 12M -W 12M -L 2000"
-	;;
+	    i_weight_limit=12M
+	    I_weights_limits="12M 12M 12M 12M 24M 24M 24M 24M 24M"
+	    ;;
 	max)
-	    rep_bw_lat="repeat bandwidth-latency-read-sync-static"
-	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b max -t randread -n 4 -w 12M -W 12M"
-	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b max -t read -n 4 -w 12M -W 12M"
-	;;
+	    i_weight_limit=12M
+	    # total nominal bw for interferers: 500-12 =
+	    I_weights_limits="40M 40M 40M 40M 65M 65M 65M 65M 65M"
+	    ;;
 	*)
 	    echo Unrecognized policy $policy
+	    return
+	    ;;
     esac
+
+    rep_bw_lat="repeat bandwidth-latency-sync-reads-or-writes-static"
+    for type_combination in "-t read -T read" "-t randread -T read" \
+		"-t read -T write" "-t randread -T write"; do
+	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
+		    $type_combination -n 9 \
+		    -w $i_weight_limit -W \"$I_weights_limits\" \
+		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" "
+    done
 
     if [[ -d $RES_DIR/bandwidth-latency-read-sync-static ]]; then
 	echo "static workload of only sync reads" > \
