@@ -13,7 +13,7 @@ DEF_BENCHMARKS="throughput startup video-playing"
 usage_msg="\
 Usage (as root):\n\
 ./run_main_benchmarks.sh [<set of benchmarks>]
-	[<set of schedulers or throttle limits>|cur-sched]
+	[<set of schedulers or pairs throttle policy-scheduler>|cur-sched]
 	[fs|raw] [also-rand] [<number of repetitions (default: 2)>]
 	[<result dir (default: ../results/run_main_benchmarks/<date_time>)>]
 
@@ -37,9 +37,10 @@ for the scheduler to be present in the list of available
 schedulers. In contrast, if cur-sched is passed, then benchmarks will
 be run only with the current I/O scheduler.
 
-In addition to scheduler names, throttle limits can be typed too. The
-available limits are low and max. These limits make sense only for the
-benchmark
+For the bandwidth-latency test, it is not enough to write only
+scheduler names. Pairs policy-scheduler must be passed, with policy
+equal to prop, low or max. If present, the policy part is simply
+stripped away for the other benchmarks.
 
 If fs mode is selected, or if no value, i.e., \"\", is given, then file
 reads and writes are generated as background workloads. Instead, if raw
@@ -376,9 +377,23 @@ function bandwidth-latency
     cd ../bandwidth-latency
     rep_bw_lat="repeat bandwidth-latency"
 
-    #./bandwidth-latency.sh -h
-    $rep_bw_lat "./bandwidth-latency.sh -s $1 -b prop -t randread -n 5 -w 100 -W 50"
-    $rep_bw_lat "./bandwidth-latency.sh -s none -b low -n 4 -w 12M -W 12M -t randread -L 2000"
+    # get scheduler name
+    schedname=$(echo $sched | sed 's/.*-//g')
+    policy=$(echo $sched | sed "s/-$schedname//g")
+
+    case $policy in
+	prop)
+	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b prop -t randread -n 4 -w 100 -W 50"
+	;;
+	low)
+	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b low -n 4 -w 12M -W 12M -t randread -L 2000"
+	;;
+	max)
+	    $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b max -n 4 -w 12M -W 12M -t randread"
+	;;
+	*)
+	    echo Unrecognized policy $policy
+    esac
 }
 
 # MAIN
@@ -441,8 +456,12 @@ if [[ "$BENCHMARKS" == "" ]]; then
 fi
 
 if [[ "$SCHEDULERS" == "" ]]; then
-    SCHEDULERS="$(cat /sys/block/$DEV/queue/scheduler | \
-	sed 's/\[//' | sed 's/\]//')"
+    if [[ "$BENCHMARKS" != bandwith-latency ]]; then
+	SCHEDULERS="$(cat /sys/block/$DEV/queue/scheduler | \
+			  sed 's/\[//' | sed 's/\]//')"
+    else
+	SCHEDULERS="prop-bfq max-none low-none"
+    fi
 fi
 
 if [[ "$SCHEDULERS" == "cur-sched" ]]; then
@@ -523,13 +542,30 @@ for sched in $SCHEDULERS; do
 	echo "for $benchmark ($bench_id/$num_benchs)"
 	send_email "$benchmark tests beginning"
 
+	# increment now, so that we can safely skip the rest of the
+	# loop when needed
+	((++bench_id))
+
+	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-')
+
+	if [[ $benchmark != bandwidth-latency && \
+		  "$policy_part" != "" ]]; then
+	    echo Scheduler name $sched contains a policy component $policy_part, but
+	    echo benchmark $benchmark is not bandwidth-latency: this is not
+	    echo supported yet.
+	    continue
+	elif [[ $benchmark == bandwidth-latency && \
+		    "$policy_part" == "" ]]; then
+	    echo Missing policy part for bandwidth-latency benchmark in $sched
+	    continue
+	fi
+
 	$benchmark $sched
 	if [[ $? -ne 0 ]]; then
 	    FAILURE=yes
 	    break
 	fi
 	send_email "$benchmark tests finished"
-	((++bench_id))
     done
     if [[ "$FAILURE" == yes ]]; then
 	break

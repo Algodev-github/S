@@ -25,9 +25,10 @@ calc_overall_stats.sh test_result_dir \
    Passing the array of schedulers of interest explicitly is instead a
    way to select only part of the results (e.g., \"bfq noop\"), and
    not the default schedulers (${schedulers[@]}). For the
-   bandwidth-latency benchmark, you should give not only scheduler
+   bandwidth-latency benchmark, you must give not just scheduler
    names, but pairs \"policy name\"-\"scheduler name\". For example:
-   prop-bfq, low-none, max-mq-deadline.
+   prop-bfq, low-none, max-mq-deadline. Then you cannot leave this
+   option empty for the bandwidth-latency benchmark.
 
    Actually, scheduler names are just filter for file names. There is
    no constraint on the possible values of each item, hence this array
@@ -92,7 +93,7 @@ function file_loop
 	n=0
 
 	if [[ $res_type == bandwidth-latency ]]; then
-	    in_files=$(find $1 -name "bw_lat-*-$sched---${workload_filter}")
+	    in_files=$(find $1 -name "bw_lat-$sched---*---${workload_filter}*.txt")
 	    in_files=$(echo $in_files | egrep $sched)
 	else
 	    in_files=$(find $1 -name "*$sched[-]${workload_filter}*.txt")
@@ -254,7 +255,8 @@ function per_subdirectory_loop
     if [[ $res_type == bandwidth-latency ]]; then
 	for file_path in $(find $1/repetition0 -name "bw_lat-*-stat.txt"); do
 	    bw_lat_file_name=$(basename $file_path)
-	    workload_filter=$(echo $bw_lat_file_name | sed 's/.*---//')
+	    workload_filter=$(echo $bw_lat_file_name | sed 's/.*---.*---//')
+	    workload_filter=$(echo $workload_filter | sed 's/-stat.txt//')
 	    workload_filters="$workload_filters $workload_filter"
 	done
     else
@@ -265,6 +267,9 @@ function per_subdirectory_loop
 	1r0w-raw_rand 10r0w-raw_rand
 	3r-int_io 5r-int_io 6r-int_io 7r-int_io 9r-int_io";
     fi
+
+    # remove duplicates
+    workload_filters=$(echo $workload_filters | xargs -n1 | sort -u)
 
     # remove, create and enter work dir
     rm -rf work_dir
@@ -299,7 +304,11 @@ function per_subdirectory_loop
 		    tee -a $out_file > $REDIRECT
 
 		if [[ "$line_created" != True ]] ; then
-		    wl_improved_name=`echo $workload_filter | sed 's/0w//'`
+		    if [[ "$res_type" == bandwidth-latency ]]; then
+			wl_improved_name=$(head -n 1 $out_file)
+		    else
+			wl_improved_name=`echo $workload_filter | sed 's/0w//'`
+		    fi
 
 		    printf "  %-10s" $wl_improved_name >> $thr_table_file
 
