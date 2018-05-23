@@ -400,7 +400,7 @@ function bandwidth-latency
     esac
 
     if [[ -d $RES_DIR/bandwidth-latency-read-sync-static ]]; then
-	echo "Static workload made of only reads, with IO-depth=1" > \
+	echo "static workload of only sync reads" > \
 	     $RES_DIR/bandwidth-latency-read-sync-static/title.txt
     fi
 }

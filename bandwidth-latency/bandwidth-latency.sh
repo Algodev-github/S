@@ -241,12 +241,13 @@ function compute_statistics {
 	mkdir -p $STAT_DEST_DIR
 	file_name=$STAT_DEST_DIR/bw_lat-$type_bw_control-$sched---$duration
 	file_name=$file_name-$i_weight_threshold
-	file_name=$file_name-$i_thrtl_lat-$i_IO_type-$i_rate-$i_process
-	file_name=$file_name-$i_IO_depth-$i_direct-$i_dirname
-	file_name=$file_name-$num_I_per_group-$num_groups
+	file_name=$file_name-$i_thrtl_lat
 	file_name=$file_name-${I_weight_thresholds[@]}-${I_thrtl_lats[@]}
+	file_name=$file_name---$i_IO_type-$i_rate-$i_process
+	file_name=$file_name-$i_IO_depth-$i_direct
+	file_name=$file_name-$num_I_per_group-$num_groups
 	file_name=$file_name-${I_IO_types[@]}-${I_rates[@]}
-	file_name=$file_name-$I_IO_depth-$I_direct-$I_dirname
+	file_name=$file_name-$I_IO_depth-$I_direct
 
 	file_name=${file_name// /_}
 
@@ -261,7 +262,30 @@ function compute_statistics {
 	i_tot_lat_avg=$(awk '{print $11+$15}' < interfered-stats.txt)
 	i_tot_lat_dev=$(awk '{print $12+$16}' < interfered-stats.txt)
 
-	echo Results | tee $file_name
+	if [[ ${#I_IO_types[@]} -gt 1 ]]; then
+	    I_workload="mixed I/O sources"
+	else
+	    I_workload="${I_IO_types[0]}s"
+	fi
+
+	if [[ $i_IO_depth != $I_IO_depth ]]; then
+	    IO_depth_part="I/O depths: $i_IO_depth / $I_IO_depth"
+	else
+	    IO_depth_part="I/O depth $i_IO_depth"
+	fi
+
+	if [[ $type_bw_control == prop ]]; then
+	    param_name=weights
+	else
+	    param_name=limits
+	fi
+
+	echo Results for $i_IO_type against \
+	     $((num_I_per_group * num_groups)) $I_workload \
+	     \($IO_depth_part\), \
+	     $type_bw_control-$sched with $param_name: \
+	     \($i_weight_threshold, ${I_weight_thresholds[@]}\)\
+	    | tee $file_name
 
 	print_save_agg_thr $file_name
 
@@ -288,16 +312,18 @@ function set_weight_limit_for_interfered
 	     /cgroup/interfered/${controller}.${PREFIX}weight
     elif [[ "$type_bw_control" != none ]]; then
 	if [[ "${i_weight_threshold: -1}" == M ]]; then
-	    i_weight_threshold=$(echo $i_weight_threshold | sed 's/M/000000/')
+	    wthr=$(echo $i_weight_threshold | sed 's/M/000000/')
+	else
+	    wthr=$i_weight_threshold
 	fi
 
 	if [[ "$type_bw_control" == low ]]; then
-	    echo "$(cat /sys/block/$DEV/dev) rbps=$i_weight_threshold wbps=$i_weight_threshold latency=$i_thrtl_lat idle=1000" \
+	    echo "$(cat /sys/block/$DEV/dev) rbps=$wthr wbps=$wthr latency=$i_thrtl_lat idle=1000" \
 		 > /cgroup/interfered/${controller}.low
 	    echo /cgroup/interfered/${controller}.low:
 	    cat /cgroup/interfered/${controller}.low
 	else
-	    echo "$(cat /sys/block/$DEV/dev) $i_weight_threshold" \
+	    echo "$(cat /sys/block/$DEV/dev) $wthr" \
 		 > /cgroup/interfered/${controller}.throttle.read_bps_device
 	    echo /cgroup/interfered/${controller}.throttle.read_bps_device:
 	    cat /cgroup/interfered/${controller}.throttle.read_bps_device

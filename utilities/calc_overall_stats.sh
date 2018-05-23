@@ -54,7 +54,6 @@ else
     REDIRECT=/dev/null
 fi
 
-
 CALC_AVG_AND_CO=`pwd`/calc_avg_and_co.sh
 
 function quant_loops
@@ -118,10 +117,14 @@ function file_loop
 
 function write_header
 {
-    table_title=$(basename $1)
-    table_title=$(echo $table_title | sed 's/-table.txt//g')
-    table_title=$(echo $table_title | sed 's/_/ /g')
-    table_title=$(echo $table_title | sed 's/-/ /g')
+    if [[ $res_type != bandwidth-latency ]]; then
+	table_title=$(basename $1)
+	table_title=$(echo $table_title | sed 's/-table.txt//g')
+	table_title=$(echo $table_title | sed 's/_/ /g')
+	table_title=$(echo $table_title | sed 's/-/ /g')
+    else
+	table_title="$7"
+    fi
 
     echo "# $table_title" > $1
     echo "# First column: Workload" >> $1
@@ -130,7 +133,11 @@ function write_header
     echo "# Reference case: $3" >> $1
     echo "# Reference-case meaning: $4" >> $1
     echo "#" >> $1
-    echo -en "# Workload  " >> $1
+    if [[ $res_type == bandwidth-latency ]]; then
+	printf "%-${WL_FIELD_LEN}s" "# Workload  " >> $1
+    else
+	echo -en "# Workload  " >> $1
+    fi
     for sched in $SCHEDULERS; do
 	printf "%16s" $sched >> $1
     done
@@ -139,6 +146,8 @@ function write_header
 
 function set_res_type
 {
+    WL_FIELD_LEN=10
+
     case $1 in
 	throughput)
 	    res_type=throughput
@@ -154,6 +163,7 @@ function set_res_type
 	    ;;
 	bandwidth-latency)
 	    res_type=bandwidth-latency
+	    WL_FIELD_LEN=30
 	    ;;
 	*)
 	    echo Fatal: no known type found for $1!
@@ -232,14 +242,15 @@ function per_subdirectory_loop
 		"unreliable because workloads did not stop when asked to"
 	    ;;
 	bandwidth-latency)
-	    write_header $thr_table_file "Pair (avg throughput of interfered, " \
+	    write_header $thr_table_file "avg throughput of interfered, " \
 		none ""\
-		"avg total throughput of interferers)" \
-		""
+		"avg total throughput of interferers" \
+		"" "Throughputs for a $(cat $1/title.txt)"
 	    write_header $target_quantity_table_file "Pair (avg latency, " \
 		none "" \
 		"std deviation)" \
-		"of I/O requests of interfered"
+		"of I/O requests of interfered" \
+		"Latencies for a $(cat $1/title.txt)"
 	    ;;
 	*)
 	    write_header $thr_table_file "Aggregate throughput [MB/sec]" \
@@ -306,19 +317,28 @@ function per_subdirectory_loop
 
 		if [[ "$line_created" != True ]] ; then
 		    if [[ "$res_type" == bandwidth-latency ]]; then
-			wl_improved_name=$(head -n 1 $out_file)
+			wl_improved_name=$(tail -n 5 $out_file | head -n 1)
+			wl_improved_name=$(echo $wl_improved_name | \
+					sed 's/Results for //g')
+			wl_improved_name=$(echo $wl_improved_name | \
+					sed 's/against/vs/g')
+			wl_improved_name=$(echo $wl_improved_name | \
+					sed 's/ (I.*//g')
+			wl_improved_name=$(echo $wl_improved_name | \
+					sed 's/ /_/g')
 		    else
 			wl_improved_name=`echo $workload_filter | sed 's/0w//'`
 		    fi
 
-		    printf "  %-10s" $wl_improved_name >> $thr_table_file
+		    printf "%-${WL_FIELD_LEN}s" "  $wl_improved_name" >> \
+			   $thr_table_file
 
 		    for ((i = 0 ; i < numX ; i++)) ; do
 			printf "%16s" X >> $thr_table_file
 		    done
 
 		    if [[ $res_type != throughput ]]; then
-			printf "  %-10s" $wl_improved_name \
+			printf "%-${WL_FIELD_LEN}s" "  $wl_improved_name" \
 			    >> $target_quantity_table_file
 			for ((i = 0 ; i < numX ; i++)) ; do
 			    printf "%16s" X >> $target_quantity_table_file
