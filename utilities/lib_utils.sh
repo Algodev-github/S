@@ -183,7 +183,7 @@ function set_scheduler
 	if [[ "$sched" != "" && "$sched" != cur-sched ]] ; then
 		# Switch to the desired scheduler
 		echo Switching to $sched for /dev/$DEV
-		echo $sched > /sys/block/$DEV/queue/scheduler |& echo &> /dev/null
+		echo $sched > /sys/block/$DEV/queue/scheduler 2>&1 | echo &> /dev/null
 		PIPE_STATUS=${PIPESTATUS[0]}
 		NEW_SCHED=$(cat /sys/block/$DEV/queue/scheduler | egrep "\[$sched\]")
 		if [[ $PIPE_STATUS -ne 0 || "$NEW_SCHED" == "" ]]; then
