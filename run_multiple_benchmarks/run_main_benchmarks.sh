@@ -377,7 +377,7 @@ function bandwidth-latency
     cd ../bandwidth-latency
 
     # get scheduler name
-    schedname=$(echo $sched | sed 's/.*-//g')
+    schedname=$(echo $sched | sed 's/[^-]*-//')
     policy=$(echo $sched | sed "s/-$schedname//g")
 
     # tests for a Plextor SSD with a 515 MB/s peak rate
