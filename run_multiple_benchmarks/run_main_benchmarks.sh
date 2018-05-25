@@ -372,6 +372,26 @@ function fairness
 	rm results-$1
 }
 
+function run_case
+{
+    case_name=$1
+
+    rep_bw_lat="repeat $case_name"
+
+    for ((i = 0 ; i < ${#type_combinations[@]}; i++)); do
+	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
+		    ${type_combinations[$i]} -n 9 \
+		    -w $i_weight_limit -W \"$I_weights_limits\" \
+		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" "
+    done
+
+    if [[ -d $RES_DIR/$case_name ]]; then
+	echo "static workload of only sync reads" > \
+	     $RES_DIR/$case_name/title.txt
+    fi
+
+}
+
 function bandwidth-latency
 {
     cd ../bandwidth-latency
@@ -401,14 +421,9 @@ function bandwidth-latency
 	    ;;
     esac
 
-    rep_bw_lat="repeat bandwidth-latency-sync-reads-or-writes-static"
-    for type_combination in "-t read -T read" "-t randread -T read" \
-		"-t read -T write" "-t randread -T write"; do
-	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
-		    $type_combination -n 9 \
-		    -w $i_weight_limit -W \"$I_weights_limits\" \
-		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" "
-    done
+    type_combinations=("-t read -T read" "-t randread -T read" \
+		       "-t read -T write" "-t randread -T write")
+    run_case bandwidth-latency-sync-reads-or-writes-static
 
     if [[ -d $RES_DIR/bandwidth-latency-read-sync-static ]]; then
 	echo "static workload of only sync reads" > \
