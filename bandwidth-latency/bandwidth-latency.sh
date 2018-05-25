@@ -82,7 +82,7 @@ I_IO_depth=1
 # Direct I/O for all interferers, 1 means Direct I/O on
 I_direct=0
 # Block size for all the interferers
-I_blocksize=4k
+I_blocksize=(4k)
 # names of the directories containing the files read/written by the interferers;
 # if empty, then the per-config default directories are used
 I_dirname=
@@ -114,7 +114,7 @@ $0 [-b <type of bandwidth control (none -> no control | prop -> proportional sha
    [-R <rate limits, in KB/s, for I/O generation of the interferers (MAX=no limit)>] (${I_rates[*]})
    [-Q <I/O depth for all interferers>] ($I_IO_depth)
    [-C <1=direct I/O, 0=non direct I/O for all interferers>] ($I_direct)
-   [-Z <block size for all interferers (with suffix k, m, ...))>] ($I_blocksize)
+   [-Z <block size for all interferers (with suffix k, m, ...))>] (${I_blocksize[*]})
    [-F <dirnames for files read/written by interferers>] ($I_dirnames)
    [-o <destination directory for output files (statistics)>] ($STAT_DEST_DIR)
    [-d <test duration in seconds>] ($duration)
@@ -395,7 +395,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 	-R) I_rates=($2);;
 	-Q) I_IO_depth="$2";;
 	-C) I_direct="$2";;
-	-Z) I_blocksize="$2";;
+	-Z) I_blocksize=($2);;
 	-F) I_dirnames=($2);;
 	-o) STAT_DEST_DIR="$2";;
 	-d) duration="$2";;
@@ -415,6 +415,7 @@ if (( num_groups > 0 && \
 	    ( ${#I_dirnames[@]} > 0 && num_groups != ${#I_dirnames[@]} ) || \
 	    ( ${#I_rates[@]} > 1 && num_groups != ${#I_rates[@]} ) || \
 	    ( ${#I_IO_types[@]} > 1 && num_groups != ${#I_IO_types[@]} ) || \
+	    ( ${#I_blocksize[@]} > 1 && num_groups != ${#I_blocksize[@]} ) || \
 	    ( ${#I_thrtl_lats[@]} > 1 && num_groups != ${#I_thrtl_lats[@]} ) \
 	  ) ))
 then
@@ -583,12 +584,18 @@ for i in $(seq 0 $((num_groups - 1))); do
 	iot=${I_IO_types[0]}
     fi
 
+    if (( ${#I_blocksize[@]} > 1 )); then
+	bs=${I_blocksize[$i]}
+    else
+	bs=${I_blocksize[0]}
+    fi
+
     echo start_fio_jobs InterfererGroup$i 0 $wthr \
 	$iot $rat linear $I_IO_depth \
-	$num_I_per_group $I_direct $I_blocksize ${I_filenames[$i]}
+	$num_I_per_group $I_direct $bs ${I_filenames[$i]}
     (start_fio_jobs InterfererGroup$i 0 $wthr \
 	$iot $rat linear $I_IO_depth \
-	$num_I_per_group $I_direct $I_blocksize ${I_filenames[$i]}) &
+	$num_I_per_group $I_direct $bs ${I_filenames[$i]}) &
 done
 
 # start iostat
