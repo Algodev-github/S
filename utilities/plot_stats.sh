@@ -237,6 +237,15 @@ function parse_table
 	exit
     fi
 
+    if [[ "$(echo $in_filename | \
+       egrep "bandwidth-latency.*-bw-table.txt")" != "" ]]; then
+	if [[ $term_mode == png || $term_mode == eps ]]; then
+	    file_type=$term_mode
+	fi
+	python3 plot_stacked_bar_subplots.py $in_filename $file_type
+	return
+    fi
+
     sed 's/X/-1/g' $in_filename > $in_filename.tmp1
     sed 's/-1-Axis/X-Axis/g' $in_filename.tmp1 > $in_filename.tmp
 
