@@ -90,11 +90,9 @@ function show_usage {
 	echo "\
 Usage and default values:
 
-$0 [-h]
-   [-b <type of bandwidth control (none -> no control | prop -> proportional share,
+$0 [-b <type of bandwidth control (none -> no control | prop -> proportional share,
 	low -> low limits, max -> max limits)>] ($type_bw_control)
    [-s <I/O Scheduler>] (\"$sched\")
-   [-d <test duration in seconds>] ($duration)
    [-w <weight, low limit or max limit for the interfered>] ($i_weight_threshold)
    [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
    [-t <I/O type for the interfered (read|write|randread|randwrite)>] ($i_IO_type)
@@ -113,6 +111,8 @@ $0 [-h]
    [-C <1=direct I/O, 0=non direct I/O for all interferers>] ($I_direct)
    [-F <dirnames for files read/written by interferers>] ($I_dirnames)
    [-o <destination directory for output files (statistics)>] ($STAT_DEST_DIR)
+   [-d <test duration in seconds>] ($duration)
+   [-h] (to get help)
 
 For options that contain one value for each group of interferers, such
 as, e.g., rate limits (-R), it is also possible to provide only one
@@ -356,7 +356,6 @@ trap "clean_and_exit" sigint
 trap 'kill -HUP $(jobs -lp) >/dev/null 2>&1 || true' EXIT
 
 while [[ "$#" > 0 ]]; do case $1 in
-	-s) sched="$2";;
 	-b) type_bw_control="$2"
 	    if [[ "$type_bw_control" != none && \
 		      "$type_bw_control" != prop && \
@@ -366,7 +365,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 		exit
 	    fi
 	    ;;
-	-d) duration="$2";;
+	-s) sched="$2";;
 	-w) i_weight_threshold="$2";;
 	-l) i_thrtl_lat="$2";;
 	-t) i_IO_type="$2";;
@@ -375,17 +374,18 @@ while [[ "$#" > 0 ]]; do case $1 in
 	-q) i_IO_depth="$2";;
 	-c) i_direct="$2";;
 	-f) i_dirname="$2";;
-	-i) num_I_per_group="$2";;
 	-n) num_groups="$2";;
+	-i) num_I_per_group="$2";;
 	-W) I_weight_thresholds=($2);;
 	-L) I_thrtl_lats=($2);;
 	-T) I_IO_types=($2);;
 	-R) I_rates=($2);;
 	-Q) I_IO_depth="$2";;
 	-C) I_direct="$2";;
-	-h) show_usage; exit;;
 	-F) I_dirnames=($2);;
 	-o) STAT_DEST_DIR="$2";;
+	-d) duration="$2";;
+	-h) show_usage; exit;;
 	*) show_usage; exit;;
   esac; shift; shift
 done
