@@ -375,6 +375,8 @@ function fairness
 function run_case
 {
     case_name=$1
+    iodepth=${2-1}
+    bs="${3-4k}"
 
     rep_bw_lat="repeat $case_name"
 
@@ -382,11 +384,11 @@ function run_case
 	echo $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 9 \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
-		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" "
+		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" -q $iodepth -Q $iodepth -Z $bs"
 	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 9 \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
-		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" "
+		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" -q $iodepth -Q $iodepth -Z $bs"
     done
 
     if [[ -d $RES_DIR/$case_name ]]; then
@@ -425,13 +427,16 @@ function bandwidth-latency
 	    ;;
     esac
 
-    type_combinations=("-t read -T read" "-t randread -T read" \
-		       "-t read -T write" "-t randread -T write")
-    run_case bandwidth-latency-sync-reads-or-writes-static
+#    type_combinations=("-t read -T read" "-t randread -T read" \
+#		       "-t read -T write" "-t randread -T write")
+#    run_case bandwidth-latency-sync-reads-or-writes-static
 
-    type_combinations=("-t read -T randread" "-t randread -T randread" \
-		       "-t read -T randwrite" "-t randread -T randwrite")
-    run_case bandwidth-latency-sync-rand-reads-or-writes-static
+#    type_combinations=("-t read -T randread" "-t randread -T randread" \
+#		       "-t read -T randwrite" "-t randread -T randwrite")
+#    run_case bandwidth-latency-sync-rand-reads-or-writes-static
+
+    type_combinations=("-t randread -T \"randread randread randread read read read read read read\"")
+    run_case bandwidth-latency-sync-rand-reads-or-writes-static 1 "\"4k 128k 1024k 4k 4k 4k 4k 4k 4k\""
 }
 
 # MAIN
