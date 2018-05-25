@@ -93,7 +93,7 @@ Usage and default values:
 $0 [-h]
    [-b <type of bandwidth control (none -> no control | prop -> proportional share,
 	low -> low limits, max -> max limits)>] ($type_bw_control)
-   [-s I/O Scheduler] (\"$sched\")
+   [-s <I/O Scheduler>] (\"$sched\")
    [-d <test duration in seconds>] ($duration)
    [-w <weight, low limit or max limit for the interfered>] ($i_weight_threshold)
    [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
@@ -102,7 +102,7 @@ $0 [-h]
    [-p <rate process for the interfered (linear|poisson)>] ($i_process)
    [-q <I/O depth for interfered>] ($i_IO_depth)
    [-c <1=direct I/O, 0=non direct I/O for interfered>] ($i_direct)
-   [-f <dirname for file read/written by interfered] ($i_dirname)
+   [-f <dirname for file read/written by interfered>] ($i_dirname)
    [-n <number of groups of interferers>] ($num_I_per_group)
    [-i <number of interferers in each group>] ($num_groups)
    [-W <weights, low limits or max limits for the groups of interferers>] (${I_weight_thresholds[*]})
@@ -110,8 +110,8 @@ $0 [-h]
    [-T <I/O types of the groups of interferers (read|write|randread|randwrite)>] (${I_IO_types[*]})
    [-R <rate limits, in KB/s, for I/O generation of the interferers (MAX=no limit)>] (${I_rates[*]})
    [-Q <I/O depth for all interferers>] ($I_IO_depth)
-   [-C <1=direct I/O, 0=non direct I/O for all interferers> ($I_direct)
-   [-F <dirnames for files read/written by interferers] ($I_dirnames)
+   [-C <1=direct I/O, 0=non direct I/O for all interferers>] ($I_direct)
+   [-F <dirnames for files read/written by interferers>] ($I_dirnames)
    [-o <destination directory for output files (statistics)>] ($STAT_DEST_DIR)
 
 For options that contain one value for each group of interferers, such
