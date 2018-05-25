@@ -1,6 +1,8 @@
 # Execute me with python3!
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import sys
 import os
 
@@ -19,19 +21,24 @@ headline=content[7].split()
 
 scheds=headline[2:]
 
-c_1_colors = ['0.45', '0.85']
-c_1_labels = ['Interfered avg throughput',
-                  'Interferers avg total throughput']
+colors = ['0.5', '0.85', 'white']
+labels = ['Interfered avg throughput',
+          'Interferers avg cumulative throughput',
+          'Avg total throughput (sum of bars)']
 
 ind = np.arange(len(scheds))
 width = 0.5
 
 # works only with at least two subplots
-f, ax = plt.subplots(1, num_sub_plots, sharey=True, sharex=True)
+f, ax = plt.subplots(1, num_sub_plots, sharey=True, sharex=True, figsize=(10, 6))
+
+#for axis in ax:
+#    axis.tick_params(axis='x', which='major', labelsize=6)
 
 f.subplots_adjust(bottom=0.2) #make room for the legend
 
-#plt.yticks(np.arange(0,18,2))
+scheds = [sched.replace('-', '\n', 1) for sched in scheds]
+
 plt.xticks(ind+width/2., scheds)
 
 plt.suptitle(content[0].replace('# ', ''))
@@ -52,7 +59,7 @@ def autolabel(rects, axis, xpos='center'):
         height = rect.get_height()
         axis.text(rect.get_x() + rect.get_width()*offset[xpos],
                       rect.get_y() + rect.get_height() / 2.,
-                      '{}'.format(height), ha=ha[xpos], va='bottom',
+                      '{:.4g}'.format(height), ha=ha[xpos], va='bottom',
                       size=8)
 
 
@@ -69,7 +76,6 @@ def create_subplot(matrix, colors, axis, title):
         autolabel(r, axis)
         bar_renderers.append(r)
     axis.set_title(title)
-    axis.text(0.5, -0.13, "policy-scheduler", ha="center", transform=axis.transAxes)
     return bar_renderers
 
 i = 0
@@ -82,7 +88,7 @@ for line in content[8:]:
     second_row = np.asarray(numbers[1::2]).astype(np.float)
 
     mat = np.array([first_row, second_row])
-    p.extend(create_subplot(mat, c_1_colors, ax[i], line_elems[0].replace('_', ' ')))
+    p.extend(create_subplot(mat, colors, ax[i], line_elems[0].replace('_', ' ')))
 
     tot_throughput = np.amax(mat.sum(axis=0))
 
@@ -92,11 +98,36 @@ for line in content[8:]:
 
 ax[0].set_ylabel('Interfered, interferers and total throughput') # add left y label
 ax[0].set_ybound(0, max_tot_throughput * 1.1) # add buffer at the top of the bars
+ax[0].text(-0.02, -0.025, 'I/O policy:\nScheduler:',
+        horizontalalignment='right',
+        verticalalignment='top',
+        transform=ax[0].transAxes)
 
-f.legend(((x[0] for x in p)), # bar properties
-         (c_1_labels),
-         bbox_to_anchor=(0.5, 0),
-         loc='lower center',
-         ncol=4)
-plt.savefig(fileprefix + '.eps')
-plt.show()
+class Handler(object):
+    def __init__(self, colors):
+        self.colors=colors
+    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+        x0, y0 = handlebox.xdescent, handlebox.ydescent
+        width, height = handlebox.width, handlebox.height
+        patch = plt.Rectangle([x0, y0], width, height, facecolor=self.colors[1],
+                                   edgecolor='none', transform=handlebox.get_transform())
+        patch2 = plt.Rectangle([x0, y0], width, height/2., facecolor=self.colors[0],
+                                   edgecolor='none', transform=handlebox.get_transform())
+        handlebox.add_artist(patch)
+        handlebox.add_artist(patch2)
+        return patch
+
+mpl.rcParams['hatch.linewidth'] = 10.0
+handles = [patches.Rectangle((0,0),1,1,ec='none', facecolor=colors[i]) for i  in range(3)]
+handles[2] = patches.Rectangle((0,0),1,1)
+
+f.legend(handles=handles, labels=labels,
+             handler_map={handles[2]: Handler(colors)},
+             bbox_to_anchor=(0.5, 0.05),
+             loc='lower center',
+             ncol=4)
+
+if len(sys.argv) > 2:
+    plt.savefig(fileprefix + '.' + sys.argv[2])
+else:
+    plt.show()
