@@ -425,10 +425,9 @@ function bandwidth-latency
 		       "-t read -T write" "-t randread -T write")
     run_case bandwidth-latency-sync-reads-or-writes-static
 
-    if [[ -d $RES_DIR/bandwidth-latency-read-sync-static ]]; then
-	echo "static workload of only sync reads" > \
-	     $RES_DIR/bandwidth-latency-read-sync-static/title.txt
-    fi
+    type_combinations=("-t read -T randread" "-t randread -T randread" \
+		       "-t read -T randwrite" "-t randread -T randwrite")
+    run_case bandwidth-latency-sync-rand-reads-or-writes-static
 }
 
 # MAIN
