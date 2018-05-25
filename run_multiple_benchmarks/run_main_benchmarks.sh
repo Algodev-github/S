@@ -378,9 +378,13 @@ function run_case
 
     rep_bw_lat="repeat $case_name"
 
-    for ((i = 0 ; i < ${#type_combinations[@]}; i++)); do
+    for ((idx = 0 ; idx < ${#type_combinations[@]}; idx++)); do
+	echo $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
+		    ${type_combinations[$idx]} -n 9 \
+		    -w $i_weight_limit -W \"$I_weights_limits\" \
+		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" "
 	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
-		    ${type_combinations[$i]} -n 9 \
+		    ${type_combinations[$idx]} -n 9 \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" "
     done
