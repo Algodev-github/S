@@ -242,15 +242,19 @@ function per_subdirectory_loop
 		"unreliable because workloads did not stop when asked to"
 	    ;;
 	bandwidth-latency)
+	    if [[ -f $1/title.txt ]]; then
+		scenario=" for a $(cat $1/title.txt)"
+	    fi
+
 	    write_header $thr_table_file "avg throughput of interfered, " \
 		none ""\
 		"avg total throughput of interferers" \
-		"" "Throughputs for a $(cat $1/title.txt)"
+		"" "Throughputs$scenario"
 	    write_header $target_quantity_table_file "Pair (avg latency, " \
 		none "" \
 		"std deviation)" \
 		"of I/O requests of interfered" \
-		"Latencies for a $(cat $1/title.txt)"
+		"Latencies$scenario"
 	    ;;
 	*)
 	    write_header $thr_table_file "Aggregate throughput [MB/sec]" \
