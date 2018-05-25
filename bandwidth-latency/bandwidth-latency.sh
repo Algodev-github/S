@@ -196,8 +196,9 @@ function start_fio_jobs {
 	fi
 	jobvar=$jobvar\
 "ioengine=$ioengine\n
-time_based=1\n
-runtime=$dur\n
+loops=10000\n
+#time_based=1\n # temporarily using loops because time_based broken for rand
+#runtime=$dur\n
 #rate_process=$process\n
 direct=$direct\n
 readwrite=$IOtype\n
@@ -231,7 +232,11 @@ function execute_intfered_and_shutdwn_intferers {
 		1 $i_direct $i_blocksize $i_filename
 	(start_fio_jobs interfered $duration ${i_weight_threshold} \
 		${i_IO_type} ${i_rate} linear $i_IO_depth \
-		1 $i_direct $i_blocksize $i_filename)
+		1 $i_direct $i_blocksize $i_filename) &
+
+	FIO_PID=$!
+	sleep $(( $duration + 5 )) # 5 seconds for ramptime
+	kill -INT $FIO_PID
 
 	shutdwn iostat
 	shutdwn fio
