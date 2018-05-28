@@ -377,6 +377,7 @@ function run_case
     case_name=$1
     iodepth=${2-1}
     bs="${3-4k}"
+    title=$4
 
     rep_bw_lat="repeat $case_name"
 
@@ -392,10 +393,8 @@ function run_case
     done
 
     if [[ -d $RES_DIR/$case_name ]]; then
-	echo "static workload of only sync reads" > \
-	     $RES_DIR/$case_name/title.txt
+	echo $title > $RES_DIR/$case_name/title.txt
     fi
-
 }
 
 function bandwidth-latency
@@ -409,17 +408,18 @@ function bandwidth-latency
     # tests for a Plextor SSD with a 515 MB/s peak rate
     case $policy in
 	prop)
-	    i_weight_limit=100
-	    I_weights_limits="50 50 50 50 100 100 100 100 100"
+	    i_weight_limit=200
+	    I_weights_limits="100 100 100 100 200 200 200 200 200"
 	    ;;
 	low)
-	    i_weight_limit=12M
-	    I_weights_limits="12M 12M 12M 12M 24M 24M 24M 24M 24M"
+	    i_weight_limit=10M
+	    I_weights_limits="10M 10M 10M 10M 20M 20M 20M 20M 20M"
 	    ;;
 	max)
-	    i_weight_limit=12M
-	    # total nominal bw for interferers: 500-12 =
-	    I_weights_limits="40M 40M 40M 40M 65M 65M 65M 65M 65M"
+	    i_weight_limit=10M
+	    # total nominal bw for interferers: 500-10 = 490, distributed
+	    # in accordance with weight ratios for the propshare policy
+	    I_weights_limits="35M 35M 35M 35M 70M 70M 70M 70M 70M"
 	    ;;
 	*)
 	    echo Unrecognized policy $policy
@@ -427,16 +427,23 @@ function bandwidth-latency
 	    ;;
     esac
 
-#    type_combinations=("-t read -T read" "-t randread -T read" \
-#		       "-t read -T write" "-t randread -T write")
-#    run_case bandwidth-latency-sync-reads-or-writes-static
+    type_combinations=("-t read -T read" "-t randread -T read" \
+		       "-t read -T write" "-t randread -T write")
+    run_case bandwidth-latency-static-sync-reads-or-writes \
+    	     1 4k "static interferer workload of seq sync reads or seq writes"
 
-#    type_combinations=("-t read -T randread" "-t randread -T randread" \
-#		       "-t read -T randwrite" "-t randread -T randwrite")
-#    run_case bandwidth-latency-sync-rand-reads-or-writes-static
+    type_combinations=("-t read -T \"randread randread randread read read read read read read\"" \
+	   "-t randread -T \"randread randread randread read read read read read read\"" \
+	  "-t read -T \"randwrite randwrite randwrite write write write write write write\"" \
+	 "-t randread -T \"randwrite randwrite randwrite write write write write write write\"")
+    run_case bandwidth-latency-static-sync-mixed-reads-or-writes \
+	     1 "\"4k 128k 1024k 4k 4k 4k 4k 4k 4k\"" \
+	     "static interferer workload of mixed sync reads or mixed writes"
 
-    type_combinations=("-t randread -T \"randread randread randread read read read read read read\"")
-    run_case bandwidth-latency-sync-rand-reads-or-writes-static 1 "\"4k 128k 1024k 4k 4k 4k 4k 4k 4k\""
+    type_combinations=("-t read -T randread" "-t randread -T randread")
+    run_case bandwidth-latency-static-sync-rand-reads-or-writes \
+	1 4k "static interferer workload of random sync reads"
+
 }
 
 # MAIN
