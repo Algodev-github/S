@@ -36,6 +36,8 @@ width = 0.5
 # works only with at least two subplots
 f, ax = plt.subplots(1, num_sub_plots, sharey=True, sharex=True, figsize=(10, 6))
 
+plt.subplots_adjust(top=0.86)
+
 #for axis in ax:
 #    axis.tick_params(axis='x', which='major', labelsize=6)
 
