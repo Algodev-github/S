@@ -6,7 +6,7 @@ import matplotlib.patches as patches
 import matplotlib.lines as mlines
 import sys
 import os
-
+import re
 
 if len(sys.argv) < 2:
     print ("Tell me the file name please")
@@ -79,7 +79,7 @@ def create_subplot(matrix, colors, axis, title):
                          align='edge')
         autolabel(r, axis)
         bar_renderers.append(r)
-    axis.set_title(title)
+    axis.set_title(title, size=10)
     return bar_renderers
 
 i = 0
@@ -92,7 +92,10 @@ for line in content[8:]:
     second_row = np.asarray(numbers[1::2]).astype(np.float)
 
     mat = np.array([first_row, second_row])
-    p.extend(create_subplot(mat, colors, ax[i], line_elems[0].replace('_', ' ')))
+    workload_name=line_elems[0].replace('_', ' ')
+    interferers_name = re.sub(r".*vs ", '', workload_name)
+    interfered_name = re.sub(r" vs.*", '', workload_name)
+    p.extend(create_subplot(mat, colors, ax[i], interferers_name + '\n' + interfered_name))
 
     tot_throughput = np.amax(mat.sum(axis=0))
 
@@ -106,6 +109,11 @@ ax[0].text(-0.02, -0.025, 'I/O policy:\nScheduler:',
         horizontalalignment='right',
         verticalalignment='top',
         transform=ax[0].transAxes)
+ax[0].text(-0.02, 1.012, 'Interferers:\nInterfered:',
+        horizontalalignment='right',
+        verticalalignment='bottom',
+        transform=ax[0].transAxes)
+
 
 ref_line=content[4].split()
 ref_value=ref_line[-1]
