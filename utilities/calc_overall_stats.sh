@@ -130,8 +130,15 @@ function write_header
     echo "# First column: Workload" >> $1
     echo "# Next columns: $2$5" >> $1
     echo "#               $6" >> $1
-    echo "# Reference case: $3" >> $1
-    echo "# Reference-case meaning: $4" >> $1
+
+    if [[ $res_type != bandwidth-latency ]]; then
+	echo "# Reference case: $3" >> $1
+	echo "# Reference-case meaning: $4" >> $1
+    else
+	echo "# Reference value: $3" >> $1
+	echo "# Reference-value meaning: $4" >> $1
+    fi
+
     echo "#" >> $1
     if [[ $res_type == bandwidth-latency ]]; then
 	printf "%-${WL_FIELD_LEN}s" "# Workload  " >> $1
@@ -243,11 +250,19 @@ function per_subdirectory_loop
 	    ;;
 	bandwidth-latency)
 	    if [[ -f $1/title.txt ]]; then
-		scenario=" for a $(cat $1/title.txt)"
+		scenario=" for $(cat $1/title.txt)"
+	    fi
+
+	    if [[ -f $1/ref_value.txt ]]; then
+		ref_value=$(cat $1/ref_value.txt)
+	    fi
+
+	    if [[ "$ref_value" == "" ]]; then
+		ref_value=none
 	    fi
 
 	    write_header $thr_table_file "avg throughput of interfered, " \
-		none ""\
+		$ref_value "min bw to guarantee"\
 		"avg total throughput of interferers" \
 		"" "Throughputs$scenario"
 	    write_header $target_quantity_table_file "Pair (avg latency, " \
@@ -323,13 +338,23 @@ function per_subdirectory_loop
 		    if [[ "$res_type" == bandwidth-latency ]]; then
 			wl_improved_name=$(tail -n 5 $out_file | head -n 1)
 			wl_improved_name=$(echo $wl_improved_name | \
-					sed 's/Results for //g')
+					sed 's/Results for one //g')
 			wl_improved_name=$(echo $wl_improved_name | \
-					sed 's/against/vs/g')
+					       sed 's/against/vs/g')
+			wl_improved_name=$(echo $wl_improved_name | \
+					       sed 's/[0-9][0-9]* //g')
+			wl_improved_name=$(echo $wl_improved_name | \
+					       sed 's/^read/^randread/g')
+			wl_improved_name=$(echo $wl_improved_name | \
+					       sed 's/^write/^randwrite/g')
+			wl_improved_name=$(echo $wl_improved_name | \
+					       sed 's/vs_read/vs_seqread/g')
+			wl_improved_name=$(echo $wl_improved_name | \
+					       sed 's/vs_write/vs_seqwrite/g')
 			wl_improved_name=$(echo $wl_improved_name | \
 					sed 's/ (I.*//g')
 			wl_improved_name=$(echo $wl_improved_name | \
-					sed 's/ /_/g')
+					       sed 's/ /_/g')
 		    else
 			wl_improved_name=`echo $workload_filter | sed 's/0w//'`
 		    fi

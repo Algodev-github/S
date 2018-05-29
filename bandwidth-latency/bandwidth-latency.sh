@@ -274,11 +274,42 @@ function compute_statistics {
 	i_tot_lat_avg=$(awk '{print $11+$15}' < interfered-stats.txt)
 	i_tot_lat_dev=$(awk '{print $12+$16}' < interfered-stats.txt)
 
-	if [[ ${#I_IO_types[@]} -gt 1 ]]; then
-	    I_workload="mixed I/O sources"
+	if [[ "$(echo $i_IO_type | egrep read)" != "" ]]; then
+	    i_what=reader
 	else
-	    I_workload="${I_IO_types[0]}s"
+	    i_what=writer
 	fi
+
+	if [[ "$(echo $i_IO_type | egrep rand)" != "" ]]; then
+	    i_what="rand $i_what"
+	else
+	    i_what="seq $i_what"
+	fi
+
+	I_mix=$(echo ${I_IO_types[@]} | egrep read)
+
+	if [[ "$I_mix" == "" ]]; then
+	    I_mix=writers
+	elif [[ "$(echo ${I_IO_types[@]} | egrep write)" != "" ]]; then
+	    I_mix="readers/writers"
+	else
+	    I_mix=readers
+	fi
+
+	I_num_rand=$(echo ${I_IO_types[@]} | awk -F'rand' 'NF{print NF-1}')
+	I_tot_num_types=$(echo ${I_IO_types[@]} | wc -w)
+
+	case $I_num_rand in
+	    $I_tot_num_types)
+		I_mix="rand "$I_mix
+		;;
+	    0)
+		I_mix="seq "$I_mix
+		;;
+	    *)
+		I_mix="seq/rand "$I_mix
+		;;
+	esac
 
 	if [[ $i_IO_depth != $I_IO_depth ]]; then
 	    IO_depth_part="I/O depths: $i_IO_depth / $I_IO_depth"
@@ -292,8 +323,8 @@ function compute_statistics {
 	    param_name=limits
 	fi
 
-	echo Results for $i_IO_type against \
-	     $((num_I_per_group * num_groups)) $I_workload \
+	echo Results for one $i_what against \
+	     $((num_I_per_group * num_groups)) $I_mix \
 	     \($IO_depth_part\), \
 	     $type_bw_control-$sched with $param_name: \
 	     \($i_weight_threshold, ${I_weight_thresholds[@]}\)\
@@ -473,7 +504,7 @@ controller=blkio
 
 if [[ "$type_bw_control" == low ]]; then
     # NOTE: cgroups-v2 needed to use low limits
-    # (which must also be enabled in the kernel)
+    # (the latter must also be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
     if [[ "$groupdirs" != "" ]]; then
 	umount $groupdirs # to make the io controller available
