@@ -259,7 +259,7 @@ function parse_table
 	lines+=("$line")
 	if [[ $(echo $line | grep ^#) == "" ]] ; then
 	    first_word=$(echo $line | awk '{printf $1}')
-	    rest_of_line=$(echo $line | sed 's/'$first_word' //')
+	    rest_of_line=$(echo $line | sed 's<'$first_word' <<')
 
 	    for number in $rest_of_line; do
 		tmp_max=`get_max_value $number $max_value`
@@ -311,7 +311,7 @@ function parse_table
     ((line_idx += 3))
 
     first_word=$(echo ${lines[$line_idx]} | sed 's/# //' | awk '{print $1}')
-    scheduler_string=$(echo ${lines[$line_idx]} | sed 's/# '"$first_word"' //')
+    scheduler_string=$(echo ${lines[$line_idx]} | sed 's<# '"$first_word"' <<')
 
     schedulers=()
     for sched in $scheduler_string; do
