@@ -23,7 +23,8 @@ headline=content[7].split()
 
 scheds=headline[2:]
 
-colors = ['0.5', '0.85', 'white', 'white']
+colors = ['0.5', '0.85']
+legend_colors = ['0.85', '0.5', 'white', 'white']
 labels = ['Avg cumulative throughput of interferers',
           'Avg throughput of interfered',
           'Avg total throughput (sum of bars)',
@@ -128,7 +129,7 @@ class Handler(object):
         return patch
 
 mpl.rcParams['hatch.linewidth'] = 10.0
-handles = [patches.Rectangle((0,0),1,1,ec='none', facecolor=colors[i]) for i in range(4)]
+handles = [patches.Rectangle((0,0),1,1,ec='none', facecolor=legend_colors[i]) for i in range(4)]
 handles[2] = patches.Rectangle((0,0),1,1)
 
 handles[3] = mlines.Line2D([], [], ls='dashed', c='black', lw=1)
