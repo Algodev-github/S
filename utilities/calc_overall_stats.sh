@@ -146,7 +146,7 @@ function write_header
 	echo -en "# Workload  " >> $1
     fi
     for sched in $SCHEDULERS; do
-	printf "%16s" $sched >> $1
+	printf "%20s" $sched >> $1
     done
     echo >> $1
 }
@@ -170,7 +170,7 @@ function set_res_type
 	    ;;
 	bandwidth-latency)
 	    res_type=bandwidth-latency
-	    WL_FIELD_LEN=30
+	    WL_FIELD_LEN=40
 	    ;;
 	*)
 	    echo Fatal: no known type found for $1!
@@ -316,10 +316,10 @@ function per_subdirectory_loop
 	    file_loop $single_test_res_dir
 	    if [ ! -f line_file0 ]; then
 		if [[ "$line_created" == True ]]; then
-		    printf "%16s" X >> $thr_table_file
+		    printf "%20s" X >> $thr_table_file
 
 		    if [[ $res_type != throughput ]]; then
-			printf "%16s" X >> $target_quantity_table_file
+			printf "%20s" X >> $target_quantity_table_file
 		    fi
 		fi
 		numX=$((numX + 1))
@@ -363,14 +363,14 @@ function per_subdirectory_loop
 			   $thr_table_file
 
 		    for ((i = 0 ; i < numX ; i++)) ; do
-			printf "%16s" X >> $thr_table_file
+			printf "%20s" X >> $thr_table_file
 		    done
 
 		    if [[ $res_type != throughput ]]; then
 			printf "%-${WL_FIELD_LEN}s" "  $wl_improved_name" \
 			    >> $target_quantity_table_file
 			for ((i = 0 ; i < numX ; i++)) ; do
-			    printf "%16s" X >> $target_quantity_table_file
+			    printf "%20s" X >> $target_quantity_table_file
 			done
 		    fi
 		    line_created=True
@@ -401,12 +401,12 @@ function per_subdirectory_loop
 			    else
 				interf_tot_thr=$tot_thr
 			    fi
-			    printf "%8s%8s" $target_field $interf_tot_thr >> \
+			    printf "%10s%10s" $target_field $interf_tot_thr >> \
 				   $thr_table_file
 			else # it's interfered latency
 			    std_dev=$(tail -n 1 $out_file |\
 					  awk '{printf "%.3f\n", $4}')
-			    printf "%8s%8s" $target_field $std_dev >> \
+			    printf "%10s%10s" $target_field $std_dev >> \
 				   $target_quantity_table_file
 			fi
 		    fi
@@ -433,7 +433,7 @@ function per_subdirectory_loop
 			target_field=X
 		    fi
 
-		    printf "%16s" $target_field >> $target_quantity_table_file
+		    printf "%20s" $target_field >> $target_quantity_table_file
 		elif [[ "$res_type" != bandwidth-latency ]] && \
 			 ((((cur_quant == 0)) && \
 		      [[ "$res_type" != video_playing ]]) ||
@@ -447,7 +447,7 @@ function per_subdirectory_loop
 			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
 		    fi
-		    printf "%16s" $target_field  >> $thr_table_file
+		    printf "%20s" $target_field  >> $thr_table_file
 		fi
 
 		rm line_file$cur_quant number_file$cur_quant
