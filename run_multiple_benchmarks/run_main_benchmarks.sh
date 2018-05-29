@@ -378,6 +378,7 @@ function run_case
     iodepth=${2-1}
     bs="${3-4k}"
     title=$4
+    ref_value=$5
 
     rep_bw_lat="repeat $case_name"
 
@@ -394,6 +395,7 @@ function run_case
 
     if [[ -d $RES_DIR/$case_name ]]; then
 	echo $title > $RES_DIR/$case_name/title.txt
+	echo $ref_value > $RES_DIR/$case_name/ref_value.txt
     fi
 }
 
@@ -408,7 +410,7 @@ function bandwidth-latency
     # tests for a Plextor SSD with a 515 MB/s peak rate
     case $policy in
 	prop)
-	    i_weight_limit=200
+	    i_weight_limit=300
 	    I_weights_limits="100 100 100 100 200 200 200 200 200"
 	    ;;
 	low)
@@ -427,22 +429,25 @@ function bandwidth-latency
 	    ;;
     esac
 
-    type_combinations=("-t read -T read" "-t randread -T read" \
-		       "-t read -T write" "-t randread -T write")
-    run_case bandwidth-latency-static-sync-reads-or-writes \
-    	     1 4k "static interferer workload of seq sync reads or seq writes"
 
-    type_combinations=("-t read -T \"randread randread randread read read read read read read\"" \
-	   "-t randread -T \"randread randread randread read read read read read read\"" \
-	  "-t read -T \"randwrite randwrite randwrite write write write write write write\"" \
-	 "-t randread -T \"randwrite randwrite randwrite write write write write write write\"")
+    type_combinations=("-t randread -T read" "-t read -T read" \
+		       "-t randread -T write" "-t read -T write")
+    run_case bandwidth-latency-static-sync-reads-or-writes \
+	     1 4k "static interferer workloads made of seq sync reads or seq writes" 10
+
+    type_combinations=("-t randread -T \"randread randread randread read read read read read read\"" \
+	   "-t read -T \"randread randread randread read read read read read read\"" \
+	   "-t randread -T \"randwrite randwrite randwrite write write write write write write\"" \
+	   "-t read -T \"randwrite randwrite randwrite write write write write write write\"")
     run_case bandwidth-latency-static-sync-mixed-reads-or-writes \
 	     1 "\"4k 128k 1024k 4k 4k 4k 4k 4k 4k\"" \
-	     "static interferer workload of mixed sync reads or mixed writes"
+	     "static interferer workloads made of seq/rand sync reads or seq/rand writes" 10
 
-    type_combinations=("-t read -T randread" "-t randread -T randread")
+    type_combinations=("-t randread -T randread" "-t read -T randread")
     run_case bandwidth-latency-static-sync-rand-reads-or-writes \
-	1 4k "static interferer workload of random sync reads"
+	     1 4k "static interferer workloads made of random sync reads" 10
+
+    # mixed I/O (seq/rand readers/writers)
 
 }
 
