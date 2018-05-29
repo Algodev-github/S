@@ -3,8 +3,10 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.lines as mlines
 import sys
 import os
+
 
 if len(sys.argv) < 2:
     print ("Tell me the file name please")
@@ -21,10 +23,11 @@ headline=content[7].split()
 
 scheds=headline[2:]
 
-colors = ['0.5', '0.85', 'white']
-labels = ['Interfered avg throughput',
-          'Interferers avg cumulative throughput',
-          'Avg total throughput (sum of bars)']
+colors = ['0.5', '0.85', 'white', 'white']
+labels = ['Avg cumulative throughput of interferers',
+          'Avg throughput of interfered',
+          'Avg total throughput (sum of bars)',
+          'Min avg throughput to be guaranteed to interfered']
 
 ind = np.arange(len(scheds))
 width = 0.5
@@ -103,6 +106,13 @@ ax[0].text(-0.02, -0.025, 'I/O policy:\nScheduler:',
         verticalalignment='top',
         transform=ax[0].transAxes)
 
+ref_line=content[4].split()
+ref_value=ref_line[-1]
+
+if ref_value.replace('.','',1).isdigit():
+    [axis.axhline(y=float(ref_value), xmin=0.0, xmax=1, ls='dashed', c='black', lw=1) for axis in ax]
+
+
 class Handler(object):
     def __init__(self, colors):
         self.colors=colors
@@ -118,14 +128,16 @@ class Handler(object):
         return patch
 
 mpl.rcParams['hatch.linewidth'] = 10.0
-handles = [patches.Rectangle((0,0),1,1,ec='none', facecolor=colors[i]) for i  in range(3)]
+handles = [patches.Rectangle((0,0),1,1,ec='none', facecolor=colors[i]) for i in range(4)]
 handles[2] = patches.Rectangle((0,0),1,1)
+
+handles[3] = mlines.Line2D([], [], ls='dashed', c='black', lw=1)
 
 f.legend(handles=handles, labels=labels,
              handler_map={handles[2]: Handler(colors)},
-             bbox_to_anchor=(0.5, 0.05),
+             bbox_to_anchor=(0.5, -0.0),
              loc='lower center',
-             ncol=4)
+             ncol=2)
 
 if len(sys.argv) > 2:
     plt.savefig(fileprefix + '.' + sys.argv[2])
