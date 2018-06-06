@@ -433,7 +433,7 @@ function bandwidth-latency
     type_combinations=("-t randread -T read" "-t read -T read" \
 		       "-t randread -T write" "-t read -T write")
     run_case bandwidth-latency-static-sync-reads-or-writes \
-	     1 4k "static interferer workloads made of seq sync reads or seq writes" 10
+	     1 4k "static interferer workloads made of seq sync readers or seq writers" 10
 
     type_combinations=("-t randread -T \"randread randread randread read read read read read read\"" \
 	   "-t read -T \"randread randread randread read read read read read read\"" \
@@ -441,11 +441,11 @@ function bandwidth-latency
 	   "-t read -T \"randwrite randwrite randwrite write write write write write write\"")
     run_case bandwidth-latency-static-sync-mixed-reads-or-writes \
 	     1 "\"4k 128k 1024k 4k 4k 4k 4k 4k 4k\"" \
-	     "static interferer workloads made of seq/rand sync reads or seq/rand writes" 10
+	     "static interferer workloads made of seq/rand sync readers or seq/rand writers" 10
 
     type_combinations=("-t randread -T randread" "-t read -T randread")
     run_case bandwidth-latency-static-sync-rand-reads-or-writes \
-	     1 4k "static interferer workloads made of random sync reads" 10
+	     1 4k "static interferer workloads made of random sync readers" 10
 
     # mixed I/O (seq/rand readers/writers)
 
