@@ -379,6 +379,7 @@ function run_case
     bs="${3-4k}"
     title=$4
     ref_value=$5
+    rates="${6-\"MAX MAX MAX MAX 0 0 0 0 0\"}"
 
     rep_bw_lat="repeat $case_name"
 
@@ -386,11 +387,11 @@ function run_case
 	echo $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 9 \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
-		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" -q $iodepth -Q $iodepth -Z $bs"
+		    -R $rates -q $iodepth -Q $iodepth -Z $bs"
 	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 9 \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
-		    -R \"MAX MAX MAX MAX 0 0 0 0 0\" -q $iodepth -Q $iodepth -Z $bs"
+		    -R $rates -q $iodepth -Q $iodepth -Z $bs"
     done
 
     if [[ -d $RES_DIR/$case_name ]]; then
@@ -429,25 +430,31 @@ function bandwidth-latency
 	    ;;
     esac
 
-
     type_combinations=("-t randread -T read" "-t read -T read" \
 		       "-t randread -T write" "-t read -T write")
     run_case bandwidth-latency-static-sync-reads-or-writes \
-	     1 4k "static interferer workloads made of seq sync readers or seq writers" 10
+	     1 4k "static interferer workloads, made of seq sync readers or seq writers" 10
 
     type_combinations=("-t randread -T \"randread randread randread read read read read read read\"" \
 	   "-t read -T \"randread randread randread read read read read read read\"" \
 	   "-t randread -T \"randwrite randwrite randwrite write write write write write write\"" \
 	   "-t read -T \"randwrite randwrite randwrite write write write write write write\"")
-    run_case bandwidth-latency-static-sync-mixed-reads-or-writes \
+    run_case bandwidth-latency-static-var-rand-sync-reads-or-writes \
 	     1 "\"4k 128k 1024k 4k 4k 4k 4k 4k 4k\"" \
-	     "static interferer workloads made of seq/rand sync readers or seq/rand writers" 10
+	     "static interferer workloads, made of sync readers or writers, with varying randomness" 10
 
     type_combinations=("-t randread -T randread" "-t read -T randread")
-    run_case bandwidth-latency-static-sync-rand-reads-or-writes \
-	     1 4k "static interferer workloads made of random sync readers" 10
+    run_case bandwidth-latency-static-only-sync-rand-reads \
+	     1 4k "static interferer workloads, made of random sync readers" 10
 
     # mixed I/O (seq/rand readers/writers)
+    type_combinations=("-t randread -T \"randread read randwrite write read read read read read\"" \
+	   "-t read -T \"randread read randwrite write read read read read read\"" )
+    run_case bandwidth-latency-dynamic-seq-rand-sync-reads-and-writes \
+	     1 "\"4k 4k 4k 4k 10000k 10000k 10000k 10000k 10000k\"" \
+	     "a dynamic interferer workload, made of seq and rand sync readers and writers" 10 \
+	     "\"MAX MAX MAX MAX 50M 50M 50M 50M 50M\""
+
 
 }
 
