@@ -228,10 +228,10 @@ invalidate=1\n
 function execute_intfered_and_shutdwn_intferers {
 	# start interfered in parallel
 	echo start_fio_jobs interfered $duration ${i_weight_threshold} \
-		${i_IO_type} ${i_rate} linear $i_IO_depth \
+		${i_IO_type} ${i_rate} $i_process $i_IO_depth \
 		1 $i_direct $i_blocksize $i_filename
 	(start_fio_jobs interfered $duration ${i_weight_threshold} \
-		${i_IO_type} ${i_rate} linear $i_IO_depth \
+		${i_IO_type} ${i_rate} $i_process $i_IO_depth \
 		1 $i_direct $i_blocksize $i_filename) &
 
 	FIO_PID=$!
