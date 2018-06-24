@@ -379,7 +379,8 @@ function run_case
     bs="${3-4k}"
     title=$4
     ref_value=$5
-    rates="${6-\"MAX MAX MAX MAX 0 0 0 0 0\"}"
+    I_rates="${6-\"MAX MAX MAX MAX 0 0 0 0 0\"}"
+    i_rate=${7-MAX}
 
     rep_bw_lat="repeat $case_name"
 
@@ -387,11 +388,13 @@ function run_case
 	echo $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 9 \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
-		    -R $rates -q $iodepth -Q $iodepth -Z $bs"
+		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
+		    -r $i_rate"
 	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 9 \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
-		    -R $rates -q $iodepth -Q $iodepth -Z $bs"
+		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
+		    -r $i_rate"
     done
 
     if [[ -d $RES_DIR/$case_name ]]; then
@@ -408,7 +411,7 @@ function bandwidth-latency
     schedname=$(echo $sched | sed 's/[^-]*-//')
     policy=$(echo $sched | sed "s/-$schedname//g")
 
-    # tests for a Plextor SSD with a 515 MB/s peak rate
+    # throughput tests for a Plextor SSD with a 515 MB/s peak rate
     case $policy in
 	prop)
 	    i_weight_limit=300
@@ -455,7 +458,42 @@ function bandwidth-latency
 	     "a dynamic interferer workload, made of seq and rand sync readers and writers" 10 \
 	     "\"MAX MAX MAX MAX 50M 50M 50M 50M 50M\""
 
+    # latency tests for a Plextor SSD with a 515 MB/s peak rate
+    case $policy in
+	prop)
+	    # infinite relative weight for interfered
+	    i_weight_limit=1000
+	    I_weights_limits="1 1 1 1 2 2 2 2 2"
+	    ;;
+	low)
+	    # give interfered a higher bandwidth than the maximum
+	    # bandwidth it could reach on this device (23MB/s), so as
+	    # to help throttling, as much as possible, to guaranteed
+	    # minimum possible latency to interfered I/O
+	    i_weight_limit=30M
+	    I_weights_limits="10M 10M 10M 10M 20M 20M 20M 20M 20M"
+	    ;;
+	max)
+	    # give interfered a higher bandwidth than the maximum
+	    # bandwidth it could reach on this device, with the same
+	    # goal as above for low limits
+	    i_weight_limit=30M
+	    # total nominal bw for interferers: 500-30 = 470,
+	    # distributed more or less in accordance with interferer
+	    # weight ratios for the propshare policy
+	    I_weights_limits="30M 30M 30M 30M 70M 70M 70M 70M 70M"
+	    ;;
+	*)
+	    echo Unrecognized policy $policy
+	    return
+	    ;;
+    esac
 
+#    # maximum intensity for interferers, very low rate for interfered
+#    type_combinations=("-t randread -T read")
+#    run_case bandwidth-latency-static-intense-read 1 4k \
+# 	     "a static, intense interferer workload, made of seq sync readers" 10 \
+# 	     MAX 1M
 }
 
 # MAIN
