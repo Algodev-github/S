@@ -151,7 +151,7 @@ function clean_and_exit {
 	umount /cgroup
 	rm -rf /cgroup
 
-	rm -f interfered*-stats.txt Interfer*-stats.txt
+	rm -f interfered*-stats.txt
 	rm iostat.out iostat-aggthr
 
 	restore_low_latency
@@ -211,18 +211,24 @@ ramp_time=5\n
 invalidate=1\n
 [$name]
 "
-	echo -e $jobvar | $FIO_PATH --minimal - | \
-	awk 'BEGIN{FS=";"}{print $42, $43, $7, $46, $83, $84, $48, $87,\
-		$38, $39, $40, $41, $79, $80, $81, $82}' \
-	> ${name}-stats.txt
 
-	output=$(cat ${name}-stats.txt)
-	rm ${name}-stats.txt
-	for field in $output; do
+	if [[ $name == interfered ]]; then
+	    echo -e $jobvar | $FIO_PATH --minimal - | \
+		awk 'BEGIN{FS=";"}{print $42, $43, $7, $46, $83, $84, $48, $87,\
+		    $38, $39, $40, $41, $79, $80, $81, $82}' \
+		    > ${name}-stats.txt
+
+	    output=$(cat ${name}-stats.txt)
+	    rm ${name}-stats.txt
+	    for field in $output; do
 		echo -n "$(echo "$field/1000" | bc -l) " \
-			>> ${name}-stats.txt
-	done
-	echo >> ${name}-stats.txt
+		     >> ${name}-stats.txt
+	    done
+	    echo >> ${name}-stats.txt
+	else
+	    echo -e $jobvar | $FIO_PATH - > ${name}-stats.txt
+	fi
+
 }
 
 function execute_intfered_and_shutdwn_intferers {
