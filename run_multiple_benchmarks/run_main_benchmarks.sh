@@ -52,7 +52,7 @@ for startup, replayed-startup and video-playing tests too.
 Examples.
 # Run all default benchmarks for all available schedulers, using fs, without
 # random-I/O workoads in the background. This invocation is the one requiring
-# most dependincies, plus the execution of X applications. Check next example
+# most dependencies, plus the execution of X applications. Check next example
 # for lighter requirements.
 sudo ./run_main_benchmarks.sh
 

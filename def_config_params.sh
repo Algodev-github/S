@@ -114,7 +114,7 @@ elif [[ "$FIRST_PARAM" != "-h" ]]; then
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
 
     if [[ $(( ($FREESPACE + $BASE_DIR_SIZE) / 1024 )) -lt 500 ]]; then
-	echo Not enogh free space for test files: I need at least 500MB
+	echo Not enough free space for test files in $BASE_DIR: I need at least 500MB
 	exit
     fi
 
