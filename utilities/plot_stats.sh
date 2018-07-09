@@ -22,7 +22,15 @@ plot_stats.sh <table_file>|<table_dir> [<ref_mode>] [<term_mode>]
 
 "
 
-../utilities/check_dependencies.sh bash awk gnuplot bc
+if [[ "$PRINT_TABLES" == yes ]]; then
+    ../utilities/check_dependencies.sh bash awk bc
+else
+    ../utilities/check_dependencies.sh bash awk gnuplot bc
+fi
+if [[ $? -ne 0 ]]; then
+    exit
+fi
+
 . ../utilities/lib_utils.sh
 
 if [ $term_mode == "eps" ] ; then
@@ -156,6 +164,11 @@ function plot_histograms()
     ref_label=$8
     ref_value=$9
     max_y=${10}
+
+    type gnuplot >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+	return
+    fi
 
     rm -f tmp.txt
     write_basic_plot_conf $num_bars $out_file_path
@@ -381,5 +394,15 @@ else
 	fi
     else
 	echo $1 is not either a table file or a directory
+	exit
     fi
+fi
+
+if [[ "$(echo $1 | \
+       egrep "bandwidth-latency.*-bw-table.txt")" != "" ]]; then
+    exit
+fi
+type gnuplot >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+    echo Install gnuplot if you want to get plots too
 fi
