@@ -96,13 +96,13 @@ function get_max_affordable_file_size
 # BASE_DIR is where test files are read from or written to
 if [[ "$SCSI_DEBUG" == yes ]]; then
     use_scsi_debug_dev # this will set BASE_DIR
-else
+elif [[ "$FIRST_PARAM" != "-h" ]]; then
     BASE_DIR=/var/lib/S # or the directory you prefer
 
-    if [[ "$FIRST_PARAM" != "-h" && ! -d $BASE_DIR ]]; then
+    if [[ ! -d $BASE_DIR ]]; then
 	mkdir $BASE_DIR
     fi
-    if [[ "$FIRST_PARAM" != "-h" && ! -w $BASE_DIR ]]; then
+    if [[ ! -w $BASE_DIR ]]; then
 	echo "$BASE_DIR is not writeable, reverting to /tmp/test"
 	BASE_DIR=/tmp/test
 	mkdir -p $BASE_DIR
@@ -118,7 +118,7 @@ else
 	exit
     fi
 
-    if [[ "$FIRST_PARAM" != "-h" && -d $BASE_DIR ]]; then
+    if [[ -d $BASE_DIR ]]; then
 	find_dev_for_dir $BASE_DIR
     fi
 fi
