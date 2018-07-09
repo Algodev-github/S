@@ -31,8 +31,13 @@ function find_dev_for_dir
 	PART=$(ls /sys/block/$PART/slaves | cut -f 1 -d " ")
     fi
 
-    # get device from partition
-    BACKING_DEV=$(basename "$(readlink -f "/sys/class/block/$PART/..")")
+    if [[ "$(echo $PART | egrep loop)" != "" ]]; then
+	# loopback device: $PART is already equal to the device name
+	BACKING_DEV=$PART
+    else
+	# get device from partition
+	BACKING_DEV=$(basename "$(readlink -f "/sys/class/block/$PART/..")")
+    fi
 
     if [[ "$BACKING_DEV" == "" ]]; then
 	echo Block device for partition $PART unrecongnized.
