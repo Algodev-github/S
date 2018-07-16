@@ -184,7 +184,7 @@ function repeat
 			echo Stats file $RES_DIR/$1/repetition$i/$out_filename not found
 			failed=true
 		    else
-			newnumfiles=$(ls -1U $RES_DIR/$1/repetition$i/*-stat.txt \
+			newnumfiles=$(ls -1U $RES_DIR/$1/repetition$i/*stat.txt \
 					 2> /dev/null|\
 					  wc -l)
 			if [[ $newnumfiles -le $oldnumfiles ]]; then
