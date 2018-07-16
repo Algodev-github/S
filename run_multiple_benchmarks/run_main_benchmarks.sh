@@ -183,7 +183,7 @@ function repeat
 			  ! -f $RES_DIR/$1/repetition$i/$out_filename ]] ; then
 			echo Stats file $RES_DIR/$1/repetition$i/$out_filename not found
 			failed=true
-		    else
+		    elif [[ "$out_filename" == "" ]]; then
 			newnumfiles=$(ls -1U $RES_DIR/$1/repetition$i/*stat.txt \
 					 2> /dev/null|\
 					  wc -l)
