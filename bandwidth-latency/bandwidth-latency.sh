@@ -219,6 +219,11 @@ invalidate=1\n
 		    > ${name}-stats.txt
 
 	    output=$(cat ${name}-stats.txt)
+	    if [[ "$output" == "" ]]; then
+		echo Fatal: empty interfered output
+		clean_and_exit
+	    fi
+
 	    rm ${name}-stats.txt
 	    for field in $output; do
 		echo -n "$(echo "$field/1000" | bc -l) " \
@@ -228,7 +233,12 @@ invalidate=1\n
 	else
 	    echo -e $jobvar | $FIO_PATH - > ${name}-stats.txt
 	fi
-
+	# For some reason, the waiting of this job (when this job is
+	# started in parallel) occasionally terminated before writes
+	# to ${name}-stats.txt are seen by the parent process. The
+	# following one-second wait seem to have eliminated this
+	# issue.
+	sleep 1
 }
 
 function execute_intfered_and_shutdwn_intferers {
