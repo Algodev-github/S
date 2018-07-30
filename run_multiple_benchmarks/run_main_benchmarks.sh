@@ -411,7 +411,8 @@ function bandwidth-latency
     schedname=$(echo $sched | sed 's/[^-]*-//')
     policy=$(echo $sched | sed "s/-$schedname//g")
 
-    # throughput tests for a Plextor SSD with a 515 MB/s peak rate
+    # throughput tests for a Plextor SSD with a 515 MB/s sequential
+    # peak rate, and a 160MB/s random peak rate
     case $policy in
 	prop)
 	    i_weight_limit=300
@@ -423,9 +424,13 @@ function bandwidth-latency
 	    ;;
 	max)
 	    i_weight_limit=10M
-	    # total nominal bw for interferers: 500-10 = 490, distributed
-	    # in accordance with weight ratios for the propshare policy
-	    I_weights_limits="35M 35M 35M 35M 70M 70M 70M 70M 70M"
+	    # total nominal bw for interferers: 160-10 = 150, plus
+	    # 30MB/s of overcommit, to help throttling reach a
+	    # slightly higher throughput in case not all groups are
+	    # active. This nominal bw is distributed in accordance
+	    # with low-limit ratios, and with weight ratios for the
+	    # propshare policy
+	    I_weights_limits="15M 15M 15M 15M 30M 30M 30M 30M 30M"
 	    ;;
 	*)
 	    echo Unrecognized policy $policy
