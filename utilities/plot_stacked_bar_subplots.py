@@ -23,12 +23,19 @@ headline=content[7].split()
 
 scheds=headline[2:]
 
+no_pol_idx=next( (i for i, x in enumerate(scheds) if x=='none-none'), -1)
+
+if no_pol_idx != -1:
+    del scheds[no_pol_idx]
+
 colors = ['0.5', '0.85']
-legend_colors = ['0.85', '0.5', 'white', 'white']
-labels = ['Avg cumulative throughput of interferers',
+legend_colors = ['0.85', '0.5', 'white', 'white', 'white']
+labels = ['Cumulative avg throughput of interferers',
           'Avg throughput of interfered',
           'Avg total throughput (sum of bars)',
-          'Min avg throughput to be guaranteed to interfered']
+          'Avg throughput reached without any I/O control',
+          'Min avg throughput to be guaranteed to interfered'
+          ]
 
 ind = np.arange(len(scheds))
 width = 0.5
@@ -41,7 +48,7 @@ plt.subplots_adjust(top=0.86)
 #for axis in ax:
 #    axis.tick_params(axis='x', which='major', labelsize=6)
 
-f.subplots_adjust(bottom=0.2) #make room for the legend
+f.subplots_adjust(bottom=0.2) # make room for the legend
 
 scheds = [sched.replace('-', '\n', 1) for sched in scheds]
 
@@ -70,7 +77,7 @@ def autolabel(rects, axis, xpos='center'):
 
 
 p = [] # list of bar properties
-def create_subplot(matrix, colors, axis, title):
+def create_subplot(matrix, colors, axis, title, reachable_thr):
     bar_renderers = []
     ind = np.arange(matrix.shape[1])
 
@@ -81,6 +88,11 @@ def create_subplot(matrix, colors, axis, title):
                          align='edge')
         autolabel(r, axis)
         bar_renderers.append(r)
+
+    if reachable_thr > 0:
+        axis.axhline(y=float(reachable_thr), xmin=0.0, xmax=1, ls='dashed', dashes=(7, 7),
+                         c='black', lw=1)
+
     axis.set_title(title, size=10)
     return bar_renderers
 
@@ -90,14 +102,22 @@ for line in content[8:]:
     line_elems = line.split()
     numbers = line_elems[1:]
 
-    first_row = np.asarray(numbers[::2]).astype(np.float)
-    second_row = np.asarray(numbers[1::2]).astype(np.float)
+    first_row = np.asarray(numbers[::2]).astype(np.float).tolist()
+    second_row = np.asarray(numbers[1::2]).astype(np.float).tolist()
+
+    reachable_thr = 0
+    if no_pol_idx != -1:
+        reachable_thr = first_row[no_pol_idx] + second_row[no_pol_idx]
+        del first_row[no_pol_idx]
+        del second_row[no_pol_idx]
+        max_tot_throughput = max(max_tot_throughput, reachable_thr)
 
     mat = np.array([first_row, second_row])
     workload_name=line_elems[0].replace('_', ' ')
     interferers_name = re.sub(r".*vs ", '', workload_name)
     interfered_name = re.sub(r" vs.*", '', workload_name)
-    p.extend(create_subplot(mat, colors, ax[i], interferers_name + '\n' + interfered_name))
+    p.extend(create_subplot(mat, colors, ax[i], interferers_name + '\n' + interfered_name,
+                                reachable_thr))
 
     tot_throughput = np.amax(mat.sum(axis=0))
 
@@ -139,10 +159,11 @@ class Handler(object):
         return patch
 
 mpl.rcParams['hatch.linewidth'] = 10.0
-handles = [patches.Rectangle((0,0),1,1,ec='none', facecolor=legend_colors[i]) for i in range(4)]
+handles = [patches.Rectangle((0,0),1,1,ec='none', facecolor=legend_colors[i]) for i in range(5)]
 handles[2] = patches.Rectangle((0,0),1,1)
 
-handles[3] = mlines.Line2D([], [], ls='dashed', c='black', lw=1)
+handles[3] = mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(7, 7))
+handles[4] = mlines.Line2D([], [], ls='dashed', c='black', lw=1)
 
 f.legend(handles=handles, labels=labels,
              handler_map={handles[2]: Handler(colors)},
