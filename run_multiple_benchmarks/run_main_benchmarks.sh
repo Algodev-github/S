@@ -651,7 +651,7 @@ for sched in $SCHEDULERS; do
 	# loop when needed
 	((++bench_id))
 
-	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-')
+	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none')
 
 	if [[ $benchmark != bandwidth-latency && \
 		  "$policy_part" != "" ]]; then
