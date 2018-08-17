@@ -432,6 +432,10 @@ function bandwidth-latency
 	    # propshare policy
 	    I_weights_limits="15M 15M 15M 15M 30M 30M 30M 30M 30M"
 	    ;;
+	none)
+	    i_weight_limit=unset
+	    I_weights_limits="unset unset unset unset unset unset unset unset unset"
+	    ;;
 	*)
 	    echo Unrecognized policy $policy
 	    return
@@ -651,7 +655,7 @@ for sched in $SCHEDULERS; do
 	# loop when needed
 	((++bench_id))
 
-	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none')
+	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none-')
 
 	if [[ $benchmark != bandwidth-latency && \
 		  "$policy_part" != "" ]]; then
