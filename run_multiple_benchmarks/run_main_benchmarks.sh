@@ -637,7 +637,7 @@ done
 # main loop
 sched_id=1
 for sched in $SCHEDULERS; do
-    bench_id=1
+    bench_id=0
     for benchmark in $BENCHMARKS
     do
 	if [[ "$sched" == cur-sched ]]; then
@@ -646,14 +646,14 @@ for sched in $SCHEDULERS; do
 	    schedname=$sched
 	fi
 
+	# increment now, so that we can safely skip the rest of the
+	# loop when needed
+	((++bench_id))
+
 	echo
 	echo -n "Testing $schedname scheduler ($sched_id/$num_scheds) "
 	echo "for $benchmark ($bench_id/$num_benchs)"
 	send_email "$benchmark tests beginning"
-
-	# increment now, so that we can safely skip the rest of the
-	# loop when needed
-	((++bench_id))
 
 	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none-')
 
