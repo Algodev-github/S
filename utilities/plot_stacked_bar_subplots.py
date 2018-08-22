@@ -31,10 +31,10 @@ if no_pol_idx != -1:
 colors = ['0.5', '0.85']
 legend_colors = ['0.85', '0.5', 'white', 'white', 'white']
 labels = ['Cumulative avg throughput of interferers',
-          'Avg throughput of interfered',
+          'Avg throughput of target',
           'Avg total throughput (sum of bars)',
           'Avg throughput reached without any I/O control',
-          'Min avg throughput to be guaranteed to interfered'
+          'Min avg throughput to be guaranteed to target'
           ]
 
 ind = np.arange(len(scheds))
@@ -115,8 +115,8 @@ for line in content[8:]:
     mat = np.array([first_row, second_row])
     workload_name=line_elems[0].replace('_', ' ')
     interferers_name = re.sub(r".*vs ", '', workload_name)
-    interfered_name = re.sub(r" vs.*", '', workload_name)
-    p.extend(create_subplot(mat, colors, ax[i], interferers_name + '\n' + interfered_name,
+    target_name = re.sub(r" vs.*", '', workload_name)
+    p.extend(create_subplot(mat, colors, ax[i], interferers_name + '\n' + target_name,
                                 reachable_thr))
 
     tot_throughput = np.amax(mat.sum(axis=0))
@@ -125,13 +125,13 @@ for line in content[8:]:
     i += 1
 
 
-ax[0].set_ylabel('Interfered, interferers and total throughput') # add left y label
+ax[0].set_ylabel('Target, interferers and total throughput') # add left y label
 ax[0].set_ybound(0, max_tot_throughput * 1.1) # add buffer at the top of the bars
 ax[0].text(-0.02, -0.025, 'I/O policy:\nScheduler:',
         horizontalalignment='right',
         verticalalignment='top',
         transform=ax[0].transAxes)
-ax[0].text(-0.02, 1.012, 'Interferers:\nInterfered:',
+ax[0].text(-0.02, 1.012, 'Interferers:\nTarget:',
         horizontalalignment='right',
         verticalalignment='bottom',
         transform=ax[0].transAxes)
