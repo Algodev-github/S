@@ -90,6 +90,17 @@ I_dirname=
 # destination directory for output statistics
 STAT_DEST_DIR=.
 
+# mode: it can be default or demo
+MODE=default
+
+# Demo parameters
+MAX_TOT_MB=12000
+MAX_INTERFERED_MB=500
+
+# Simulated-demo parameters, change according to your device
+SIMUL_TOT_RATE_MB=260
+SIMUL_INTERFERED_RATE_MB=10
+
 function show_usage {
 	echo "\
 Usage and default values:
@@ -118,6 +129,7 @@ $0 [-b <type of bandwidth control (none -> no control | prop -> proportional sha
    [-F <dirnames for files read/written by interferers>] ($I_dirnames)
    [-o <destination directory for output files (statistics)>] ($STAT_DEST_DIR)
    [-d <test duration in seconds>] ($duration)
+   [-m default|demo|simulated] ($MODE)
    [-h] (to get help)
 
 For options that contain one value for each group of interferers, such
@@ -139,20 +151,20 @@ function clean_and_exit {
 
 	# destroy cgroups and unmount controller
 	for ((i = 0 ; $i < $num_groups ; i++)) ; do
-		rmdir /cgroup/InterfererGroup$i
+		rmdir /cgroup/InterfererGroup$i >/dev/$OUT 2>&1
 	done
-	rmdir /cgroup/interfered
+	rmdir /cgroup/interfered >/dev/$OUT 2>&1
 
 	if [[ $controller == io ]]; then
 	    echo "-io" > /cgroup/cgroup.subtree_control
-	    mount -t cgroup -o blkio cgroup $groupdirs
+	    mount -t cgroup -o blkio cgroup $groupdirs >/dev/$OUT 2>&1
 	fi
 
-	umount /cgroup
-	rm -rf /cgroup
+	umount /cgroup >/dev/$OUT 2>&1
+	rm -rf /cgroup >/dev/$OUT 2>&1
 
 	rm -f interfered*-stats.txt
-	rm iostat.out iostat-aggthr
+	rm -f iostat.out iostat-aggthr
 
 	restore_low_latency
 
@@ -212,7 +224,7 @@ invalidate=1\n
 [$name]
 "
 
-	if [[ $name == interfered ]]; then
+	if [[ $name == interfered && $MODE != demo ]]; then
 	    echo -e $jobvar | $FIO_PATH --minimal - | \
 		awk 'BEGIN{FS=";"}{print $42, $43, $7, $46, $83, $84, $48, $87,\
 		    $38, $39, $40, $41, $79, $80, $81, $82}' \
@@ -231,7 +243,10 @@ invalidate=1\n
 	    done
 	    echo >> ${name}-stats.txt
 	else
-	    echo -e $jobvar | $FIO_PATH - > ${name}-stats.txt
+	    if [[ $MODE == demo ]]; then
+		dump=--status-interval=200ms
+	    fi
+	    echo -e $jobvar | $FIO_PATH $dump - > ${name}-stats.txt
 	fi
 	# For some reason, the waiting of this job (when this job is
 	# started in parallel) occasionally terminated before writes
@@ -239,19 +254,211 @@ invalidate=1\n
 	# following one-second wait seem to have eliminated this
 	# issue.
 	sleep 1
+
+	cat ${name}-stats.txt
 }
+
+function get_io {
+    fio_outfile=$1-stats.txt
+
+    value=$(tail -n 5 $fio_outfile | head -n 1 | \
+		egrep io= | awk '{print $7}')
+    echo $value | sed 's/(//' | sed 's/),//'
+}
+
+function get_io_value_MB {
+    value=$(get_io $1)
+
+    if [[ "$value" == "" ]]; then
+	echo 0
+	return
+    fi
+
+    prefix=$(echo "${value::-2}")
+    suffix=$(echo "${value: -2}")
+
+    if [[ $suffix == GB ]]; then
+	prefix=$(echo "$prefix * 1000" | bc -l)
+    fi
+
+    echo $prefix
+}
+
+function print_M_G_B {
+    if (( $(echo "$1 < 10000" | bc -l) )); then
+	printf "(%4.0fMB)" $1
+    else
+	value_GB=$(echo "scale = 1; $1 / 1000" | bc -l)
+	printf "(%3.1fGB)" ${value_GB}
+    fi
+}
+
+function print_bars {
+    tot_io_MB=$1
+    interfered_io_MB=$2
+
+    completed=$(printf '%0.1s' "#"{1..500})
+    blanks=$(printf '%0.1s' " "{1..500})
+
+    echo -ne "\\r$(print_M_G_B $tot_io_MB)"
+    num_completed=$(echo "($tot_io_MB * $max_width) / $MAX_TOT_MB " | bc)
+    printf "[%*.*s" 0 $num_completed "$completed"
+    printf "%*.*s]" 0 $(( $max_width - $num_completed )) "$blanks"
+
+    echo -ne "      $(print_M_G_B $interfered_io_MB)"
+    num_completed=$(echo "($interfered_io_MB * $max_width) / $MAX_INTERFERED_MB "\
+			| bc)
+    printf "[%*.*s" 0 $num_completed "$completed"
+    printf "%*.*s]" 0 $(( $max_width - $num_completed )) "$blanks"
+}
+
+function wait_and_print_bars {
+	for i in $(seq 0 10); do
+	    echo -en "\\rWaiting for ramp time of I/O generators: "\
+		 "$(( 10 - $i )) "
+	    sleep 1
+	done
+
+	clear
+
+	echo -n "Bytes read with "
+	case $type_bw_control in
+	    prop)
+		echo -n "proportional share as I/O policy, and "
+		;;
+	    low)
+		echo -n "throttling (low limits) as I/O policy, and "
+		;;
+	    none)
+		echo -n "no I/O control, and "
+		;;
+	esac
+
+	echo $sched as I/O scheduler
+	echo
+
+	max_width=$(( ( $(tput cols) / 2 ) - 14 ))
+	header_width=$(( $max_width + 15 ))
+	printf "%-${header_width}s %-${header_width}s\n" \
+	       "Total number of bytes read:" \
+	       "Number of bytes read by the unluckiest group:"
+
+	echo
+	echo -n The scale of the left progress bar is larger than that of the
+	echo right progress bar
+	echo -e "\033[2"
+
+	# compute offsets to make io counters start from zero
+	first_tot_io_MB=0
+	for i in $(seq 0 $((num_groups - 1))); do
+	    Interferer_MB=$(get_io_value_MB InterfererGroup$i)
+	    first_tot_io_MB=$(echo "$first_tot_io_MB + $Interferer_MB" | bc -l)
+	done
+	first_io_interfered_MB=$(get_io_value_MB interfered)
+	first_tot_io_MB=$(echo "$first_tot_io_MB + $first_io_interfered_MB" \
+			      | bc -l)
+
+	starttime=$(</proc/uptime)
+	starttime=${starttime%%.*}
+	curtime=$starttime
+	while [[ $(( $curtime - $starttime )) -lt $duration ]] ; do
+
+	    tot_io_MB=0
+	    for i in $(seq 0 $((num_groups - 1))); do
+		Interferer_MB=$(get_io_value_MB InterfererGroup$i)
+		tot_io_MB=$(echo "$tot_io_MB + $Interferer_MB" | bc -l)
+	    done
+
+	    io_interfered_MB=$(get_io_value_MB interfered)
+	    tot_io_MB=$(echo "$tot_io_MB + $io_interfered_MB" | bc -l)
+
+	    tot_io_MB=$(echo "$tot_io_MB - $first_tot_io_MB" | bc -l)
+	    io_interfered_MB=$(echo \
+			"$io_interfered_MB - $first_io_interfered_MB" | \
+			bc -l)
+
+	    if (( $(echo "$tot_io_MB < 0" | bc -l) )); then
+		tot_io_MB=0
+	    fi
+
+	    if (( $(echo "$io_interfered_MB < 0" | bc -l) )); then
+		io_interfered_MB=0
+	    fi
+
+	    print_bars $tot_io_MB $io_interfered_MB
+
+	    sleep .2
+	    curtime=$(</proc/uptime)
+	    curtime=${curtime%%.*}
+	done
+}
+
+function execute_simulation {
+	for i in $(seq 0 10); do
+	    echo -en "\\rFake wait for ramp time of I/O generators: "\
+		 "$(( 10 - $i )) "
+	    sleep 1
+	done
+
+	clear
+
+	echo -n Simulated bytes read, at highest total throughput reachable while
+	echo guaranteeing 10MB/s to the unluckiest group
+	echo
+
+	max_width=$(( ( $(tput cols) / 2 ) - 14 ))
+	header_width=$(( $max_width + 15 ))
+	printf "%-${header_width}s %-${header_width}s\n" \
+	       "Total number of bytes read:" \
+	       "Number of bytes read by the unluckiest group:"
+
+	echo
+	echo
+	for ((i = 0 ; $i < $(( $max_width / 4 )) ; i++)); do
+	    echo -n " "
+	done
+	echo -n The scale of the left progress bar is larger than that of the
+	echo " right progress bar!"
+	echo -en "\e[1A\e[1A\e[1A"
+
+	starttime=$(</proc/uptime)
+	starttime=${starttime%%.*}
+	curtime=$starttime
+	while [[ $(( $curtime - $starttime )) -lt $duration ]] ; do
+
+	    tot_io_MB=$(echo "($curtime - $starttime) * $SIMUL_TOT_RATE_MB" \
+			    | bc -l)
+
+	    io_interfered_MB=$(echo \
+			"($curtime - $starttime) * $SIMUL_INTERFERED_RATE_MB" \
+			| bc -l)
+
+	    print_bars $tot_io_MB $io_interfered_MB
+
+	    sleep .2
+	    curtime=$(</proc/uptime)
+	    curtime=${curtime%%.*}
+	done
+}
+
 
 function execute_intfered_and_shutdwn_intferers {
 	# start interfered in parallel
 	echo start_fio_jobs interfered $duration ${i_weight_threshold} \
 		${i_IO_type} ${i_rate} $i_process $i_IO_depth \
-		1 $i_direct $i_blocksize $i_filename
+		1 $i_direct $i_blocksize $i_filename >/dev/$OUT 2>&1
 	(start_fio_jobs interfered $duration ${i_weight_threshold} \
 		${i_IO_type} ${i_rate} $i_process $i_IO_depth \
-		1 $i_direct $i_blocksize $i_filename) &
+		1 $i_direct $i_blocksize $i_filename >/dev/$OUT 2>&1) &
 
 	FIO_PID=$!
-	sleep $(( $duration + 5 )) # 5 seconds for ramptime
+
+	if [[ $MODE == demo ]]; then
+	    wait_and_print_bars
+	else
+	    sleep $(( $duration + 5 )) # 5 seconds for ramptime
+	fi
+
 	kill -INT $FIO_PID
 
 	shutdwn iostat
@@ -446,6 +653,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 	-F) I_dirnames=($2);;
 	-o) STAT_DEST_DIR="$2";;
 	-d) duration="$2";;
+	-m) MODE="$2";;
 	-h) show_usage; exit;;
 	*) show_usage; exit;;
   esac; shift; shift
@@ -471,6 +679,29 @@ then
 	exit
 fi
 
+if [[ $MODE == simulated ]]; then
+    MODE=demo
+    SIMUL=yes
+    num_groups
+fi
+
+if [[ $MODE == demo ]]; then
+    OUT="null"
+    duration=40
+    clear
+else
+    OUT="stdout"
+fi
+
+if [[ $MODE == demo && "$SIMUL" != yes ]]; then
+    i_IO_type=randread
+    num_groups=1 # CHANGE TO 4 !!!!
+    clear
+elif [[ $MODE == demo && "$SIMUL" == yes ]]; then
+     num_groups=0
+     i_weight_threshold=unset
+fi
+
 # create files if needed
 if [ "$i_dirname" != "" ]; then
 	OLD_BASE_FILE_PATH=$BASE_FILE_PATH
@@ -478,7 +709,7 @@ if [ "$i_dirname" != "" ]; then
 	echo updated
 fi
 create_files 1 _interfered
-echo i_filename=${BASE_FILE_PATH}_interfered0
+echo i_filename=${BASE_FILE_PATH}_interfered0 >/dev/$OUT 2>&1
 i_filename=${BASE_FILE_PATH}_interfered0
 if [ "$i_dirname" != "" ]; then
 	BASE_FILE_PATH=$OLD_BASE_FILE_PATH
@@ -490,14 +721,14 @@ if [ "$I_dirnames" != "" ]; then
 fi
 create_files $num_groups
 for ((i = 0 ; $i < $num_groups ; i++)); do
-	echo I_filenames[$i]=${BASE_FILE_PATH}$i
+	echo I_filenames[$i]=${BASE_FILE_PATH}$i >/dev/$OUT 2>&1
 	I_filenames[$i]=${BASE_FILE_PATH}$i
 done
 if [ "$I_dirnames" != "" ]; then
 	BASE_FILE_PATH=$OLD_BASE_FILE_PATH
 fi
 
-set_scheduler
+set_scheduler >/dev/$OUT 2>&1
 
 # If the scheduler under test is BFQ or CFQ, then disable the
 # low_latency heuristics to not ditort results.
@@ -523,7 +754,7 @@ if [[ "$type_bw_control" == low ]]; then
     # (the latter must also be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
     if [[ "$groupdirs" != "" ]]; then
-	umount $groupdirs # to make the io controller available
+	umount $groupdirs >/dev/$OUT 2>&1 # to make the io controller available
     fi
     if [[ $? -ne 0 ]]; then
 	exit 1
@@ -534,14 +765,14 @@ fi
 
 # create groups
 mkdir -p /cgroup
-umount /cgroup
+umount /cgroup >/dev/$OUT 2>&1
 
 if [[ $controller == blkio ]]; then
-    echo mount -t cgroup -o blkio none /cgroup
-    mount -t cgroup -o blkio none /cgroup
+    echo mount -t cgroup -o blkio none /cgroup >/dev/$OUT 2>&1
+    mount -t cgroup -o blkio none /cgroup >/dev/$OUT 2>&1
 else
-    echo mount -t cgroup2 none /cgroup
-    mount -t cgroup2 none /cgroup
+    echo mount -t cgroup2 none /cgroup >/dev/$OUT 2>&1
+    mount -t cgroup2 none /cgroup >/dev/$OUT 2>&1
     echo "+io" > /cgroup/cgroup.subtree_control
 fi
 
@@ -555,7 +786,7 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
     fi
 
     if [[ "$wthr" == "unset" ]]; then
-	echo Not setting weight/limits for interferer group $i
+	echo Not setting weight/limits for interferer group $i >/dev/$OUT 2>&1
 	continue
     fi
 
@@ -599,7 +830,7 @@ done
 
 mkdir -p /cgroup/interfered
 if [[ "$i_weight_threshold" == unset ]]; then
-    echo Not setting weight/limits for interfered
+    echo Not setting weight/limits for interfered >/dev/$OUT 2>&1
 else
     set_weight_limit_for_interfered
 fi
@@ -613,10 +844,10 @@ for i in $(seq 0 $((num_groups - 1))); do
     fi
 
     if [[ "$rat" == 0 ]]; then
-	echo Not starting Interferer group $i at all: null rate
+	echo Not starting Interferer group $i at all: null rate >/dev/$OUT 2>&1
 	continue
     else
-	echo Starting Interferer group $i
+	echo Starting Interferer group $i >/dev/$OUT 2>&1
     fi
 
     if (( ${#I_weight_thresholds[@]} > 1 )); then
@@ -639,27 +870,40 @@ for i in $(seq 0 $((num_groups - 1))); do
 
     echo start_fio_jobs InterfererGroup$i 0 $wthr \
 	$iot $rat linear $I_IO_depth \
-	$num_I_per_group $I_direct $bs ${I_filenames[$i]}
+	$num_I_per_group $I_direct $bs ${I_filenames[$i]} >/dev/$OUT 2>&1
     (start_fio_jobs InterfererGroup$i 0 $wthr \
 	$iot $rat linear $I_IO_depth \
-	$num_I_per_group $I_direct $bs ${I_filenames[$i]}) &
+	$num_I_per_group $I_direct $bs ${I_filenames[$i]} >/dev/$OUT 2>&1) &
 done
 
-# start iostat
-iostat -tmd /dev/$DEV 3 | tee iostat.out &
+if [[ $MODE != demo ]]; then
+    # start iostat
+    iostat -tmd /dev/$DEV 3 | tee iostat.out &
 
-while true ; do
+    while true ; do
 	uptime=$(</proc/uptime)
 	uptime=${uptime%%.*}
 	if [[ -f iostat.out && $(wc -l < iostat.out) -gt 0 ]]; then
-		break
+	    break
 	fi
-done
+    done
+fi
 
 init_tracing
 set_tracing 1
 
-execute_intfered_and_shutdwn_intferers &
+if [[ "$SIMUL" != yes ]]; then
+    execute_intfered_and_shutdwn_intferers &
+else
+    execute_simulation &
+fi
+
+if [[ $MODE == demo ]]; then
+    wait
+    echo
+    set_tracing 0
+    clean_and_exit
+fi
 
 new_uptime=$(</proc/uptime)
 new_uptime=${new_uptime%%.*}
