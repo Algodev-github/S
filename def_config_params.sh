@@ -59,14 +59,15 @@ function use_scsi_debug_dev
 	echo 'start=2048, type=83' | sfdisk $BACKING_DEV
     fi
 
-    if [[ "$(mount | egrep /mnt/scsi_debug)" == "" ]]; then
+    BASE_DIR=/mnt/scsi_debug
+    if [[ "$(mount | egrep $BASE_DIR)" == "" ]]; then
 	fsck.ext4 /dev/${BACKING_DEV}1
 	if [[ $? -ne 0 ]]; then
 	    mkfs.ext4 ${BACKING_DEV}1
 	fi
 
-	mkdir -p /mnt/scsi_debug
-	mount ${BACKING_DEV}1 /mnt/scsi_debug
+	mkdir -p $BASE_DIR
+	mount ${BACKING_DEV}1 $BASE_DIR
     fi
 }
 
