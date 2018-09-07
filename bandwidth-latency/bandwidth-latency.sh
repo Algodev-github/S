@@ -3,7 +3,7 @@
 
 # set next parameter to a path to fio, if you want to use a different
 # version of fio than the installed one
-FIO_PATH=/usr/local/bin/fio
+#FIO_PATH=/usr/local/bin/fio
 if [ "$FIO_PATH" != "" ]; then
 	../utilities/check_dependencies.sh bc dd awk /usr/bin/time iostat
 	if [[ $? -ne 0 ]]; then
@@ -17,6 +17,7 @@ else
 	if [[ $? -ne 0 ]]; then
 	    exit 1
 	fi
+	FIO_PATH=fio
 fi
 LC_NUMERIC=C
 . ../config_params.sh
