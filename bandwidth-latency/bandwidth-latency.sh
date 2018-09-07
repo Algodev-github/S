@@ -167,7 +167,7 @@ function clean_and_exit {
 	rm -f interfered*-stats.txt
 	rm -f iostat.out iostat-aggthr
 
-	restore_low_latency
+	restore_low_latency >/dev/$OUT 2>&1
 
 	exit
 }
@@ -245,7 +245,7 @@ invalidate=1\n
 	    echo >> ${name}-stats.txt
 	else
 	    if [[ $MODE == demo ]]; then
-		dump=--status-interval=200ms
+		dump=--status-interval=100ms
 	    fi
 	    echo -e $jobvar | $FIO_PATH $dump - > ${name}-stats.txt
 	fi
@@ -255,14 +255,12 @@ invalidate=1\n
 	# following one-second wait seem to have eliminated this
 	# issue.
 	sleep 1
-
-	cat ${name}-stats.txt
 }
 
 function get_io {
     fio_outfile=$1-stats.txt
 
-    value=$(tail -n 5 $fio_outfile | head -n 1 | \
+    value=$(tail -n 5 $fio_outfile | head -n 2 | \
 		egrep io= | awk '{print $7}')
     echo $value | sed 's/(//' | sed 's/),//'
 }
@@ -314,12 +312,6 @@ function print_bars {
 }
 
 function wait_and_print_bars {
-	for i in $(seq 0 10); do
-	    echo -en "\\rWaiting for ramp time of I/O generators: "\
-		 "$(( 10 - $i )) "
-	    sleep 1
-	done
-
 	clear
 
 	echo -n "Bytes read with "
@@ -338,16 +330,27 @@ function wait_and_print_bars {
 	echo $sched as I/O scheduler
 	echo
 
+	for i in $(seq 0 10); do
+	    echo -en "\\rWaiting for ramp time of I/O generators: "\
+		 "$(( 10 - $i )) "
+	    sleep 1
+	done
+	echo -en "\\r                                               \\r"
+
 	max_width=$(( ( $(tput cols) / 2 ) - 14 ))
 	header_width=$(( $max_width + 15 ))
-	printf "%-${header_width}s %-${header_width}s\n" \
+	printf "%-${header_width}s %-${header_width}s" \
 	       "Total number of bytes read:" \
 	       "Number of bytes read by the unluckiest group:"
 
-	echo
-	echo -n The scale of the left progress bar is larger than that of the
-	echo right progress bar
-	echo -e "\033[2"
+	#echo
+	#echo
+	#for ((i = 0 ; $i < $(( $max_width / 4 )) ; i++)); do
+	#    echo -n " "
+	#done
+	#echo -n The scale of the left progress bar is larger than that of the
+	#echo " right progress bar!"
+	#echo -en "\e[1A\e[1A\e[1A"
 
 	# compute offsets to make io counters start from zero
 	first_tot_io_MB=0
@@ -362,6 +365,8 @@ function wait_and_print_bars {
 	starttime=$(</proc/uptime)
 	starttime=${starttime%%.*}
 	curtime=$starttime
+	old_io_interfered_MB=0
+	old_tot_io_MB=0
 	while [[ $(( $curtime - $starttime )) -lt $duration ]] ; do
 
 	    tot_io_MB=0
@@ -378,49 +383,56 @@ function wait_and_print_bars {
 			"$io_interfered_MB - $first_io_interfered_MB" | \
 			bc -l)
 
-	    if (( $(echo "$tot_io_MB < 0" | bc -l) )); then
-		tot_io_MB=0
+	    if (( $(echo "$tot_io_MB < $old_tot_io_MB" |\
+			bc -l) )); then
+		tot_io_MB=$old_tot_io_MB
+	    else
+		old_tot_io_MB=$tot_io_MB
 	    fi
 
-	    if (( $(echo "$io_interfered_MB < 0" | bc -l) )); then
-		io_interfered_MB=0
+	    if (( $(echo "$io_interfered_MB < $old_io_interfered_MB" |\
+			bc -l) )); then
+		io_interfered_MB=$old_io_interfered_MB
+	    else
+		old_io_interfered_MB=$io_interfered_MB
 	    fi
 
 	    print_bars $tot_io_MB $io_interfered_MB
 
-	    sleep .2
+	    sleep .1
 	    curtime=$(</proc/uptime)
 	    curtime=${curtime%%.*}
 	done
 }
 
 function execute_simulation {
+	clear
+
+	echo -n Simulated bytes read, at highest total throughput reachable while
+	echo " guaranteeing 10MB/s to the unluckiest group"
+	echo
+
 	for i in $(seq 0 10); do
 	    echo -en "\\rFake wait for ramp time of I/O generators: "\
 		 "$(( 10 - $i )) "
 	    sleep 1
 	done
-
-	clear
-
-	echo -n Simulated bytes read, at highest total throughput reachable while
-	echo guaranteeing 10MB/s to the unluckiest group
-	echo
+	echo -en "\\r                                               \\r"
 
 	max_width=$(( ( $(tput cols) / 2 ) - 14 ))
 	header_width=$(( $max_width + 15 ))
-	printf "%-${header_width}s %-${header_width}s\n" \
+	printf "%-${header_width}s %-${header_width}s" \
 	       "Total number of bytes read:" \
 	       "Number of bytes read by the unluckiest group:"
 
-	echo
-	echo
-	for ((i = 0 ; $i < $(( $max_width / 4 )) ; i++)); do
-	    echo -n " "
-	done
-	echo -n The scale of the left progress bar is larger than that of the
-	echo " right progress bar!"
-	echo -en "\e[1A\e[1A\e[1A"
+	#echo
+	#echo
+	#for ((i = 0 ; $i < $(( $max_width / 4 )) ; i++)); do
+	#    echo -n " "
+	#done
+	#echo -n The scale of the left progress bar is larger than that of the
+	#echo " right progress bar!"
+	#echo -en "\e[1A\e[1A\e[1A"
 
 	starttime=$(</proc/uptime)
 	starttime=${starttime%%.*}
@@ -436,7 +448,7 @@ function execute_simulation {
 
 	    print_bars $tot_io_MB $io_interfered_MB
 
-	    sleep .2
+	    sleep 1
 	    curtime=$(</proc/uptime)
 	    curtime=${curtime%%.*}
 	done
@@ -696,7 +708,14 @@ fi
 
 if [[ $MODE == demo && "$SIMUL" != yes ]]; then
     i_IO_type=randread
-    num_groups=1 # CHANGE TO 4 !!!!
+    num_groups=4
+    if [[ $sched == bfq || $sched == bfq-mq || $sched == bfq-sq ]]; then
+	i_weight_threshold=300
+	i_weight_thresholds=(100)
+    else
+	i_weight_threshold=10M
+	I_weight_thresholds=(10M)
+    fi
     clear
 elif [[ $MODE == demo && "$SIMUL" == yes ]]; then
      num_groups=0
@@ -736,7 +755,7 @@ set_scheduler >/dev/$OUT 2>&1
 if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
 	  "$sched" == "cfq" ]]; then
     PREVIOUS_VALUE=$(cat /sys/block/$DEV/queue/iosched/low_latency)
-    echo "Disabling low_latency"
+    echo "Disabling low_latency" >/dev/$OUT 2>&1
     echo 0 > /sys/block/$DEV/queue/iosched/low_latency
 fi
 
