@@ -60,7 +60,7 @@ function use_scsi_debug_dev
     fi
 
     if [[ "$(mount | egrep /mnt/scsi_debug)" == "" ]]; then
-	fsck.ext4 /dev/sdb1
+	fsck.ext4 /dev/${BACKING_DEV}1
 	if [[ $? -ne 0 ]]; then
 	    mkfs.ext4 ${BACKING_DEV}1
 	fi
