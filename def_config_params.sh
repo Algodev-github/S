@@ -73,7 +73,7 @@ function use_scsi_debug_dev
 
     BASE_DIR=/mnt/scsi_debug
     if [[ "$(mount | egrep $BASE_DIR)" == "" ]]; then
-	fsck.ext4 /dev/${BACKING_DEV}1
+	fsck.ext4 ${BACKING_DEV}1
 	if [[ $? -ne 0 ]]; then
 	    mkfs.ext4 ${BACKING_DEV}1
 	fi
@@ -81,6 +81,7 @@ function use_scsi_debug_dev
 	mkdir -p $BASE_DIR
 	mount ${BACKING_DEV}1 $BASE_DIR
     fi
+    BACKING_DEV=$(basename $BACKING_DEV)
 }
 
 function get_max_affordable_file_size
@@ -192,7 +193,7 @@ if [[ "$FIRST_PARAM" != "-h" ]]; then
     # test target device
     cat /sys/block/$DEV/queue/scheduler >/dev/null 2>&1
     if [ $? -ne 0 ]; then
-	echo There is something wrong with the device $DEV, which I have
+	echo There is something wrong with the device /dev/$DEV, which I have
 	echo computed as the device on which your root directory is mounted.
 	echo Try setting your target device manually in ~/.S-config.sh
 	exit
