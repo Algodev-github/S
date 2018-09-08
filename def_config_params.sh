@@ -48,8 +48,20 @@ function find_dev_for_dir
 
 function use_scsi_debug_dev
 {
+    ../utilities/check_dependencies.sh lsscsi
+    if [[ $? -ne 0 ]]; then
+	exit 1
+    fi
+
     if [[ "$(lsmod | egrep scsi_debug)" == "" ]]; then
-	sudo modprobe scsi_debug ndelay=80000000 dev_size_mb=1000 max_queue=4
+	echo -n Setting up scsi_debug, this may take a little time ...
+	sudo modprobe scsi_debug ndelay=1600000 dev_size_mb=1000 max_queue=4
+	if [[ $? -ne 0 ]]; then
+	    echo
+	    echo "Failed to load scsi_debug module (maybe not installed?)"
+	    exit 1
+	fi
+	echo " done"
     fi
 
     BACKING_DEV=$(lsscsi | egrep scsi_debug | sed 's<\(.*\)/dev/</dev/<')
