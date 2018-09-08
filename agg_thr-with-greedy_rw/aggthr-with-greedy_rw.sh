@@ -90,7 +90,9 @@ else
 	flush_caches > $REDIRECT &
 fi
 
-if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
+WAIT_TRANSITORY=no
+if [[ $WAIT_TRANSITORY = yes && \
+	  ($NUM_READERS -gt 0 || $NUM_WRITERS -gt 0) ]]; then
 
 	# wait for reader/writer start-up transitory to terminate
 	secs=$(transitory_duration 7)
