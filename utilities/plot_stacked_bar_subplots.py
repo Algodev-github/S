@@ -54,8 +54,9 @@ f, ax = plt.subplots(1, num_sub_plots, sharey=True, sharex=True, figsize=(10, 6)
 
 plt.subplots_adjust(top=0.86)
 
-#for axis in ax:
-#    axis.tick_params(axis='x', which='major', labelsize=6)
+for axis in ax:
+    axis.tick_params(axis='y', which='major', labelsize=6)
+    axis.tick_params(axis='y', which='minor', labelsize=2)
 
 f.subplots_adjust(bottom=0.2) # make room for the legend
 
@@ -150,7 +151,7 @@ ref_line=content[4].split()
 ref_value=ref_line[-1]
 
 if ref_value.replace('.','',1).isdigit():
-    [axis.axhline(y=float(ref_value), xmin=0.0, xmax=1, ls='dashed', c='black', lw=1) for axis in ax]
+    [axis.axhline(y=float(ref_value), xmin=0.0, xmax=1, ls='dashed', c='black', lw=1, dashes=(4, 6)) for axis in ax]
 
 
 class Handler(object):
@@ -171,18 +172,19 @@ mpl.rcParams['hatch.linewidth'] = 10.0
 handles = [patches.Rectangle((0,0),1,1,ec='none', facecolor=legend_colors[i]) for i in range(legend_range)]
 handles[2] = patches.Rectangle((0,0),1,1)
 
-handles[3] = mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(7, 7))
 if no_pol_idx != -1:
     handles[3] = mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(7, 7))
-    handles[4] = mlines.Line2D([], [], ls='dashed', c='black', lw=1)
+    handles[4] = mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(4, 6))
 else:
-    handles[3] =  mlines.Line2D([], [], ls='dashed', c='black', lw=1)
+    handles[3] =  mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(4, 6))
 
 f.legend(handles=handles, labels=labels,
              handler_map={handles[2]: Handler(colors)},
              bbox_to_anchor=(0.5, -0.0),
              loc='lower center',
              ncol=2)
+
+plt.yticks(list(plt.yticks()[0]) + [10])
 
 if len(sys.argv) > 2:
     plt.savefig(fileprefix + '.' + sys.argv[2])
