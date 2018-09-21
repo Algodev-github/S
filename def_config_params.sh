@@ -116,7 +116,7 @@ function get_max_affordable_file_size
 if [[ "$SCSI_DEBUG" == yes ]]; then
     use_scsi_debug_dev # this will set BASE_DIR
 elif [[ "$FIRST_PARAM" != "-h" ]]; then
-    BASE_DIR=/var/lib/S # or the directory you prefer
+    BASE_DIR=$PWD/../workfiles # or the directory you prefer
 
     if [[ ! -d $BASE_DIR ]]; then
 	mkdir $BASE_DIR
