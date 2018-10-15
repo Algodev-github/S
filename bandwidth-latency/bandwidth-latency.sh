@@ -702,7 +702,11 @@ fi
 
 if [[ $MODE == demo ]]; then
     OUT="null"
-    duration=40
+    if [[ "$type_bw_control" == none ]]; then
+	duration=20
+    else
+	duration=40
+    fi
     clear
 else
     OUT="stdout"
