@@ -278,6 +278,8 @@ function get_io_value_MB {
 
     if [[ $suffix == GB ]]; then
 	prefix=$(echo "$prefix * 1000" | bc -l)
+    elif [[ $suffix == kB ]]; then
+	prefix=$(echo "$prefix / 1000" | bc -l)
     fi
 
     echo $prefix
