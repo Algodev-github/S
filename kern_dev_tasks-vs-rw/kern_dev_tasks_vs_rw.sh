@@ -260,7 +260,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 fi
 
 # start logging aggthr; use a short interval as the test itself might be short
-iostat -tmd /dev/$DEV 1 | tee iostat.out &
+iostat -tmd /dev/$HIGH_LEV_DEV 1 | tee iostat.out &
 
 # store the current number of lines, or the current completion level,
 # to subtract it from the total for make or merge

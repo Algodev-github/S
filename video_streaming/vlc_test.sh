@@ -42,12 +42,15 @@ function start_noise() {
     done
     touch noise_started
 
-    echo $budget > /sys/block/${DEV}/queue/iosched/$sysfs_par
+    for dev in $DEVS; do
+	echo $budget > /sys/block/$dev/queue/iosched/$sysfs_par
+    done
+
     echo -- File size = $size MB / Budget = $budget --
     echo $out
     /usr/bin/time -f %e --output="$rootdir/delay_$out" \
         sh read_files.sh "$rootdir/single_logs/read_bytes-$out-file" \
-        "${files[$nfiles]}" 
+	"${files[$nfiles]}"
     delay=`cat "$rootdir/delay_$out"`
     rm noise_started
 
@@ -128,22 +131,22 @@ if [ $file_location != $BASE_DIR ]; then
     # create files if needed
     for f in ${files[5]} ; do
 	mount `dirname $f`
-	if ! [ -f $f ] ; then 
+	if ! [ -f $f ] ; then
 	    echo Preparing $f
-	    dd if=/dev/zero of=$f bs=1M count=$max_size; 
+	    dd if=/dev/zero of=$f bs=1M count=$max_size;
 	else
 	    echo $f already exists
 	fi
 	umount `dirname $f`
     done
 
-files[1]="/mnt/${DEV}20/1GB_file"
-files[2]="/mnt/${DEV}5/1GB_file /mnt/${DEV}34/1GB_file"
-files[3]="/mnt/${DEV}5/1GB_file /mnt/${DEV}20/1GB_file /mnt/${DEV}34/1GB_file"
-files[4]="/mnt/${DEV}5/1GB_file /mnt/${DEV}12/1GB_file /mnt/${DEV}20/1GB_file \
-/mnt/${DEV}34/1GB_file"
-files[5]="/mnt/${DEV}5/1GB_file /mnt/${DEV}12/1GB_file /mnt/${DEV}20/1GB_file \
-/mnt/${DEV}27/1GB_file /mnt/${DEV}34/1GB_file"
+files[1]="/mnt/${HIGH_LEV_DEV}20/1GB_file"
+files[2]="/mnt/${HIGH_LEV_DEV}5/1GB_file /mnt/${HIGH_LEV_DEV}34/1GB_file"
+files[3]="/mnt/${HIGH_LEV_DEV}5/1GB_file /mnt/${HIGH_LEV_DEV}20/1GB_file /mnt/${HIGH_LEV_DEV}34/1GB_file"
+files[4]="/mnt/${HIGH_LEV_DEV}5/1GB_file /mnt/${HIGH_LEV_DEV}12/1GB_file /mnt/${HIGH_LEV_DEV}20/1GB_file \
+/mnt/${HIGH_LEV_DEV}34/1GB_file"
+files[5]="/mnt/${HIGH_LEV_DEV}5/1GB_file /mnt/${HIGH_LEV_DEV}12/1GB_file /mnt/${HIGH_LEV_DEV}20/1GB_file \
+/mnt/${HIGH_LEV_DEV}27/1GB_file /mnt/${HIGH_LEV_DEV}34/1GB_file"
 
 else
     create_files 5 # at most five files are read in parallel at the moment
@@ -164,8 +167,10 @@ echo Recall: files should currently be $max_size MB long
 # rmmod $sched-iosched
 # modprobe $sched-iosched
 
-echo echo "$sched > /sys/block/$DEV/queue/scheduler"
-echo $sched > /sys/block/$DEV/queue/scheduler
+for dev in $DEVS; do
+    echo echo "$sched > /sys/block/$dev/queue/scheduler"
+    echo $sched > /sys/block/$dev/queue/scheduler
+done
 
 # set scheduler parameters
 if [ $sched == "bfq" ] ; then
@@ -178,7 +183,8 @@ if [ $sched == "bfq" ] ; then
     sysfs_par="max_budget"
 elif [ $sched == "cfq" ] ; then
     # in ms
-    start_budget=`cat /sys/block/$DEV/queue/iosched/slice_sync`
+    dev=$(echo $DEVS | awk '{ print $1 }')
+    start_budget=`cat /sys/block/$dev/queue/iosched/slice_sync`
     max_budget=$start_budget
     sysfs_par="slice_sync"
 fi
@@ -199,7 +205,7 @@ for ((iteration = $start_iter; iteration <= $end_iter; \
 		echo Repetition $iteration, num_readers $nfiles, budget $budget
 		out=log-${size}M-b${budget}
 		start_noise $size $budget $nfiles $sched &
-		iostat -tmd /dev/${DEV} 5 > $rootdir/${out}_iostat &
+		iostat -tmd /dev/$HIGH_LEV_DEV 5 > $rootdir/${out}_iostat &
 		echo su $USER -c "bash vlc_auto.sh /tmp/videos"
 		su $USER -c "bash vlc_auto.sh /tmp/videos"
 		stop_noise
@@ -216,4 +222,3 @@ for ((iteration = $start_iter; iteration <= $end_iter; \
 done
 
 rm vlc.log
-

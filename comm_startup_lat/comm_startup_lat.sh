@@ -25,14 +25,15 @@ MAX_STARTUP=${8-120}
 IDLE_DISK_LAT=$9
 
 if [[ "${10}" == "" && "$1" != "-h" ]]; then # compute MAXRATE automatically
-	if [[ "$(cat /sys/block/$DEV/queue/rotational)" == "1" ]]; then
-	        MAXRATE=4000
-	        echo Automatically limiting write rate to ${MAXRATE}KB/s
-	else
-		MAXRATE=0 # no write-rate limitation for flash-based storage
-	fi
+    dev=$(echo $DEVS | awk '{ print $1 }')
+    if [[ "$(cat /sys/block/$dev/queue/rotational)" == "1" ]]; then
+	MAXRATE=4000
+	echo Automatically limiting write rate to ${MAXRATE}KB/s
+    else
+	MAXRATE=0 # no write-rate limitation for flash-based storage
+    fi
 else
-	MAXRATE=${10}
+    MAXRATE=${10}
 fi
 
 VERBOSITY=${11}
@@ -316,12 +317,12 @@ if [ $FIRSTWORD == replay-startup-io ]; then
 else
     PATH_TO_CMD=$(dirname $(which $SHORTNAME))
 
-    # put into BACKING_DEV the backing device for $PATH_TO_CMD
+    # put into BACKING_DEVS the backing devices for $PATH_TO_CMD
     find_dev_for_dir $PATH_TO_CMD
 
-    if [[ "$BACKING_DEV" != "$DEV" ]]; then
-	echo Command exec is on a different device \($BACKING_DEV\)
-	echo from that of test files \($DEV\)
+    if [[ "$BACKING_DEVS" != "$DEVS" ]]; then
+	echo Command exec is on different devices \($BACKING_DEV\)
+	echo from those of test files \($DEVS\)
 	exit
     fi
     enable_X_access_and_test_cmd "$COMMAND"
@@ -363,7 +364,7 @@ fi
 
 # start logging aggthr
 if [ "$IOSTAT" == "yes" ]; then
-	iostat -tmd /dev/$DEV 3 | tee iostat.out > $REDIRECT &
+	iostat -tmd /dev/$HIGH_LEV_DEV 3 | tee iostat.out > $REDIRECT &
 fi
 
 init_tracing

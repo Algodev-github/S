@@ -53,9 +53,11 @@ set_scheduler
 if [[ "$DIS_LOW_LATENCY" != "NO" ]]; then
 	if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
 		"$sched" == "cfq" ]]; then
-		PREVIOUS_VALUE=$(cat /sys/block/$DEV/queue/iosched/low_latency)
-		echo "Disabling low_latency"
-		echo 0 > /sys/block/$DEV/queue/iosched/low_latency
+	    for dev in $DEVS; do
+		PREVIOUS_VALUE=$(cat /sys/block/$dev/queue/iosched/low_latency)
+		echo "Disabling low_latency on $dev" >/dev/$OUT 2>&1
+		echo 0 > /sys/block/$dev/queue/iosched/low_latency
+	    done
 	fi
 fi
 
@@ -63,9 +65,11 @@ function restore_low_latency
 {
 	if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
 		"$sched" == "cfq" ]]; then
-		echo Restoring previous value of low_latency
+	    for dev in $DEVS; do
+		echo Restoring previous value of low_latency on $dev
 		echo $PREVIOUS_VALUE >\
-			/sys/block/$DEV/queue/iosched/low_latency
+		     /sys/block/$dev/queue/iosched/low_latency
+	    done
 	fi
 }
 
@@ -77,13 +81,13 @@ flush_caches
 init_tracing
 set_tracing 1
 
-start_interleaved_readers /dev/${DEV} ${NUM_READERS} &
+start_interleaved_readers /dev/$HIGH_LEV_DEV ${NUM_READERS} &
 
 # wait for reader start-up transitory to terminate
 sleep 5
 
 # start logging interleaved test
-iostat -tmd /dev/$DEV 2 | tee iostat.out &
+iostat -tmd /dev/$HIGH_LEV_DEV 2 | tee iostat.out &
 
 echo Test duration: $DURATION secs
 sleep $DURATION

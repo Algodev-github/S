@@ -22,8 +22,9 @@ function set_tracing {
 			echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
 			echo $1 > /sys/kernel/debug/tracing/tracing_enabled
 		fi
-		echo "echo $1 > /sys/block/$DEV/trace/enable"
-		echo $1 > /sys/block/$DEV/trace/enable
+		dev=$(echo $DEVS | awk '{ print $1 }')
+		echo "echo $1 > /sys/block/$dev/trace/enable"
+		echo $1 > /sys/block/$dev/trace/enable
 		if [ "$1" == 0 ]; then
 		    for cpu_path in /sys/kernel/debug/tracing/per_cpu/cpu?
 		    do
@@ -175,48 +176,56 @@ function flush_caches
 
 function get_scheduler
 {
-    cat /sys/block/$DEV/queue/scheduler | sed 's/.*\[\(.*\)\].*/\1/'
+    dev=$(echo $DEVS | awk '{ print $1 }')
+    cat /sys/block/$dev/queue/scheduler | sed 's/.*\[\(.*\)\].*/\1/'
 }
 
 function set_scheduler
 {
-	if [[ "$sched" != "" && "$sched" != cur-sched ]] ; then
-		# Switch to the desired scheduler
-		echo Switching to $sched for /dev/$DEV
-		echo $sched > /sys/block/$DEV/queue/scheduler 2>&1 | echo &> /dev/null
-		PIPE_STATUS=${PIPESTATUS[0]}
-		NEW_SCHED=$(cat /sys/block/$DEV/queue/scheduler | egrep "\[$sched\]")
-		if [[ $PIPE_STATUS -ne 0 || "$NEW_SCHED" == "" ]]; then
-			echo "Switch to $sched failed:" > /dev/tty
-			cat /sys/block/${DEV}/queue/scheduler > /dev/tty
-			exit 1
-		fi
-	else
-		sched=`cat /sys/block/${DEV}/queue/scheduler`
-		sched=`echo $sched | sed 's/.*\[//'`
-		sched=`echo $sched | sed 's/\].*//'`
-	fi
+    if [[ "$sched" != "" && "$sched" != cur-sched ]] ; then
+	# Switch to the desired scheduler
+	echo Switching to $sched for $DEVS
+
+	for dev in $DEVS; do
+	    echo $sched > /sys/block/$dev/queue/scheduler 2>&1 | \
+		echo &> /dev/null
+	    PIPE_STATUS=${PIPESTATUS[0]}
+	    NEW_SCHED=$(cat /sys/block/$dev/queue/scheduler | \
+			    egrep "\[$sched\]")
+	    if [[ $PIPE_STATUS -ne 0 || "$NEW_SCHED" == "" ]]; then
+		echo "Switch to $sched failed:" > /dev/tty
+		cat /sys/block/$dev/queue/scheduler > /dev/tty
+		exit 1
+	    fi
+	done
+    else
+	dev=$(echo $DEVS | awk '{ print $1 }')
+	sched=`cat /sys/block/$dev/queue/scheduler`
+	sched=`echo $sched | sed 's/.*\[//'`
+	sched=`echo $sched | sed 's/\].*//'`
+    fi
 }
 
 function transitory_duration
 {
-	OTHER_SCHEDULER_DURATION=$1
-	if [ -f /sys/block/$DEV/queue/iosched/raising_max_time ]; then
-		FNAME=/sys/block/$DEV/queue/iosched/raising_max_time
-	else
-		if [ -f /sys/block/$DEV/queue/iosched/wr_max_time ];
-		then
-			FNAME=/sys/block/$DEV/queue/iosched/wr_max_time
-		fi
+    OTHER_SCHEDULER_DURATION=$1
+    dev=$(echo $DEVS | awk '{ print $1 }')
+    if [ -f /sys/block/$dev/queue/iosched/raising_max_time ]; then
+	FNAME=/sys/block/$dev/queue/iosched/raising_max_time
+    else
+	if [ -f /sys/block/$dev/queue/iosched/wr_max_time ];
+	then
+	    FNAME=/sys/block/$dev/queue/iosched/wr_max_time
 	fi
-	if [[ "$FNAME" != "" ]]; then
-		MAX_RAIS_SEC=$(($(cat $FNAME) / 1000 + 1))
-	else
-		MAX_RAIS_SEC=$OTHER_SCHEDULER_DURATION
-	fi
-	# the extra 6 seconds mainly follow from the fact that fio is
-	# slow to start many jobs
-	echo $((MAX_RAIS_SEC + 6))
+    fi
+    if [[ "$FNAME" != "" ]]; then
+	MAX_RAIS_SEC=$(($(cat $FNAME) / 1000 + 1))
+    else
+	MAX_RAIS_SEC=$OTHER_SCHEDULER_DURATION
+    fi
+    # the extra 6 seconds mainly follow from the fact that fio is
+    # slow to start many jobs
+    echo $((MAX_RAIS_SEC + 6))
 }
 
 function shutdwn
@@ -295,15 +304,15 @@ function start_raw_readers
         do
             $FIO --name=seqreader$i -rw=read --size=${FILE_SIZE_MB}M \
                 --offset=$[$i*$FILE_SIZE_MB]M --numjobs=1 \
-                --filename=/dev/${DEV} > /dev/null &
+		--filename=/dev/$HIGH_LEV_DEV > /dev/null &
         done
     else
         if [ $NUM_READERS -gt 0 ]; then
             $FIO --name=randreader$i -rw=randread --numjobs=$NUM_READERS \
-                --filename=/dev/${DEV} > /dev/null &
+		 --filename=/dev/$HIGH_LEV_DEV > /dev/null &
         fi
     fi
-    echo Started $NUM_READERS $R_TYPE readers on /dev/${DEV}
+    echo Started $NUM_READERS $R_TYPE readers on /dev/$HIGH_LEV_DEV
 }
 
 function start_readers_writers
@@ -415,13 +424,13 @@ function print_save
 	extra_rm_lines=${4:-0}
 
 	echo "$message" | tee -a ${thr_stat_file_name}
-	len=$(cat iostat.out | grep ^$DEV | wc -l)
+	len=$(cat iostat.out | grep ^$HIGH_LEV_DEV | wc -l)
 	# collect iostat aggthr lines into one file, throwing away:
 	# . the first sample, because it just contains a wrong value
 	#   (easy to see by letting iostat start during a steady workload)
 	# . the last sample, because it can be influenced by the operations
 	#   performed at the end of the test
-	cat iostat.out | grep ^$DEV | awk "{ $command }" |\
+	cat iostat.out | grep ^$HIGH_LEV_DEV | awk "{ $command }" |\
 		tail -n$(($len-1-$extra_rm_lines)) | head -n$(($len-1)) > iostat-aggthr
 	sh $CALC_AVG_AND_CO 99 < iostat-aggthr |\
 		tee -a $thr_stat_file_name

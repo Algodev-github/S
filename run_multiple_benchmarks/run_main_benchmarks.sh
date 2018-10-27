@@ -594,7 +594,8 @@ fi
 
 if [[ "$SCHEDULERS" == "" ]]; then
     if [[ "$BENCHMARKS" != bandwith-latency ]]; then
-	SCHEDULERS="$(cat /sys/block/$DEV/queue/scheduler | \
+	dev=$(echo $DEVS | awk '{ print $1 }')
+	SCHEDULERS="$(cat /sys/block/$dev/queue/scheduler | \
 			  sed 's/\[//' | sed 's/\]//')"
     else
 	SCHEDULERS="prop-bfq max-none low-none"
@@ -636,15 +637,17 @@ rm -rf $RES_DIR
 mkdir -p $RES_DIR
 
 if [ "${NCQ_QUEUE_DEPTH}" != "" ]; then
-    (echo ${NCQ_QUEUE_DEPTH} > /sys/block/${DEV}/device/queue_depth)\
-		 &> /dev/null
-    ret=$?
-    if [[ "$ret" -eq "0" ]]; then
-	echo "Set queue depth to ${NCQ_QUEUE_DEPTH} on ${DEV}"
-    else
-	echo Failed to set queue depth
-	exit 1
-    fi
+    for dev in $DEVS; do
+	(echo ${NCQ_QUEUE_DEPTH} > /sys/block/$dev/device/queue_depth)\
+	    &> /dev/null
+	ret=$?
+	if [[ "$ret" -eq "0" ]]; then
+	    echo "Set queue depth to ${NCQ_QUEUE_DEPTH} on $dev"
+	else
+	    echo Failed to set queue depth
+	    exit 1
+	fi
+    done
 fi
 
 send_email "S main-benchmark run started"

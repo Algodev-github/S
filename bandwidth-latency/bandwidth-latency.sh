@@ -580,9 +580,11 @@ function restore_low_latency
 {
 	if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
 		  "$sched" == "cfq" ]]; then
-	    echo Restoring previous value of low_latency
-	    echo $PREVIOUS_VALUE >\
-		 /sys/block/$DEV/queue/iosched/low_latency
+	    for dev in $DEVS; do
+		echo Restoring previous value of low_latency on $dev
+		echo $PREVIOUS_VALUE >\
+		     /sys/block/$dev/queue/iosched/low_latency
+	    done
 	fi
 }
 
@@ -598,21 +600,23 @@ function set_weight_limit_for_interfered
 	    wthr=$i_weight_threshold
 	fi
 
-	if [[ "$type_bw_control" == low ]]; then
-	    echo "$(cat /sys/block/$DEV/dev) rbps=$wthr wbps=$wthr latency=$i_thrtl_lat idle=1000" \
-		 > /cgroup/interfered/${controller}.low
-	    echo /cgroup/interfered/${controller}.low:
-	    cat /cgroup/interfered/${controller}.low
-	else
-	    echo "$(cat /sys/block/$DEV/dev) $wthr" \
-		 > /cgroup/interfered/${controller}.throttle.read_bps_device
-	    echo /cgroup/interfered/${controller}.throttle.read_bps_device:
-	    cat /cgroup/interfered/${controller}.throttle.read_bps_device
-	    echo "$(cat /sys/block/$DEV/dev) $wthr" \
-		 > /cgroup/interfered/${controller}.throttle.write_bps_device
-	    echo /cgroup/interfered/${controller}.throttle.write_bps_device:
-	    cat /cgroup/interfered/${controller}.throttle.write_bps_device
-	fi
+	    for dev in $DEVS; do
+		if [[ "$type_bw_control" == low ]]; then
+		    echo "$(cat /sys/block/$dev/dev) rbps=$wthr wbps=$wthr latency=$i_thrtl_lat idle=1000" \
+			 > /cgroup/interfered/${controller}.low
+		    echo /cgroup/interfered/${controller}.low:
+		    cat /cgroup/interfered/${controller}.low
+		else
+		    echo "$(cat /sys/block/$dev/dev) $wthr" \
+			 > /cgroup/interfered/${controller}.throttle.read_bps_device
+		    echo /cgroup/interfered/${controller}.throttle.read_bps_device:
+		    cat /cgroup/interfered/${controller}.throttle.read_bps_device
+		    echo "$(cat /sys/block/$dev/dev) $wthr" \
+			 > /cgroup/interfered/${controller}.throttle.write_bps_device
+		    echo /cgroup/interfered/${controller}.throttle.write_bps_device:
+		    cat /cgroup/interfered/${controller}.throttle.write_bps_device
+		fi
+	    done
     fi
 }
 
@@ -760,9 +764,11 @@ set_scheduler >/dev/$OUT 2>&1
 # low_latency heuristics to not ditort results.
 if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
 	  "$sched" == "cfq" ]]; then
-    PREVIOUS_VALUE=$(cat /sys/block/$DEV/queue/iosched/low_latency)
-    echo "Disabling low_latency" >/dev/$OUT 2>&1
-    echo 0 > /sys/block/$DEV/queue/iosched/low_latency
+    for dev in $DEVS; do
+	PREVIOUS_VALUE=$(cat /sys/block/$dev/queue/iosched/low_latency)
+	echo "Disabling low_latency on $dev" >/dev/$OUT 2>&1
+	echo 0 > /sys/block/$dev/queue/iosched/low_latency
+    done
 fi
 
 # set proper parameter prefixes
@@ -831,25 +837,29 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	fi
 
 	if [[ "$type_bw_control" == low ]]; then
-	    echo "$(cat /sys/block/$DEV/dev) rbps=$wthr wbps=$wthr latency=$lat idle=1000" \
-		 > /cgroup/InterfererGroup$i/${controller}.low
+	    for dev in $DEVS; do
+		echo "$(cat /sys/block/$dev/dev) rbps=$wthr wbps=$wthr latency=$lat idle=1000" \
+		     > /cgroup/InterfererGroup$i/${controller}.low
 
-	    if [[ $? -ne 0 ]]; then
-		echo Failed to set low limit for interferer group $i
-		exit 1
-	    fi
+		if [[ $? -ne 0 ]]; then
+		    echo Failed to set low limit for interferer group $i on $dev
+		    exit 1
+		fi
+	    done
 
 	    echo /cgroup/InterfererGroup$i/${controller}.low:
 	    cat /cgroup/InterfererGroup$i/${controller}.low
 	else
-	    echo "$(cat /sys/block/$DEV/dev) $wthr" \
-		 > /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
-	    echo /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device:
-	    cat /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
-	    echo "$(cat /sys/block/$DEV/dev) $wthr" \
-		 > /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device
-	    echo /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device:
-	    cat /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device
+	    for dev in $DEVS; do
+		echo "$(cat /sys/block/$dev/dev) $wthr" \
+		     > /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
+		echo /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device:
+		cat /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
+		echo "$(cat /sys/block/$dev/dev) $wthr" \
+		     > /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device
+		echo /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device:
+		cat /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device
+	    done
 	fi
     fi
 done
@@ -904,7 +914,7 @@ done
 
 if [[ $MODE != demo ]]; then
     # start iostat
-    iostat -tmd /dev/$DEV 3 | tee iostat.out &
+    iostat -tmd /dev/$HIGH_LEV_DEV 3 | tee iostat.out &
 
     while true ; do
 	uptime=$(</proc/uptime)

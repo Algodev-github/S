@@ -119,18 +119,23 @@ set_scheduler
 # low_latency heuristics to not ditort results.
 if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
 	"$sched" == "cfq" ]]; then
-	PREVIOUS_VALUE=$(cat /sys/block/$DEV/queue/iosched/low_latency)
-	echo "Disabling low_latency"
-	echo 0 > /sys/block/$DEV/queue/iosched/low_latency
+	    for dev in $DEVS; do
+		PREVIOUS_VALUE=$(cat /sys/block/$dev/queue/iosched/low_latency)
+		echo "Disabling low_latency on $dev"
+		echo 0 > /sys/block/$dev/queue/iosched/low_latency
+	done
 fi
 
 function restore_low_latency
 {
 	if [[ "$sched" == "bfq-mq" || "$sched" == "bfq" || \
 		"$sched" == "cfq" ]]; then
-		echo Restoring previous value of low_latency
+
+	    for dev in $DEVS; do
+		echo Restoring previous value of low_latency on $dev
 		echo $PREVIOUS_VALUE >\
-			/sys/block/$DEV/queue/iosched/low_latency
+		     /sys/block/$dev/queue/iosched/low_latency
+	    done
 	fi
 }
 
@@ -158,7 +163,7 @@ for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	sleep 2
 
 	# start logging aggregated throughput
-	iostat -tmd /dev/$DEV 1 | tee iter-$i/iostat.out &
+	iostat -tmd /dev/$HIGH_LEV_DEV 1 | tee iter-$i/iostat.out &
 
 	if [[ "$TIMEOUT" != "0" && "$TIMEOUT" != "" ]]; then
 		bash -c "sleep $TIMEOUT && \
@@ -194,9 +199,9 @@ rm -rf /cgroup
 
 for ((i = 0 ; $i < $ITERATIONS ; i++)) ; do
 	cd iter-$i
-	len=$(cat iostat.out | grep ^$DEV | wc -l)
+	len=$(cat iostat.out | grep ^$HIGH_LEV_DEV | wc -l)
 	echo Aggregated Throughtput in iteration $i | tee -a ../output
-	cat iostat.out | grep ^$DEV | awk '{ print $3 }' | \
+	cat iostat.out | grep ^$HIGH_LEV_DEV | awk '{ print $3 }' | \
 		tail -n$(($len-3)) | head -n$(($len-3)) > iostat-aggthr
 	$CALC_AVG_AND_CO 99 < iostat-aggthr | tee -a ../output
 

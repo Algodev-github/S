@@ -15,9 +15,9 @@ CURDIR=$(pwd)
 # put into BACKING_DEV the backing device for $CURDIR
 find_dev_for_dir $CURDIR
 
-if [[ "$BACKING_DEV" != "$DEV" ]]; then
-    echo Video file is on a different device \($BACKING_DEV\)
-    echo from that of test files \($DEV\)
+if [[ "$BACKING_DEVS" != "$DEVS" ]]; then
+    echo Video file is on different devices \($BACKING_DEV\)
+    echo from those of test files \($DEVS\)
     exit
 fi
 
@@ -136,11 +136,14 @@ function clean_and_exit {
 	cd ..
 	# rm work dir
 	rm -rf results-${sched}
-	if [[ $CACHE != y && $CACHE != Y && $sched == bfq ]]; then
-		echo "Dectivating strict_guarantees"
 
-		echo 0 > /sys/block/$DEV/queue/iosched/strict_guarantees
-	fi
+	for dev in $DEVS; do
+	    if [[ $CACHE != y && $CACHE != Y && $sched == bfq ]]; then
+		echo "Deactivating strict_guarantees on $dev"
+		echo 0 > /sys/block/$dev/queue/iosched/strict_guarantees
+	    fi
+	done
+
 	if [[ "$XHOST_CONTROL" != "" ]]; then
 		xhost - > /dev/null 2>&1
 	fi
@@ -271,9 +274,10 @@ STAT_DEST_DIR=`cd $STAT_DEST_DIR; pwd`
 set_scheduler > $REDIRECT
 
 if [[ $CACHE != y && $CACHE != Y && $sched == bfq ]]; then
-	echo "Activating strict_guarantees"
-
-	echo 1 > /sys/block/$DEV/queue/iosched/strict_guarantees
+	for dev in $DEVS; do
+	    echo "Activating strict_guarantees on $dev"
+	    echo 1 > /sys/block/$dev/queue/iosched/strict_guarantees
+	done
 fi
 
 # create and enter work dir
@@ -307,7 +311,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 fi
 
 # start logging aggthr
-iostat -tmd /dev/$DEV 3 | tee iostat.out > $REDIRECT &
+iostat -tmd /dev/$HIGH_LEV_DEV 3 | tee iostat.out > $REDIRECT &
 
 init_tracing
 set_tracing 1

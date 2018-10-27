@@ -110,7 +110,7 @@ echo Measurement started, and lasting $DURATION seconds > $REDIRECT
 start_time=$(date +'%s')
 
 # start logging aggthr
-iostat -tmd /dev/$DEV 2 | tee iostat.out > $REDIRECT &
+iostat -tmd /dev/$HIGH_LEV_DEV 2 | tee iostat.out > $REDIRECT &
 
 # wait for reader/writer start-up transitory to terminate
 secs=$DURATION

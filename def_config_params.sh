@@ -18,30 +18,51 @@ fi
 function find_dev_for_dir
 {
     PART=$(df -P $1 | awk 'END{print $1}')
-    OLDPART=$PART
-    PART=$(readlink -f $PART) # moves to /dev/dm-X in case of device mapper
-    if [[ "$PART" == "" ]]; then
-	echo Could not follow link for $OLDPART, probably a remote file system
+
+    REALPATH=$(readlink -f $PART) # moves to /dev/dm-X in case of device mapper
+    if [[ "$REALPATH" == "" ]]; then
+	echo Could not follow link for $PART, probably a remote file system
 	exit
     fi
     PART=$(basename $PART)
 
-    # get physical partition if $PART is a device mapper
-    if [ "$(echo $PART | egrep dm-)" != "" ] ; then
-	PART=$(ls /sys/block/$PART/slaves | cut -f 1 -d " ")
-    fi
-
     if [[ "$(echo $PART | egrep loop)" != "" ]]; then
 	# loopback device: $PART is already equal to the device name
-	BACKING_DEV=$PART
+	BACKING_DEVS=$PART
     else
-	# get device from partition
-	BACKING_DEV=$(basename "$(readlink -f "/sys/class/block/$PART/..")")
+	# get devices from partition
+	for dev in $(ls /sys/block/); do
+	    match=$(lsblk /dev/$dev | egrep $PART)
+	    if [[ "$match" == "" ]]; then
+		continue
+	    fi
+	    disk_line=$(lsblk /dev/$dev | egrep disk)
+	    if [[ "$disk_line" != "" ]]; then
+		BACKING_DEVS="$BACKING_DEVS $dev"
+
+		if [[ "$HIGH_LEV_DEV" == "" ]]; then
+		    HIGH_LEV_DEV=$dev # make md win in setting HIGH_LEV_DEV
+		fi
+	    fi
+
+	    raid_line=$(lsblk /dev/$dev | egrep raid | egrep ^md)
+	    if [[ "$raid_line" != "" ]]; then
+		if [[ "$(echo $HIGH_LEV_DEV | egrep md)" != "" ]]; then
+		    echo -n Stacked raids not supported
+		    echo " ($HIGH_LEV_DEV + $dev), sorry."
+		    exit
+		fi
+
+		HIGH_LEV_DEV=$dev  # set unconditionally as high-level
+				   # dev (the one used, e.g., to
+				   # measure aggregate throughput)
+	    fi
+	done
     fi
 
-    if [[ "$BACKING_DEV" == "" ]]; then
-	echo Block device for partition $PART unrecongnized.
-	echo Try setting your target device manually in ~/.S-config.sh
+    if [[ "$BACKING_DEVS" == "" ]]; then
+	echo Block devices for partition $PART unrecognized.
+	echo Try setting your target devices manually in ~/.S-config.sh
 	exit
     fi
 }
@@ -64,24 +85,25 @@ function use_scsi_debug_dev
 	echo " done"
     fi
 
-    BACKING_DEV=$(lsscsi | egrep scsi_debug | sed 's<\(.*\)/dev/</dev/<')
-    BACKING_DEV=$(echo $BACKING_DEV | awk '{print $1}')
+    BACKING_DEVS=$(lsscsi | egrep scsi_debug | sed 's<\(.*\)/dev/</dev/<')
+    BACKING_DEVS=$(echo $BACKING_DEVS | awk '{print $1}')
 
-    if [[ ! -b ${BACKING_DEV}1 ]]; then
-	echo 'start=2048, type=83' | sfdisk $BACKING_DEV
+    if [[ ! -b ${BACKING_DEVS}1 ]]; then
+	echo 'start=2048, type=83' | sfdisk $BACKING_DEVS
     fi
 
     BASE_DIR=/mnt/scsi_debug
     if [[ "$(mount | egrep $BASE_DIR)" == "" ]]; then
-	fsck.ext4 ${BACKING_DEV}1
+	fsck.ext4 ${BACKING_DEVS}1
 	if [[ $? -ne 0 ]]; then
-	    mkfs.ext4 ${BACKING_DEV}1
+	    mkfs.ext4 ${BACKING_DEVS}1
 	fi
 
 	mkdir -p $BASE_DIR
-	mount ${BACKING_DEV}1 $BASE_DIR
+	mount ${BACKING_DEVS}1 $BASE_DIR
     fi
-    BACKING_DEV=$(basename $BACKING_DEV)
+    BACKING_DEVS=$(basename $BACKING_DEVS)
+    HIGH_LEV_DEV=$BACKING_DEVS
 }
 
 function get_max_affordable_file_size
@@ -94,7 +116,7 @@ function get_max_affordable_file_size
     PART=$(df -P $BASE_DIR | awk 'END{print $1}')
 
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
-    FREESPACE=$(df | egrep $PART | awk '{print $4}')
+    FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
     MAXTOTSIZE=$((($FREESPACE + $BASE_DIR_SIZE) / 2))
     MAXTOTSIZE_MiB=$(($MAXTOTSIZE / 1024))
     MAXSIZE_MiB=$((MAXTOTSIZE_MiB / 15))
@@ -128,7 +150,7 @@ elif [[ "$FIRST_PARAM" != "-h" ]]; then
     fi
 
     PART=$(df -P $BASE_DIR | awk 'END{print $1}')
-    FREESPACE=$(df | egrep $PART | awk '{print $4}')
+    FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
 
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
 
@@ -142,14 +164,15 @@ elif [[ "$FIRST_PARAM" != "-h" ]]; then
     fi
 fi
 
-# Next parameter contains the name of the device the test files are
-# on. That device is the one for which, e.g., the I/O scheduler is
-# changed, if you do ask the benchmarks to select the scheduler(s) to
-# use. The above code tries to detect automatically such a name, and
-# puts the result in BACKING_DEV.  If automatic detection does not
-# work, or is not wat you want, then just reassign the value of
-# DEV. For example: DEV=sda.
-DEV=$BACKING_DEV
+# Next parameter contains the names of the devices the test files are
+# on (devices may be more than one in case of a RAID
+# configuration). Those devices are the ones for which, e.g., the I/O
+# scheduler is changed, if you do ask the benchmarks to select the
+# scheduler(s) to use. The above code tries to detect automatically
+# these names, and puts the result in BACKING_DEVS.  If automatic
+# detection does not work, or is not wat you want, then just reassign
+# the value of DEVS. For example: DEVS=sda.
+DEVS=$BACKING_DEVS
 
 # file names
 BASE_FILE_PATH=$BASE_DIR/largefile
@@ -190,12 +213,14 @@ MAIL_REPORTS=0
 MAIL_REPORTS_RECIPIENT=
 
 if [[ "$FIRST_PARAM" != "-h" ]]; then
-    # test target device
-    cat /sys/block/$DEV/queue/scheduler >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-	echo There is something wrong with the device /dev/$DEV, which I have
-	echo computed as the device on which your root directory is mounted.
-	echo Try setting your target device manually in ~/.S-config.sh
-	exit
-    fi
+    # test target devices
+    for dev in $DEVS; do
+	cat /sys/block/$dev/queue/scheduler >/dev/null 2>&1
+	if [ $? -ne 0 ]; then
+	    echo There is something wrong with the device /dev/$dev, which I have
+	    echo computed as a device on which your root directory is mounted.
+	    echo Try setting your target device manually in ~/.S-config.sh
+	    exit
+	fi
+    done
 fi
