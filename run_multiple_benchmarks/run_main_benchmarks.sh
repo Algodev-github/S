@@ -554,6 +554,34 @@ if [[  "$MODE" == raw && "$RAND_WL" != yes ]]; then
     kern_workloads=("0 0 raw_seq" "10 0 raw_seq")
 fi
 
+if [[ "$(echo $BENCHMARKS | egrep replayed-startup)" != "" ]]; then
+    ../utilities/check_dependencies.sh dd fio iostat /usr/bin/time bc g++
+
+    if [[ $? -ne 0 ]]; then
+	exit
+    fi
+
+    cd ../comm_startup_lat
+    if [[ ! -f replay-startup-io || \
+	      replay-startup-io.cc -nt replay-startup-io ]]; then
+	echo Compiling replay-startup-io ...
+	g++ -std=c++11 -pthread -Wall replay-startup-io.cc \
+	    -o replay-startup-io -laio
+	if [ $? -ne 0 ]; then
+	    echo Failed to compile replay-startup-io
+	    echo Maybe libaio-dev/libaio-devel is not installed?
+	    exit
+	fi
+    fi
+    cd $OLDPWD
+elif [[ "$(echo $BENCHMARKS | egrep startup)" != "" ]]; then
+    ../utilities/check_dependencies.sh dd fio iostat /usr/bin/time \
+				       xterm gnome-terminal lowriter
+    if [[ $? -ne 0 ]]; then
+	exit
+    fi
+fi
+
 if [[ "$BENCHMARKS" == "" ]]; then
     ../utilities/check_dependencies.sh dd fio iostat /usr/bin/time mplayer \
 	git xterm gnome-terminal lowriter
