@@ -1,0 +1,187 @@
+INSTALLATION
+
+No installation step needed. But some dependencies must be met. See
+section MAIN DEPENDENCIES.
+
+CONTENTS
+
+To learn how to use the suite, it may be good to start by learning
+what it contains.
+
+In the root directory:
+. def_config_params.sh
+        Default configuration of general parameters, driving the
+        execution of all benchmarks. On the very first execution of
+        some benchmark script by a user, this file is copied into the
+        user home, as .S-config.sh. This is done even if just the -h
+        option is passed to the script. The file .S-config.sh is the
+        one that is actually read to set the values of the parameters,
+        regardless of whether the file has just been copied from
+        def_config_params.sh, or was already present in the home
+        directory. Thus .S-config.sh is the file to modify, to change
+        the configuration.
+
+Each benchmark is implemented by a bash script, stored in a separate directory.
+Here is the list of the directories and of the main scripts they contain:
+agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
+	Measures the aggregated throughput with parallel, greedy (i.e.,
+	continuously issuing I/O requests) readers and/or writers. Both
+	readers and writers are implemented with fio, and may be sequential
+	or random.
+	Files are read from and written to the /tmp/test directory (created
+	if non existing).
+	This type of workload is also used as background in the other tests.
+	At the end of the test, the min, max, avg, std deviation,
+	confidence interval of the read/write/total aggregated throughput
+	values sampled during the run is reported.
+file-copy: file-copy.sh
+	Launches parallel file copies. Only generates background workload,
+	and does not compute any statistic.
+	Creates the files to copy if they do not exist. Files are copied
+	to and read from $BASE_DIR.
+comm_startup_lat: comm_startup_lat.sh
+	Measures the cold-cache startup latency of the given command,
+	launched while the same configurable workload used in the agg_thr
+	test is running. At the end of the test reports min, max, avg, std
+	dev and conf interval of both the sampled latencies and the read/
+	write/total aggregated throughput.
+bandwidth_latency:
+	Measures bandwidth and latency enjoyed by processes competing for a
+	storage devices, with and without I/O control.
+video_playing_vs_commands: video_playing_vs_commands.sh
+	Measures the number of frames dropped while playing a video
+	clip and, at the same time, 1) repeatedly invoking a short
+	command and 2) serving one of the workloads of the of the
+	agg_thr test.
+video_streaming
+	This is a small package, made of a few scripts, programs and patches
+	for setting up a simple experiment with a video server.
+	In particular, a patched version of vlc is used, which also logs the
+	frame-loss rate. This information is used by the scripts to execute
+	the following experiment: measure the maximum number of movies that
+	can be streamed in parallel without exceeding 1% frame loss rate. In
+	brief, the steps are: start streaming a new movie, in parallel
+	with the ones already being streamed, every N seconds; stop if 1%
+	frame-loss rate has been reached. To perturbe the streaming, several
+	intermittent file readers are run in parallel too. More details
+	and instructions in the README within the package.
+kern_compil_tasks-vs-rw: task_vs_rw.sh
+	Measures the progress of a make, git checkout or git merge task,
+	executed while the same configurable workload used in the agg_thr
+	test is running. At the end of the test reports the number of lines
+	written to stdout by make, or the progress of the file checkout
+	phase of git merge or git checkout, plus the same statistics on I/O
+	throughput as the other tests.
+	This script currently plays with 2.6.30, 2.6.32 and 2.6.33. You must
+	provide a git tree containing at least these three versions.
+	WARNING: the make test overwrites .config, whereas the other two tests
+	create new branches.
+interleaved_io: interleaved_io.sh
+	Measures the aggregate throughput against an I/O pattern with
+	interleaved readers. The script will spawn the desired number
+	of parallel processes, each reading sequentially a 16KB-zone
+	of the storage.  The zones are interleaved, in that the zone
+	read by the first process is contiguous to the zone read by
+	the second process, and so on.  At the end of the test, the
+	min, max, avg, std deviation, confidence interval of the
+	read/write/total aggregated throughput values sampled during
+	the run is reported.  By default, the script won't create any
+	file, but read directly from the device on which the root
+	directory is mounted.
+fairness: fairness.sh
+	Measures how the device throughput is distributed among parallel
+	sequential readers. This is more a work in progress than the other
+	scripts.
+run_multiple_benchmarks
+	Scripts to execute subsets of the above tests. For example,
+	there is the script run_main_benchmarks.sh, which repeatedly
+	executes all the tests, apart from the video playing/streaming
+	ones, with several workloads. It can be configured only by
+	changing its code (you may want to change the number of
+	repetitions of each test, the schedulers used, ...).
+	run_main_benchmarks.sh sends mail reports to let the test progress
+	be checked without accessing the machine (and possibly
+	perturbing the tests themselves). This service can be
+	configured by changing some related parameters in
+	config_params.sh.
+utilities: several files here
+	. lib_utils.sh
+		Common functions used by the test scripts
+	. calc_avg_and_co.sh
+		Support script used by the other scripts to compute stats
+	. calc_overall_stats.sh
+		Takes as input a directory and, if the directory
+		contains at least one subdirectory containing, in its
+		turn, the results of one of the benchmarks, then, for
+		each of these subdirectory: 1) searches recursively,
+		in all the directories rooted at these subdirectories,
+		all the files named as any of the result files
+		produced by the benchmark; 2) considers any set of
+		files with the same name as the result files produced
+		in a set of repetitions of the same test, and
+		computes: a) min/max/avg/std_dev/confidence_interval
+		statistics on any of the avg values reported in these
+		files (hence it computes statistics over multiple
+		repetitions of the same test), b) tables containing
+		averages across the avg values reported in these files
+		(output table files also contains all the information
+		need to generate complete plots, see plot_stats.sh
+		below). If the directory passed as input is not the
+		root of a tree of benchmark-subdirectories, but
+		contains just the results of a benchmark, then the
+		script executes the same two steps as above in the
+		input directory. In more detail, the script tries to
+		guess whether a directory or a subdirectory contains
+		the results of a benchmark as a function of the name
+		of the directory or subdirectory itself. If the name
+		provides no hint, then the type of the results must be
+		passed explicitly on the command line (see the usage
+		message for more details). So far, only the
+		directories containing the results of
+		agg_thr-with-greedy_rw.sh, comm_startup_lat.sh or
+		task_vs_rw.sh scripts are supported. The latter is
+		however still to be tested. The script can collect
+		statistics in a completely automatic way on the trees
+		generated by the execution of the run_main_benchmarks.sh.
+	. plot_stats.sh
+	        Takes as input any table file and generates a plot
+	        from it.
+
+MAIN DEPENDENCIES
+
+You need at least fio, iostat (from the sysstat package), awk, time
+and bc installed. For the file-copy.sh script you need pv. For the
+kernel-development benchmark you also need git and make, whereas
+gnuplot is needed to generate plots through plot_stats.sh (gnuplot-x11
+to handle also x11 terminals, i.e., to make plot windows), and mplayer
+is needed for the video-playing benchmark. To let the
+run_main_benchmarks.sh script send mail reports about the test progress,
+you must have a mail transfer agent (such as, e.g., msmtp) and a mail
+client (such as, e.g., mailx) installed and correctly configured to
+send e-mails.
+
+USAGE AND OUTPUT OF THE BENCHMARKS
+
+Option A:
+i) run each benchmark manually. To execute each script, first cd to
+   the dir that contains it.  Most scripts invoke commands that
+   require root privileges.  Each benchmark produces a result file
+   that contains statistics on the quantities of interest (throughput,
+   latency, number of lines produced by make, ...).
+
+ii) if you repeat a test more than once manually and store the result
+   files in a given directory or in its subdirs then you may use,
+   first, utilities/calc_overall_stats.sh to further aggregate the
+   results and compute statistics on the avg values across the
+   repetitions (calc_overall_stats.sh works for most but not yet all
+   benchmarks), and then utilities/plot_stats.sh to generate plots
+   from the table files produced by calc_overall_stats.sh
+
+Option B:
+i) run multiple benchmarks automatically through a general script like
+   run_multiple_benchmarks/run_main_benchmarks.sh. After executing the
+   benchmarks, this script also invokes calc_overall_stats.sh and
+   plot_stats.sh to generate both global statistics and plots
+   automatically (for most but not yet all benchmarks).
+
+For examples and brief help just invoke the desired script with -h.
