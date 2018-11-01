@@ -620,12 +620,13 @@ function set_weight_limit_for_interfered
     fi
 }
 
+function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
+
 # MAIN
 
 VER=$($FIO_PATH -v | sed 's/fio-//')
 VER=$(echo $VER | sed 's/-.*//')
-RES=$(echo "$VER >= 3.2" | bc -l)
-if [ $RES -eq 0 ]; then
+if [ $(version $VER) -lt $(version 3.2) ]; then
 	echo You have fio-$VER, but at least fio-3.2 is required
 	echo Download and build a recent enough version, then
 	echo set the FIO parameter in this script to the path
