@@ -2,11 +2,6 @@
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 
-../utilities/check_dependencies.sh bash awk bc
-if [[ $? -ne 0 ]]; then
-	exit
-fi
-
 DEF_BENCHMARKS="throughput startup video-playing"
 
 # see the following string for usage, or invoke ./run_main_benchmarks.sh -h

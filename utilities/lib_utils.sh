@@ -1,7 +1,14 @@
 # Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
+# Copyright (C) 2018 Paolo Valente <paolo.valente@linaro.org>
+
 CALC_AVG_AND_CO=`cd ../utilities; pwd`/calc_avg_and_co.sh
 FIO="fio --minimal --loops=10000"
+
+../utilities/check_dependencies.sh bash awk bc killall
+if [[ $? -ne 0 ]]; then
+	exit
+fi
 
 function init_tracing {
 	if [ "$TRACE" == "1" ] ; then
