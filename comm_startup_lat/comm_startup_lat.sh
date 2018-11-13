@@ -321,7 +321,7 @@ else
     find_dev_for_dir $PATH_TO_CMD
 
     if [[ "$BACKING_DEVS" != "$DEVS" ]]; then
-	echo Command exec is on different devices \($BACKING_DEV\)
+	echo Command exec is on different devices \($BACKING_DEVS\)
 	echo from those of test files \($DEVS\)
 	exit
     fi
