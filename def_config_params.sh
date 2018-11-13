@@ -26,6 +26,7 @@ function find_dev_for_dir
     fi
     PART=$(basename $PART)
 
+    BACKING_DEVS=
     if [[ "$(echo $PART | egrep loop)" != "" ]]; then
 	# loopback device: $PART is already equal to the device name
 	BACKING_DEVS=$PART
