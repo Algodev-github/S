@@ -23,6 +23,11 @@ fi
 # temporary file name which will contain the interfered fio pid
 FIO_PID_FILE="$(date +"%Y%m%d_%H%M%S_fio_pid.tmp")"
 
+# this magic line is used as a synchronization point between:
+# - interfered fio output filtering
+# - and interfered statistics computation
+MAGIC_LINE="# FIO OUTPUT IS READY FOR STATS"
+
 LC_NUMERIC=C
 . ../config_params.sh
 . ../utilities/lib_utils.sh
@@ -274,12 +279,19 @@ invalidate=1\n
 	    fi
 	    wait "$tmp_fio_pid"  # wait for interfered fio death
 	fi
-	# For some reason, the waiting of this job (when this job is
-	# started in parallel) occasionally terminated before writes
-	# to ${name}-stats.txt are seen by the parent process. The
-	# following one-second wait seem to have eliminated this
-	# issue.
-	sleep 1
+	# Synchronization between:
+	# - the end of this function (which writes to file the fio output)
+	# - and the start of the compute_statistics function (which is spawned
+	#   in parallel and needs to read the fio output from file)
+	# is needed.
+	# Since the wait shell builtin can not wait for pids which are not
+	# child of the same shell (i.e. child of a different subshell) a
+	# magic line is appended to the interfered-stats.txt file; in order
+	# to wait until the presence of that magic line in the function
+	# compute_statistics
+	if [[ "$1" == "interfered" ]]; then
+	    echo "$MAGIC_LINE" >> ${name}-stats.txt
+	fi
 }
 
 function get_io {
@@ -530,6 +542,13 @@ function compute_statistics {
 	file_name=${file_name// /_}
 
 	file_name=$file_name-stat.txt
+
+	while ! grep -q "$MAGIC_LINE" interfered-stats.txt; do
+	    # Wait for fio output to be completely written
+	    sleep 0.01
+	done
+	# remove the magic line appended just for synchronization
+	sed -i "/$MAGIC_LINE/d" interfered-stats.txt
 
 	i_tot_bw_min=$(awk '{print $1+$5}' < interfered-stats.txt)
 	i_tot_bw_max=$(awk '{print $2+$6}' < interfered-stats.txt)
