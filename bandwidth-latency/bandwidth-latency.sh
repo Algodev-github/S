@@ -19,6 +19,10 @@ else
 	fi
 	FIO_PATH=fio
 fi
+
+# temporary file name which will contain the interfered fio pid
+FIO_PID_FILE="$(date +"%Y%m%d_%H%M%S_fio_pid.tmp")"
+
 LC_NUMERIC=C
 . ../config_params.sh
 . ../utilities/lib_utils.sh
@@ -164,6 +168,7 @@ function clean_and_exit {
 	umount /cgroup >/dev/$OUT 2>&1
 	rm -rf /cgroup >/dev/$OUT 2>&1
 
+	rm -f "$FIO_PID_FILE"
 	rm -f interfered*-stats.txt
 	rm -f iostat.out iostat-aggthr
 
@@ -172,6 +177,14 @@ function clean_and_exit {
 	exit
 }
 
+# Since the invocation command of this function is always terminated with the
+# control operator '&', the command which invoke this function executes
+# asynchronously in a subshell.
+# For this reason this function can not set variables in the parent shell, it
+# just has a copy of its environment.
+# Thus, in order to share with the execute_intfered_and_shutdwn_intferers
+# function the interfered fio pid to kill, we simply write it to a temporary
+# file, which can be read when needed.
 function start_fio_jobs {
 	name=$1
 	dur=$2 # 0=no duration limit
@@ -226,12 +239,17 @@ invalidate=1\n
 "
 
 	if [[ $name == interfered && $MODE != demo ]]; then
-	    echo -e $jobvar | $FIO_PATH --minimal - | \
-		awk 'BEGIN{FS=";"}{print $42, $43, $7, $46, $83, $84, $48, $87,\
-		    $38, $39, $40, $41, $79, $80, $81, $82}' \
-		    > ${name}-stats.txt
+	    echo -e "$jobvar" | "$FIO_PATH" --minimal - > "${name}-stats.txt" &
 
-	    output=$(cat ${name}-stats.txt)
+	    # write interfered fio pid to temporary file
+	    echo "$!" > "$FIO_PID_FILE"
+	    wait "$(cat "$FIO_PID_FILE")"  # wait for interfered fio death
+
+	    output="$(cat "${name}-stats.txt" \
+		      | awk 'BEGIN{FS=";"}{print $42, $43,  $7, $46, \
+						 $83, $84, $48, $87, \
+						 $38, $39, $40, $41, \
+						 $79, $80, $81, $82}')"
 	    if [[ "$output" == "" ]]; then
 		echo Fatal: empty interfered output
 		clean_and_exit
@@ -247,7 +265,14 @@ invalidate=1\n
 	    if [[ $MODE == demo ]]; then
 		dump=--status-interval=100ms
 	    fi
-	    echo -e $jobvar | $FIO_PATH $dump - > ${name}-stats.txt
+	    echo -e "$jobvar" | "$FIO_PATH" $dump - > "${name}-stats.txt" &
+	    tmp_fio_pid="$!"
+
+	    if [[ "$1" == "interfered" ]]; then
+		# write interfered fio pid to temporary file
+		echo "$tmp_fio_pid" > "$FIO_PID_FILE"
+	    fi
+	    wait "$tmp_fio_pid"  # wait for interfered fio death
 	fi
 	# For some reason, the waiting of this job (when this job is
 	# started in parallel) occasionally terminated before writes
@@ -466,15 +491,18 @@ function execute_intfered_and_shutdwn_intferers {
 		${i_IO_type} ${i_rate} $i_process $i_IO_depth \
 		1 $i_direct $i_blocksize $i_filename >/dev/$OUT 2>&1) &
 
-	FIO_PID=$!
-
 	if [[ $MODE == demo ]]; then
 	    wait_and_print_bars
 	else
 	    sleep $(( $duration + 5 )) # 5 seconds for ramptime
 	fi
 
-	kill -INT $FIO_PID
+	# Since the interfered fio pid to kill might not yet being written to
+	# the temporary file, let's wait for its existence
+	while ! [[ -f "$FIO_PID_FILE" && "$(cat "$FIO_PID_FILE")" != "" ]]; do
+	    sleep 0.01
+	done
+	kill -INT "$(cat "$FIO_PID_FILE")"
 
 	shutdwn iostat
 	shutdwn fio
