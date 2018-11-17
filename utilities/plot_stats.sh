@@ -332,6 +332,12 @@ function parse_table
     done
 
     grep -v "^  $reference_case\|^#" $in_filename > tmp_file
+    # tmp_file could be empty if the only data in the
+    # file-table ($in_filename) is the reference case.
+    # Thus in that case let's plot at least the reference case
+    if [ ! -s tmp_file ]; then
+	grep -v "^#" $in_filename > tmp_file
+    fi
 
     curves="\"tmp_file\" using 2:xticlabels(1) t \"${schedulers[0]}\""
 
