@@ -12,11 +12,11 @@ fi
 . ../utilities/lib_utils.sh
 CURDIR=$(pwd)
 
-# put into BACKING_DEV the backing device for $CURDIR
+# put into BACKING_DEVS the backing device for $CURDIR
 find_dev_for_dir $CURDIR
 
 if [[ "$BACKING_DEVS" != "$DEVS" ]]; then
-    echo Video file is on different devices \($BACKING_DEV\)
+    echo Video file is on different devices \($BACKING_DEVS\)
     echo from those of test files \($DEVS\)
     exit
 fi
