@@ -133,95 +133,63 @@ function get_max_affordable_file_size
     echo $(( $MAXSIZE_MiB>$file_size_MiB ? $file_size_MiB : $MAXSIZE_MiB ))
 }
 
-# BEGINNING OF CONFIGURATION PARAMETERS
+function prepare_basedir
+{
+    BASE_DIR=$1
 
-# BASE_DIR is where test files are read from or written to
-if [[ "$SCSI_DEBUG" == yes ]]; then
-    use_scsi_debug_dev # this will set BASE_DIR
-elif [[ "$FIRST_PARAM" != "-h" ]]; then
-    BASE_DIR=$PWD/../workfiles # or the directory you prefer
+    if [[ "$SCSI_DEBUG" == yes ]]; then
+	use_scsi_debug_dev # this will set BASE_DIR
+    elif [[ "$FIRST_PARAM" != "-h" ]]; then
+	BASE_DIR=$PWD/../workfiles # or the directory you prefer
 
-    if [[ ! -d $BASE_DIR ]]; then
-	mkdir $BASE_DIR
+	if [[ ! -d $BASE_DIR ]]; then
+	    mkdir $BASE_DIR
+	fi
+	if [[ ! -w $BASE_DIR ]]; then
+	    echo "$BASE_DIR is not writeable, reverting to /tmp/test"
+	    BASE_DIR=/tmp/test
+	    mkdir -p $BASE_DIR
+	fi
+
+	PART=$(df -P $BASE_DIR | awk 'END{print $1}')
+	FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
+
+	BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
+
+	if [[ $(( ($FREESPACE + $BASE_DIR_SIZE) / 1024 )) -lt 500 ]]; then
+	    echo Not enough free space for test files in $BASE_DIR: \
+		 I need at least 500MB
+	    exit
+	fi
+
+	if [[ -d $BASE_DIR ]]; then
+	    find_dev_for_dir $BASE_DIR
+	fi
     fi
-    if [[ ! -w $BASE_DIR ]]; then
-	echo "$BASE_DIR is not writeable, reverting to /tmp/test"
-	BASE_DIR=/tmp/test
-	mkdir -p $BASE_DIR
-    fi
+}
 
-    PART=$(df -P $BASE_DIR | awk 'END{print $1}')
-    FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
+prepare_basedir $BASE_DIR
 
-    BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
-
-    if [[ $(( ($FREESPACE + $BASE_DIR_SIZE) / 1024 )) -lt 500 ]]; then
-	echo Not enough free space for test files in $BASE_DIR: I need at least 500MB
-	exit
-    fi
-
-    if [[ -d $BASE_DIR ]]; then
-	find_dev_for_dir $BASE_DIR
-    fi
+if [[ "$DEVS" == "" ]]; then
+    DEVS=$BACKING_DEVS
 fi
-
-# Next parameter contains the names of the devices the test files are
-# on (devices may be more than one in case of a RAID
-# configuration). Those devices are the ones for which, e.g., the I/O
-# scheduler is changed, if you do ask the benchmarks to select the
-# scheduler(s) to use. The above code tries to detect automatically
-# these names, and puts the result in BACKING_DEVS.  If automatic
-# detection does not work, or is not wat you want, then just reassign
-# the value of DEVS. For example: DEVS=sda.
-DEVS=$BACKING_DEVS
-
-# file names
-BASE_FILE_PATH=$BASE_DIR/largefile
-
-# Size of (each of) the files to create for reading/writing, in
-# MiB. Set to the maximum value that guarantees at most 50% of the
-# free space, or left to the value used in last file creation, if
-# lower than the above threshold.  For random I/O with rotational
-# devices, consider that the size of the files may heavily influence
-# throughput and, in general, service properties. Change at your will,
-# if you prefer a different value.
-FILE_SIZE_MB=$(get_max_affordable_file_size)
-
-# portion, in 1M blocks, to read for each file, used only in fairness.sh;
-# make sure it is not larger than $FILE_SIZE_MB
-NUM_BLOCKS=2000
-
-# If equal to 1, tracing is enabled during each test
-TRACE=0
-
-# The kernel-development benchmarks expect a repository in the
-# following directory. In particular, they play with v4.0, v4.1 and
-# v4.2, so they expect these versions to be present.
-KERN_DIR=$BASE_DIR/linux.git-for_kern_dev_benchmarks
-# If no repository is found in the above directory, then a repository
-# is cloned therein. The source URL is stored in the following
-# variable.
-KERN_REMOTE=https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-
-# NCQ queue depth, if undefined then no script will change the current value
-NCQ_QUEUE_DEPTH=
-
-# Mail-report parameters. A mail transfer agent (such as msmtp) and a mail
-# client (such as mailx) must be installed to be able to send mail reports.
-# The sender e-mail address will be the one configured as default in the
-# mail client itself.
-MAIL_REPORTS=0
-MAIL_REPORTS_RECIPIENT=
 
 if [[ "$FIRST_PARAM" != "-h" ]]; then
     # test target devices
     for dev in $DEVS; do
 	cat /sys/block/$dev/queue/scheduler >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
-	    echo There is something wrong with the device /dev/$dev, which I have
-	    echo computed as a device on which your root directory is mounted.
-	    echo Try setting your target device manually in ~/.S-config.sh
+	    echo -n "There is something wrong with the device /dev/$dev, "
+	    echo which should be
+	    echo a device on which your test directory $BASE_DIR
+	    echo is mounted.
+	    echo -n "Try setting your target devices manually "
+	    echo \(and correctly\) in ~/.S-config.sh
 	    exit
 	fi
     done
+fi
+
+if [[ "$FILE_SIZE_MB" == "" ]]; then
+    FILE_SIZE_MB=$(get_max_affordable_file_size)
 fi

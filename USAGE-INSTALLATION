@@ -9,7 +9,7 @@ To learn how to use the suite, it may be good to start by learning
 what it contains.
 
 In the root directory:
-. def_config_params.sh
+. def_config.sh
         Default configuration of general parameters, driving the
         execution of all benchmarks. On the very first execution of
         some benchmark script by a user, this file is copied into the
@@ -17,9 +17,9 @@ In the root directory:
         option is passed to the script. The file .S-config.sh is the
         one that is actually read to set the values of the parameters,
         regardless of whether the file has just been copied from
-        def_config_params.sh, or was already present in the home
-        directory. Thus .S-config.sh is the file to modify, to change
-        the configuration.
+	def_config.sh, or was already present in the home directory.
+	Thus .S-config.sh is the file to modify, to change the
+	configuration.
 
 Each benchmark is implemented by a bash script, stored in a separate directory.
 Here is the list of the directories and of the main scripts they contain:
@@ -103,7 +103,7 @@ run_multiple_benchmarks
 	be checked without accessing the machine (and possibly
 	perturbing the tests themselves). This service can be
 	configured by changing some related parameters in
-	config_params.sh.
+	~/.S-config.sh
 utilities: several files here
 	. lib_utils.sh
 		Common functions used by the test scripts
