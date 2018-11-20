@@ -140,8 +140,6 @@ function prepare_basedir
     if [[ "$SCSI_DEBUG" == yes ]]; then
 	use_scsi_debug_dev # this will set BASE_DIR
     elif [[ "$FIRST_PARAM" != "-h" ]]; then
-	BASE_DIR=$PWD/../workfiles # or the directory you prefer
-
 	if [[ ! -d $BASE_DIR ]]; then
 	    mkdir $BASE_DIR
 	fi
