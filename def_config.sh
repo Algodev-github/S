@@ -2,9 +2,16 @@
 # in your home directory. The latter gets created on the very first execution
 # of some benchmark script (even if only the option -h is passed to the script).
 
-# Set to yes if you want to use SCSI_DEBUG; this would set BASE_DIR
-# too, automatically, and overriding your possible choice below
+# Set to yes if you want to use SCSI_DEBUG; this will override your
+# possible choice for TEST_PARTITION below, and will set BASE_DIR too,
+# automatically, overriding your possible choice for BASE_DIR below.
 SCSI_DEBUG=no
+
+# Set the following parameter if you want to perform tests on a given
+# partition. The partition must contain a mounted filesystem. All test
+# files will be created in that filesystem. BASE_DIR will be built
+# automatically, overriding your possible choice below.
+TEST_PARTITION=
 
 # Directory containing files read/written during benchmarks.
 # The path "$PWD/../" points to S root directory.
@@ -20,9 +27,6 @@ BASE_DIR=$PWD/../workfiles
 #
 # For example: DEVS=sda.
 DEVS=
-
-# file names
-BASE_FILE_PATH=$BASE_DIR/largefile
 
 # Size of (each of) the files to create for reading/writing, in
 # MiB. If left empty, then automatically set to the maximum value that

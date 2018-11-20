@@ -135,38 +135,77 @@ function get_max_affordable_file_size
 
 function prepare_basedir
 {
-    BASE_DIR=$1
+    # NOTE: the following cases are mutually exclusive
+
+    if [[ "$FIRST_PARAM" == "-h" ]]; then
+	return
+    fi
 
     if [[ "$SCSI_DEBUG" == yes ]]; then
 	use_scsi_debug_dev # this will set BASE_DIR
-    elif [[ "$FIRST_PARAM" != "-h" ]]; then
-	if [[ ! -d $BASE_DIR ]]; then
-	    mkdir $BASE_DIR
-	fi
-	if [[ ! -w $BASE_DIR ]]; then
-	    echo "$BASE_DIR is not writeable, reverting to /tmp/test"
-	    BASE_DIR=/tmp/test
-	    mkdir -p $BASE_DIR
-	fi
+	return
+    fi
 
-	PART=$(df -P $BASE_DIR | awk 'END{print $1}')
-	FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
+    if [[ "$TEST_PARTITION" != "" ]]; then
+	lsblk -o MOUNTPOINT /dev/$TEST_PARTITION > mountpoints
 
-	BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
+	cur_line=$(tail -n +2  mountpoints | head -n 1)
+	i=3
+	while [[ "$cur_line" == "" && $i -lt $(cat mountpoints | wc -l) ]]; do
+	    cur_line=$(tail -n +$i mountpoints | head -n 1)
+	    i=$(( i+1 ))
+	done
 
-	if [[ $(( ($FREESPACE + $BASE_DIR_SIZE) / 1024 )) -lt 500 ]]; then
-	    echo Not enough free space for test files in $BASE_DIR: \
-		 I need at least 500MB
+	rm mountpoints
+
+	if [[ "$cur_line" == "" ]]; then
+	    echo Sorry, no mountpoint found for test partition $TEST_PARTITION
+	    echo Aborting.
 	    exit
 	fi
 
-	if [[ -d $BASE_DIR ]]; then
-	    find_dev_for_dir $BASE_DIR
-	fi
+	cur_line=${cur_line%/} # hate to see consecutive / in paths :)
+	BASE_DIR="$cur_line/var/lib/S"
+    fi
+
+    if [[ ! -d $BASE_DIR ]]; then
+	mkdir -p $BASE_DIR
+    fi
+
+    if [[ ! -w $BASE_DIR && "$TEST_PARTITION" != "" ]]; then
+	echo Sorry, $BASE_DIR not writeable for test partition $TEST_PARTITION
+	echo Aborting.
+	exit
+    fi
+
+    if [[ ! -w $BASE_DIR ]]; then
+	echo "$BASE_DIR is not writeable, reverting to /tmp/test"
+	BASE_DIR=/tmp/test
+	mkdir -p $BASE_DIR
+    fi
+
+    PART=$(df -P $BASE_DIR | awk 'END{print $1}')
+    FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
+
+    BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
+
+    if [[ $(( ($FREESPACE + $BASE_DIR_SIZE) / 1024 )) -lt 500 ]]; then
+	echo Not enough free space for test files in $BASE_DIR: \
+	     I need at least 500MB
+	exit
+    fi
+
+    if [[ -d $BASE_DIR ]]; then
+	find_dev_for_dir $BASE_DIR
     fi
 }
 
-prepare_basedir $BASE_DIR
+# MAIN
+
+prepare_basedir
+
+# paths of files to read/write in the background
+BASE_FILE_PATH=$BASE_DIR/largefile
 
 if [[ "$DEVS" == "" ]]; then
     DEVS=$BACKING_DEVS
