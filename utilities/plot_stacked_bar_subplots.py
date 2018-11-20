@@ -107,7 +107,6 @@ def create_subplot(matrix, colors, axis, title, reachable_thr):
     return bar_renderers
 
 i = 0
-max_tot_throughput = 0
 for line in content[8:]:
     line_elems = line.split()
     numbers = line_elems[1:]
@@ -120,7 +119,6 @@ for line in content[8:]:
         reachable_thr = first_row[no_pol_idx] + second_row[no_pol_idx]
         del first_row[no_pol_idx]
         del second_row[no_pol_idx]
-        max_tot_throughput = max(max_tot_throughput, reachable_thr)
 
     mat = np.array([first_row, second_row])
     workload_name=line_elems[0].replace('_', ' ')
@@ -131,12 +129,10 @@ for line in content[8:]:
 
     tot_throughput = np.amax(mat.sum(axis=0))
 
-    max_tot_throughput = max(max_tot_throughput, tot_throughput)
     i += 1
 
 
 ax[0].set_ylabel('Target, interferers and total throughput') # add left y label
-ax[0].set_ybound(0, max_tot_throughput * 1.1) # add buffer at the top of the bars
 ax[0].text(-0.02, -0.025, 'I/O policy:\nScheduler:',
         horizontalalignment='right',
         verticalalignment='top',
@@ -185,6 +181,11 @@ f.legend(handles=handles, labels=labels,
              ncol=2)
 
 plt.yticks(list(plt.yticks()[0]) + [10])
+
+# set the same scale on all subplots' y-axis
+y_mins, y_maxs = zip(*[axis.get_ylim() for axis in ax])
+for axis in ax:
+    axis.set_ylim((min(y_mins), max(y_maxs)))
 
 if len(sys.argv) > 2:
     plt.savefig(fileprefix + '.' + sys.argv[2])
