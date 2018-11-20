@@ -1,7 +1,7 @@
 if [ "$SUDO_USER" != "" ]; then
-	CONF_DEST_DIR=/home/$SUDO_USER
+    eval CONF_DEST_DIR=~$SUDO_USER
 else
-	CONF_DEST_DIR=~
+    CONF_DEST_DIR=~
 fi
 
 if [ ! -f $CONF_DEST_DIR/.S-config.sh ]; then
