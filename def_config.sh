@@ -7,14 +7,39 @@
 # automatically, overriding your possible choice for BASE_DIR below.
 SCSI_DEBUG=no
 
-# Set the following parameter if you want to perform tests on a given
-# partition. The partition must contain a mounted filesystem. All test
-# files will be created in that filesystem. BASE_DIR will be built
-# automatically, overriding your possible choice below.
-TEST_PARTITION=
+# Set the following parameter to the name (not the full path) of a
+# device or of a partition, if you want to perform tests on that
+# device or partition.
+#
+# If you go for a device, then the following two alternatives are
+# handled differently: first, the device contains the partition
+# /dev/${TEST_DEV}1 and /dev/${TEST_DEV}1 contains a mounted
+# filesystem; second, the latter compound condition does not hold. In
+# the first case, all test files are created in that filesystem. In
+# the second case, the execution is simply aborted if the following
+# FORMAT parameter is not set to yes. If, instead, FORMAT is set to
+# yes, then
+# - the device is formatted so as to contain a partition ${TEST_DEV}1;
+# - an ext4 filesystem is made on that partition;
+# - that filesystem is mounted.
+#
+# If you go directly for a partition, then the latter must contain a
+# mounted filesystem.
+#
+# In all succesful cases, all test files are created in the filesystem
+# contained in the test partition.
+#
+# If TEST_DEV is set, then BASE_DIR will be built automatically,
+# overriding your possible choice below.
+TEST_DEV=
 
-# Directory containing files read/written during benchmarks.
-# The path "$PWD/../" points to S root directory.
+# If set to yes, then $TEST_DEV is (re)formatted if needed, as
+# explained in detail in the comments on TEST_DEV.
+FORMAT=no
+
+# Directory containing files read/written during benchmarks.  The path
+# "$PWD/../" points to S root directory. The value for BASE_DIR chosen
+# here is overridden if SCSI_DEBUG or TEST_DEV is set.
 BASE_DIR=$PWD/../workfiles
 
 # Next parameter contains the names of the devices the test files are

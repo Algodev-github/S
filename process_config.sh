@@ -68,9 +68,29 @@ function find_dev_for_dir
     fi
 }
 
+function check_create_mount_part
+{
+    if [[ ! -b ${BACKING_DEVS}1 ]]; then
+	echo 'start=2048, type=83' | sfdisk $BACKING_DEVS
+    fi
+
+    BASE_DIR=$1
+    if [[ "$(mount | egrep $BASE_DIR)" == "" ]]; then
+	fsck.ext4 -n ${BACKING_DEVS}1
+	if [[ $? -ne 0 ]]; then
+	    mkfs.ext4 -F ${BACKING_DEVS}1
+	fi
+
+	mkdir -p $BASE_DIR
+	mount ${BACKING_DEVS}1 $BASE_DIR
+    fi
+    BACKING_DEVS=$(basename $BACKING_DEVS)
+    HIGH_LEV_DEV=$BACKING_DEVS
+}
+
 function use_scsi_debug_dev
 {
-    ../utilities/check_dependencies.sh lsscsi
+    ../utilities/check_dependencies.sh lsscsi mkfs.ext4 fsck.ext4 sfdisk
     if [[ $? -ne 0 ]]; then
 	exit 1
     fi
@@ -89,22 +109,18 @@ function use_scsi_debug_dev
     BACKING_DEVS=$(lsscsi | egrep scsi_debug | sed 's<\(.*\)/dev/</dev/<')
     BACKING_DEVS=$(echo $BACKING_DEVS | awk '{print $1}')
 
-    if [[ ! -b ${BACKING_DEVS}1 ]]; then
-	echo 'start=2048, type=83' | sfdisk $BACKING_DEVS
+    check_create_mount_part /mnt/scsi_debug
+}
+
+function format_and_use_test_dev
+{
+    ../utilities/check_dependencies.sh mkfs.ext4 fsck.ext4 sfdisk
+    if [[ $? -ne 0 ]]; then
+	exit 1
     fi
 
-    BASE_DIR=/mnt/scsi_debug
-    if [[ "$(mount | egrep $BASE_DIR)" == "" ]]; then
-	fsck.ext4 ${BACKING_DEVS}1
-	if [[ $? -ne 0 ]]; then
-	    mkfs.ext4 ${BACKING_DEVS}1
-	fi
-
-	mkdir -p $BASE_DIR
-	mount ${BACKING_DEVS}1 $BASE_DIR
-    fi
-    BACKING_DEVS=$(basename $BACKING_DEVS)
-    HIGH_LEV_DEV=$BACKING_DEVS
+    BACKING_DEVS=/dev/$TEST_DEV
+    check_create_mount_part /mnt/S-testfs
 }
 
 function get_max_affordable_file_size
@@ -146,8 +162,17 @@ function prepare_basedir
 	return
     fi
 
-    if [[ "$TEST_PARTITION" != "" ]]; then
-	lsblk -o MOUNTPOINT /dev/$TEST_PARTITION > mountpoints
+    if [[ "$TEST_DEV" != "" ]]; then
+	DISK=$(lsblk -o TYPE /dev/$TEST_DEV | egrep disk)
+
+	if [[ "$DISK" == "" ]]; then
+	    TEST_PARTITION=$TEST_DEV
+	else
+	    TEST_PARTITION=${TEST_DEV}1
+	    FORMAT_DISK=$FORMAT
+	fi
+
+	lsblk -o MOUNTPOINT /dev/$TEST_PARTITION > mountpoints 2> /dev/null
 
 	cur_line=$(tail -n +2  mountpoints | head -n 1)
 	i=3
@@ -158,10 +183,15 @@ function prepare_basedir
 
 	rm mountpoints
 
-	if [[ "$cur_line" == "" ]]; then
-	    echo Sorry, no mountpoint found for test partition $TEST_PARTITION
+	if [[ "$cur_line" == "" && "$FORMAT_DISK" != yes ]]; then
+	    echo Sorry, no mountpoint found for test partition $TEST_PARTITION.
+	    echo Set FORMAT=yes and TEST_DEV=\<actual drive\> if you want
+	    echo me to format drive, create fs and mount it for you.
 	    echo Aborting.
 	    exit
+	elif  [[ "$cur_line" == "" ]]; then # implies $FORMAT_DISK == yes
+	    format_and_use_test_dev
+	    cur_line=$BASE_DIR
 	fi
 
 	cur_line=${cur_line%/} # hate to see consecutive / in paths :)
