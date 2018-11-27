@@ -9,7 +9,8 @@ usage_msg="\
 Usage (as root):\n\
 ./run_main_benchmarks.sh [<set of benchmarks>]
 	[<set of schedulers or pairs throttle policy-scheduler>|cur-sched]
-	[fs|raw] [also-rand] [<number of repetitions (default: 2)>]
+	[fs|raw] [also-rand] [only-reads] [only-seq]
+	[<number of repetitions (default: 2)>]
 	[<result dir (default: ../results/run_main_benchmarks/<date_time>)>]
 
 The set of benchmarks can be built out of the following benchmarks:
@@ -37,12 +38,28 @@ scheduler names. Pairs policy-scheduler must be passed, with policy
 equal to prop, low or max. If present, the policy part is simply
 stripped away for the other benchmarks.
 
-If fs mode is selected, or if no value, i.e., \"\", is given, then file
-reads and writes are generated as background workloads. Instead, if raw
-mode is selected, then only (raw) reads are allowed.
+By default the generated I/O background workloads involve files (fs mode
+or no value, i.e. \"\").  Otherwise (on raw mode) device is used directly
+(but only reads are performed, to not break possible filesystems and not
+wear the device).
 
-If also-rand is passed, then random background workloads are generated
-for startup, replayed-startup and video-playing tests too.
+By default random background workloads are generated only for throughput
+tests.  If also-rand is passed, they will be generated also for:
+	kernel-devel, replayed-startup, startup and video-playing.
+
+The optional parameters only-reads and only-seq apply only to the following tests:
+	kernel-devel, replayed-startup, startup, throughput and video-playing.
+Otherwise (aka by default) in these tests both reads/writes and
+sequential/random I/O are allowed.
+
+Be aware that only-reads and only-seq options are stronger than fs, raw and
+also-rand ones.  Thus, when in conflict they override them (i.e. only-seq
+ovverides also-rand).
+
+Please note that the also-rand, only-reads and only-seq options do not
+affect the following tests:
+	bandwidth-latency, fairness and interleaved-io.
+Which have ad-hoc configurations, not tweakable from the command line.
 
 Examples.
 # Run all default benchmarks for all available schedulers, using fs, without
@@ -71,19 +88,19 @@ BENCHMARKS=${1-}
 SCHEDULERS=${2-}
 MODE=${3-}
 
-if [[ "$4" == also-rand ]]; then
-    RAND_WL=yes
-fi
+ALSO_RAND_WL=${4-}
+ONLY_READ_WL=${5-}
+ONLY_SEQ_WL=${6-}
 
 # number of time each type of benchmark is repeated: increase this
 # number to increase the accuracy of the results
-NUM_REPETITIONS=${5-2}
+NUM_REPETITIONS=${7-2}
 NUM_ITER_STARTUP=$NUM_REPETITIONS # number of iterations for each repetition
 # only two iterations for video playing: every single playback already
 # provides many fram-drop samples
 NUM_ITER_VIDEO=2
 cur_date=`date +%y%m%d_%H%M`
-RES_DIR=${6-../results/run_main_benchmarks/$cur_date}
+RES_DIR=${8-../results/run_main_benchmarks/$cur_date}
 
 # startup test cases
 testcases=(xterm_startup gnome_terminal_startup lowriter_startup)
@@ -223,10 +240,10 @@ function throughput
 	echo
 	echo Workloads: ${thr_wl_infix[@]}
 	wl_id=1
-        for ((w=0 ; w<${#thr_workloads[@]};w++)); do
-	    wl=${thr_workloads[w]}
+	for ((w=0 ; w<${#thr_wl[@]};w++)); do
+	    wl=${thr_wl[w]}
 	    wl_name=${thr_wl_infix[w]}
-	    wl_string="$wl_name ($wl_id/${#thr_workloads[@]})"
+	    wl_string="$wl_name ($wl_id/${#thr_wl[@]})"
 	    echo
 	    echo Testing workload $wl_string
 	    repeat throughput "aggthr-with-greedy_rw.sh $1 $wl" \
@@ -240,11 +257,11 @@ function kernel-devel
 	cd ../kern_dev_tasks-vs-rw
 
 	echo
-	echo Workloads: ${kern_workloads[@]}
+	echo Workloads: ${kern_wl[@]}
 	wl_id=1
-        for ((w=0 ; w<${#kern_workloads[@]};w++)); do
-	    wl=${kern_workloads[w]}
-	    wl_string="\"$wl\" ($wl_id/${#kern_workloads[@]})"
+	for ((w=0 ; w<${#kern_wl[@]};w++)); do
+	    wl=${kern_wl[w]}
+	    wl_string="\"$wl\" ($wl_id/${#kern_wl[@]})"
 	    echo
 	    echo Testing $wl_string
 	    repeat make "kern_dev_tasks_vs_rw.sh $1 $wl make"
@@ -259,24 +276,24 @@ function do_startup
 	cd ../comm_startup_lat
 
 	echo
-	echo Workloads: ${wl_infix[@]}
+	echo Workloads: ${lat_wl_infix[@]}
 	wl_id=1
-        for ((w=0 ; w<${#latency_workloads[@]};w++)); do
-	    wl=${latency_workloads[w]}
-	    wl_name=${wl_infix[w]}
-	    wl_string="$wl_name ($wl_id/${#latency_workloads[@]})"
+	for ((w=0 ; w<${#lat_wl[@]};w++)); do
+	    wl=${lat_wl[w]}
+	    wl_name=${lat_wl_infix[w]}
+	    wl_string="$wl_name ($wl_id/${#lat_wl[@]})"
 	    echo
 	    echo Testing workload $wl_string
             for ((t=0 ; t<${#actual_testcases[@]} ; ++t)); do
                         repeat ${actual_testcases[t]} \
 			    "comm_startup_lat.sh $1 $wl $NUM_ITER_STARTUP" \
                                 "${cmd_lines[t]}" "60 ${reftimes[t]}" \
-			    $schedname-${wl_infix[w]}-lat_thr_stat.txt
+			    $schedname-${lat_wl_infix[w]}-lat_thr_stat.txt
 
                         # If less than 2 repetitions were completed for this
                         # testcase, abort all heavier testcases
                         if [ $NUM_REPETITIONS -gt 1 ] && \
-			   [ ! -f $RES_DIR/${actual_testcases[t]}/repetition1/$schedname-${wl_infix[w]}-lat_thr_stat.txt ]; then
+			   [ ! -f $RES_DIR/${actual_testcases[t]}/repetition1/$schedname-${lat_wl_infix[w]}-lat_thr_stat.txt ]; then
                                 break
                         fi
 			if [[ $wl == "0 0 seq" && $NUM_REPETITIONS -gt 1 ]]; then
@@ -330,16 +347,16 @@ function video-playing
 	VIDEOCMD=video_play_vs_comms.sh
 
 	echo
-	echo Workloads: ${wl_infix[@]}
+	echo Workloads: ${lat_wl_infix[@]}
 	wl_id=1
-        for ((w=0 ; w<${#latency_workloads[@]};w++)); do
-	    wl=${latency_workloads[w]}
-	    wl_name=${wl_infix[w]}
-	    wl_string="$wl_name ($wl_id/${#latency_workloads[@]})"
+	for ((w=0 ; w<${#lat_wl[@]};w++)); do
+	    wl=${lat_wl[w]}
+	    wl_name=${lat_wl_infix[w]}
+	    wl_string="$wl_name ($wl_id/${#lat_wl[@]})"
 	    echo
 	    echo Testing workload $wl_string
             repeat video_playing "$VIDEOCMD $1 $wl $NUM_ITER_VIDEO $type n" \
-		$schedname-${wl_infix[w]}-video_playing_stat.txt
+		$schedname-${lat_wl_infix[w]}-video_playing_stat.txt
 	    ((++wl_id))
         done
 }
@@ -507,46 +524,128 @@ if [ "$1" == "-h" ]; then
 	exit
 fi
 
-if [[ "$MODE" == "" ]]; then
-    MODE=fs
-fi
+case "$MODE" in
+    "fs" | "")
+	    MODE="fs"
+	    ;;
+    "raw")
+	    MODE="raw"
+	    ;;
+    *)
+	    echo "WARNING: option \"$MODE\" not allowed, valid values are:" \
+		 " \"\", \"fs\", \"raw\"" >&2
+	    exit 1
+esac
+
+case "$ALSO_RAND_WL" in
+    "")
+	    ALSO_RAND_WL="no"
+	    ;;
+    "also-rand")
+	    ALSO_RAND_WL="yes"
+	    ;;
+    *)
+	    echo "WARNING: option \"$ALSO_RAND_WL\" not allowed, valid values are:" \
+		 " \"\", \"also-rand\"" >&2
+	    exit 1
+esac
+
+case "$ONLY_READ_WL" in
+    "")
+	    ONLY_READ_WL="no"
+	    ;;
+    "only-reads")
+	    ONLY_READ_WL="yes"
+	    ;;
+    *)
+	    echo "WARNING: option \"$ONLY_READ_WL\" not allowed, valid values are:" \
+		 " \"\", \"only-reads\"" >&2
+	    exit 1
+esac
+
+case "$ONLY_SEQ_WL" in
+    "")
+	    ONLY_SEQ_WL="no"
+	    ;;
+    "only-seq")
+	    ONLY_SEQ_WL="yes"
+	    ;;
+    *)
+	    echo "WARNING: option \"$ONLY_SEQ_WL\" not allowed, valid values are:" \
+		 " \"\", \"only-seq\"" >&2
+	    exit 1
+esac
 
 # next four cases are mutually exclusive
-if [[ "$MODE" == fs && "$RAND_WL" == yes ]]; then
-    latency_workloads=("0 0 seq" "10 0 seq" "5 5 seq" "10 0 rand" "5 5 rand")
-    wl_infix=("0r0w-seq" "10r0w-seq" "5r5w-seq" "10r0w-rand" "5r5w-rand")
-
-    thr_workloads=("1 0 seq" "10 0 seq" "10 0 rand" "5 5 seq" "5 5 rand")
-    thr_wl_infix=("1r0w-seq" "10r0w-seq" "10r0w-rand" "5r5w-seq" "5r5w-rand")
-
-    kern_workloads=("0 0 seq" "10 0 seq" "10 0 rand")
+if [[ "$MODE" == "fs" && "$ALSO_RAND_WL" == "yes" ]]; then
+    lat_wl=("0 0 seq" "10 0 seq" "5 5 seq" "10 0 rand" "5 5 rand")
+    thr_wl=("1 0 seq" "10 0 seq" "10 0 rand" "5 5 seq" "5 5 rand")
+    kern_wl=("0 0 seq" "10 0 seq" "10 0 rand")
+elif [[  "$MODE" == "raw" && "$ALSO_RAND_WL" == "yes" ]]; then
+    lat_wl=("0 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
+    thr_wl=("1 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
+    kern_wl=("0 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
+elif [[ "$MODE" == "fs" && "$ALSO_RAND_WL" != "yes" ]]; then
+    lat_wl=("0 0 seq" "10 0 seq" "5 5 seq")
+    thr_wl=("1 0 seq" "10 0 seq" "10 0 rand" "5 5 seq" "5 5 rand")
+    kern_wl=("0 0 seq" "10 0 seq")
+elif [[  "$MODE" == "raw" && "$ALSO_RAND_WL" != "yes" ]]; then
+    lat_wl=("0 0 raw_seq" "10 0 raw_seq")
+    thr_wl=("1 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
+    kern_wl=("0 0 raw_seq" "10 0 raw_seq")
+else
+    echo "WARNING: the chosen use case should never happen, exit forced.">&2
+    exit 1
 fi
-if [[  "$MODE" == raw && "$RAND_WL" == yes ]]; then
-    latency_workloads=("0 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
-    wl_infix=("0r0w-raw_seq" "10r0w-raw_seq" "10r0w-raw_rand")
 
-    thr_workloads=("1 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
-    thr_wl_infix=("1r0w-raw_seq" "10r0w-raw_seq" "10r0w-raw_rand")
-
-    kern_workloads=("0 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
+FILTER=""
+if [[ "$ONLY_READ_WL" == "yes" ]]; then
+    FILTER="$FILTER | grep \"^[0-9]*\s0\s\""
 fi
-if [[ "$MODE" == fs && "$RAND_WL" != yes ]]; then
-    latency_workloads=("0 0 seq" "10 0 seq" "5 5 seq")
-    wl_infix=("0r0w-seq" "10r0w-seq" "5r5w-seq")
-
-    thr_workloads=("1 0 seq" "10 0 seq" "10 0 rand" "5 5 seq" "5 5 rand")
-    thr_wl_infix=("1r0w-seq" "10r0w-seq" "10r0w-rand" "5r5w-seq" "5r5w-rand")
-
-    kern_workloads=("0 0 seq" "10 0 seq")
+if [[ "$ONLY_SEQ_WL" == "yes" ]]; then
+    FILTER="$FILTER | grep \"seq\""
 fi
-if [[  "$MODE" == raw && "$RAND_WL" != yes ]]; then
-    latency_workloads=("0 0 raw_seq" "10 0 raw_seq")
-    wl_infix=("0r0w-raw_seq" "10r0w-raw_seq")
 
-    thr_workloads=("1 0 raw_seq" "10 0 raw_seq" "10 0 raw_rand")
-    thr_wl_infix=("1r0w-raw_seq" "10r0w-raw_seq" "10r0w-raw_rand")
+lat_wl_copy=("${lat_wl[@]}")
+lat_wl=()
+lat_wl_infix=()
+for wl_i in "${lat_wl_copy[@]}"; do
+    wl_i="$(eval "$(echo "echo \"$wl_i\"" $FILTER)")"
+    if [[ "$wl_i" != "" ]]; then
+	lat_wl+=("$wl_i")
+	lat_wl_infix+=("$(echo "$wl_i" | sed -E 's/([0-9]*)\s([0-9]*)\s/\1r\2w-/')")
+    fi
+done
+if [[ "${#lat_wl[@]}" -eq "0" ]]; then
+    echo "WARNING: no latency workload left after filtering" >&2
+fi
 
-    kern_workloads=("0 0 raw_seq" "10 0 raw_seq")
+thr_wl_copy=("${thr_wl[@]}")
+thr_wl=()
+thr_wl_infix=()
+for wl_i in "${thr_wl_copy[@]}"; do
+    wl_i="$(eval "$(echo "echo \"$wl_i\"" $FILTER)")"
+    if [[ "$wl_i" != "" ]]; then
+	thr_wl+=("$wl_i")
+	thr_wl_infix+=("$(echo "$wl_i" | sed -E 's/([0-9]*)\s([0-9]*)\s/\1r\2w-/')")
+    fi
+done
+if [[ "${#thr_wl[@]}" -eq "0" ]]; then
+    echo "WARNING: no throughput workload left after filtering" >&2
+fi
+
+kern_wl_copy=("${kern_wl[@]}")
+kern_wl=()
+# no infix array for kernel workloads
+for wl_i in "${kern_wl_copy[@]}"; do
+    wl_i="$(eval "$(echo "echo \"$wl_i\"" $FILTER)")"
+    if [[ "$wl_i" != "" ]]; then
+	kern_wl+=("$wl_i")
+	# no infix to add
+    fi
+done
+if [[ "${#kern_wl[@]}" -eq "0" ]]; then
+    echo "WARNING: no kernel-devel workload left after filtering" >&2
 fi
 
 if [[ "$(echo $BENCHMARKS | egrep replayed-startup)" != "" ]]; then
