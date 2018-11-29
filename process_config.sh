@@ -63,7 +63,12 @@ function find_dev_for_dir
 
     if [[ "$BACKING_DEVS" == "" ]]; then
 	echo Block devices for partition $PART unrecognized.
-	echo Try setting your target devices manually in ~/.S-config.sh
+	if [ "$SUDO_USER" != "" ]; then
+	    eval echo Try setting your target devices manually \
+		 in ~$SUDO_USER/.S-config.sh
+	else
+	    echo Try setting your target devices manually in ~/.S-config.sh
+	fi
 	exit
     fi
 }
