@@ -83,6 +83,9 @@ KERN_REMOTE=https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 # NCQ queue depth, if undefined then no script will change the current value
 NCQ_QUEUE_DEPTH=
 
+# Set this variable to the name of your package manager, if auto detect fails
+PACKAGE_MANAGER=
+
 # Mail-report parameters. A mail transfer agent (such as msmtp) and a mail
 # client (such as mailx) must be installed to be able to send mail reports.
 # The sender e-mail address will be the one configured as default in the

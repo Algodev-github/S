@@ -2,7 +2,7 @@
 # Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
 
-../utilities/check_dependencies.sh awk dd fio /usr/bin/time iostat bc
+../utilities/check_dependencies.sh awk dd fio /usr/bin/time iostat bc /usr/include/libaio.h
 if [[ $? -ne 0 ]]; then
 	exit
 fi
@@ -267,7 +267,7 @@ function compile_replayer
     g++ -std=c++11 -pthread -Wall replay-startup-io.cc -o replay-startup-io -laio
     if [ $? -ne 0 ]; then
 	echo Failed to compile replay-startup-io
-	echo Maybe libaio-dev/libaio-devel is not installed?
+	echo Maybe libaio-dev/libaio-devel is not properly installed?
 	exit
     fi
 }
