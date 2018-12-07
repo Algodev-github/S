@@ -37,8 +37,9 @@ function find_dev_for_dir
 	    if [[ "$match" == "" ]]; then
 		continue
 	    fi
-	    disk_line=$(lsblk /dev/$dev | egrep disk)
-	    if [[ "$disk_line" != "" ]]; then
+	    disk_line=$(lsblk -n -i /dev/$dev | egrep disk | egrep -v "^ |^\`|\|")
+	    if [[ "$disk_line" != "" && \
+		      "$(lsblk -n -o TRAN /dev/$dev)" != "" ]]; then
 		BACKING_DEVS="$BACKING_DEVS $dev"
 
 		if [[ "$HIGH_LEV_DEV" == "" ]]; then
