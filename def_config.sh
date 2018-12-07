@@ -31,6 +31,12 @@ SCSI_DEBUG=no
 #
 # If TEST_DEV is set, then BASE_DIR will be built automatically,
 # overriding your possible choice below.
+#
+# Be careful in setting TEST_DEV manually in case of bcache or
+# raids. With these configurations, more then one device is involved.
+# The simplest option is to set BASE_DIR to a directory stored on
+# these devices, and let the code of the suite automatically detect
+# all the involved devices.
 TEST_DEV=
 
 # If set to yes, then $TEST_DEV is (re)formatted if needed, as
@@ -49,8 +55,13 @@ BASE_DIR=$PWD/../workfiles
 # scheduler(s) to use. These devices are detected automatically.  If
 # automatic detection does not work, or is not wat you want, then just
 # reassign the value of DEVS.
-#
 # For example: DEVS=sda.
+#
+# For the same reasons pointed out for TEST_DEV, in case of bcache or
+# raids it may not be so easy to set DEVS correctly. It is simpler and
+# safer to set, instead, BASE_DIR to a directory stored on the
+# involved devices, and let the code of the suite automatically detect
+# these devices correctly.
 DEVS=
 
 # Size of (each of) the files to create for reading/writing, in
