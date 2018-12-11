@@ -2,12 +2,13 @@
 # Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
 
-../utilities/check_dependencies.sh awk dd fio /usr/bin/time iostat bc /usr/include/libaio.h
+../utilities/check_dependencies.sh awk dd fio iostat bc /usr/include/libaio.h
 if [[ $? -ne 0 ]]; then
 	exit
 fi
 
-LC_NUMERIC=C
+export LC_NUMERIC=C
+export TIMEFORMAT=%R
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 UTIL_DIR=`cd ../utilities; pwd`
@@ -163,7 +164,7 @@ function invoke_commands {
 			printf "Iteration $(($i+1)) / $NUM_ITER\n"
 		fi
 
-		TIME=`(/usr/bin/time -f %e sleep $SLEEPTIME_ITER) 2>&1`
+		TIME=`(time sleep $SLEEPTIME_ITER) 2>&1`
 		TOO_LONG=$(echo "$TIME > $SLEEPTIME_ITER * 10 + 10" | bc -l)
 		if [[ "$MAX_STARTUP" != 0 && $TOO_LONG == 1 ]]; then
 			echo Even the pre-command sleep timed out: stopping iterations
@@ -186,18 +187,18 @@ function invoke_commands {
 		# plus the desired background I/O. Unfortunately, the following
 		# sequence of commands generates a little, but misleading extra
 		# amount of I/O, right before the start of the command to
-		# benchmark. To mitigate this problem, the "/usr/bin/time sleep
-		# 0.2", in the middle of the next sequence of commands, reduces
+		# benchmark. To mitigate this problem, the "time sleep 0.2",
+		# in the middle of the next sequence of commands, reduces
 		# this misleading extra I/O. It works as follows:
 		# 1. it separates, in time, the I/O made by preceding
 		#    intructions, from the I/O made by the command under test
 		# 2. it warms up the command "time", increasing the probability
 		#    that the latter will do very little, or no I/O, right
 		#    before the start of the command to benchmark
-		COM_TIME=`setsid bash -c 'echo $BASHPID > current-pid;\
+		COM_TIME=`setsid bash -c "echo "'$BASHPID'" > current-pid;\
 			echo 3 > /proc/sys/vm/drop_caches;\
-			/usr/bin/time sleep 0.2 >/dev/null 2>&1;\
-			/usr/bin/time -f %e '"$COMMAND" 2>&1`
+			{ time sleep 0.2 ; } >/dev/null 2>&1; \
+			time ""$COMMAND" 2>&1`
 
 		TIME=$(echo $COM_TIME | awk '{print $NF}')
 
