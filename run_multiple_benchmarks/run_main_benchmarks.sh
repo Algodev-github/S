@@ -649,7 +649,7 @@ if [[ "${#kern_wl[@]}" -eq "0" ]]; then
 fi
 
 if [[ "$(echo $BENCHMARKS | egrep replayed-startup)" != "" ]]; then
-    ../utilities/check_dependencies.sh dd fio iostat /usr/bin/time bc g++
+    ../utilities/check_dependencies.sh dd fio iostat bc g++
 
     if [[ $? -ne 0 ]]; then
 	exit
@@ -669,7 +669,7 @@ if [[ "$(echo $BENCHMARKS | egrep replayed-startup)" != "" ]]; then
     fi
     cd $OLDPWD
 elif [[ "$(echo $BENCHMARKS | egrep startup)" != "" ]]; then
-    ../utilities/check_dependencies.sh dd fio iostat /usr/bin/time \
+    ../utilities/check_dependencies.sh dd fio iostat \
 				       xterm gnome-terminal lowriter
     if [[ $? -ne 0 ]]; then
 	exit
