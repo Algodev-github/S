@@ -13,6 +13,7 @@ function select_packages_and_manager
 		   [dd]=coreutils [bc]=bc [fio]=fio [killall]=psmisc \
 		   [g++]=gcc-c++ [git]=git-core [mplayer]=mplayer \
 		   [xterm]=xterm [gnome-terminal]=gnome-terminal \
+		   [pv]=pv \
 		 )
     declare -A deb_packages
     deb_packages=( [fio]=fio [iostat]=sysstat [/usr/bin/time]=time \
@@ -20,10 +21,12 @@ function select_packages_and_manager
 		   [dd]=coreutils [bc]=bc [fio]=fio [killall]=psmisc \
 		   [g++]=g++ [git]=git [mplayer]=mplayer \
 		   [xterm]=xterm [gnome-terminal]=gnome-terminal \
+		   [pv]=pv \
 		 )
 
     declare -A pack_managers
     pack_managers[/etc/fedora-release]=dnf
+    pack_managers[/usr/lib/os.release.d/issue-fedora]=dnf
     pack_managers[/etc/redhat-release]=yum
     pack_managers[/etc/debian_version]=apt
     pack_managers[/etc/issue]=apt
@@ -33,9 +36,10 @@ function select_packages_and_manager
 
     declare -A pack_formats
     pack_formats[/etc/fedora-release]=rpm
+    pack_formats[/usr/lib/os.release.d/issue-fedora]=rpm
     pack_formats[/etc/redhat-release]=rpm
     pack_formats[/etc/debian_version]=deb
-    pack_managers[/etc/issue]=deb
+    pack_formats[/etc/issue]=deb
     # pack_formats[/etc/SuSE-release]=rpm not supported yet
 
     for f in ${!pack_managers[@]}
@@ -97,11 +101,13 @@ function install_commands
 	PACKAGE_LIST="$PACKAGE_LIST ${packages[$comm]}"
     done
 
-    echo -n "To install the above missing commands, "
-    echo I\'m about to install the following packages:
-    echo $PACKAGE_LIST
+    if [[ "$PACKAGE_LIST" != "" && "$PACKAGE_LIST" != " " ]]; then
+	echo -n "To install the above missing commands, "
+	echo I\'m about to install the following packages:
+	echo $PACKAGE_LIST
 
-    $PACKAGE_MANAGER -y install $PACKAGE_LIST
+	$PACKAGE_MANAGER -y install $PACKAGE_LIST
+    fi
 
     if [[ $? -ne 0 ]]; then
 	echo Some packages failed to be installed
