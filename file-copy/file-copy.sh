@@ -7,6 +7,7 @@ if [[ $? -ne 0 ]]; then
 	exit
 fi
 
+export LC_NUMERIC=C
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 
