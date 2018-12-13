@@ -1,4 +1,4 @@
-Small collection of benchmarks for storage I/O - Version 2.5
+Small collection of benchmarks for storage I/O - Version 3.0
 
 This suite evaluates:
 - responsiveness, by measuring start-up times of real applications
