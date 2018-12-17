@@ -25,13 +25,18 @@ function init_tracing {
 
 function set_tracing {
 	if [ "$TRACE" == "1" ] ; then
-		if test -a /sys/kernel/debug/tracing/tracing_enabled; then
+	    if [[ -e /sys/kernel/debug/tracing/tracing_enabled && \
+		$(cat /sys/kernel/debug/tracing/tracing_enabled) -ne $1 ]]; then
 			echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
 			echo $1 > /sys/kernel/debug/tracing/tracing_enabled
 		fi
 		dev=$(echo $DEVS | awk '{ print $1 }')
-		echo "echo $1 > /sys/block/$dev/trace/enable"
-		echo $1 > /sys/block/$dev/trace/enable
+		if [[ -e /sys/block/$dev/trace/enable && \
+			  $(cat /sys/block/$dev/trace/enable) -ne $1 ]]; then
+		    echo "echo $1 > /sys/block/$dev/trace/enable"
+		    echo $1 > /sys/block/$dev/trace/enable
+		fi
+
 		if [ "$1" == 0 ]; then
 		    for cpu_path in /sys/kernel/debug/tracing/per_cpu/cpu?
 		    do
