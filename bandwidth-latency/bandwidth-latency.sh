@@ -47,6 +47,9 @@ duration=10
 # weight or bandwidth threshold (throttling) for interfered;
 # or 'unset' to not set the parameter at all
 i_weight_threshold="unset"
+# ionice options for the interfered: the interfered is started with
+# ionice only if this string is not null
+i_ionice_opts=""
 # target latency for the interfered in the io.low limit for blk-throttle (usec)
 i_thrtl_lat=100
 # I/O type for the interfered (read|write|randread|randwrite)
@@ -119,6 +122,7 @@ $0 [-b <type of bandwidth control (none -> no control | prop -> proportional sha
 	low -> low limits, max -> max limits)>] ($type_bw_control)
    [-s <I/O Scheduler>] (\"$sched\")
    [-w <weight, low limit or max limit for the interfered>] ($i_weight_threshold)
+   [-e ionice options for the interfered (set only if non empty)] ($i_ionice_opts)
    [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
    [-t <I/O type for the interfered (read|write|randread|randwrite)>] ($i_IO_type)
    [-r <rate limit, in KB/s, for I/O generation of the interfered (MAX=no limit)>] ($i_rate)
@@ -244,7 +248,8 @@ invalidate=1\n
 "
 
 	if [[ $name == interfered && $MODE != demo ]]; then
-	    echo -e "$jobvar" | "$FIO_PATH" --minimal - > "${name}-stats.txt" &
+	    echo -e "$jobvar" | $IONICE "$FIO_PATH" --minimal - > \
+					"${name}-stats.txt" &
 
 	    # write interfered fio pid to temporary file
 	    echo "$!" > "$FIO_PID_FILE"
@@ -270,7 +275,8 @@ invalidate=1\n
 	    if [[ $MODE == demo ]]; then
 		dump=--status-interval=100ms
 	    fi
-	    echo -e "$jobvar" | "$FIO_PATH" $dump - > "${name}-stats.txt" &
+	    echo -e "$jobvar" | $IONICE "$FIO_PATH" $dump - > \
+					"${name}-stats.txt" &
 	    tmp_fio_pid="$!"
 
 	    if [[ "$1" == "interfered" ]]; then
@@ -700,6 +706,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 	    ;;
 	-s) sched="$2";;
 	-w) i_weight_threshold="$2";;
+	-e) i_ionice_opts="$2";;
 	-l) i_thrtl_lat="$2";;
 	-t) i_IO_type="$2";;
 	-r) i_rate="$2";;
@@ -729,6 +736,10 @@ done
 if [ $num_I_per_group -gt 1 ]; then
 	echo Multiple interferers per group not yet supported, sorry
 	exit
+fi
+
+if [ "$i_ionice_opts" != "" ]; then
+    IONICE="ionice $i_ionice_ops"
 fi
 
 if (( num_groups > 0 && \
