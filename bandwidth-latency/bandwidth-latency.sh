@@ -1010,7 +1010,6 @@ new_uptime=${new_uptime%%.*}
 head_lines_to_remove=$(( (new_uptime - uptime) / 3 ))
 
 wait
-set_tracing 0
 
 compute_statistics
 clean_and_exit
