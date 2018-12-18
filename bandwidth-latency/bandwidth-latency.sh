@@ -207,6 +207,10 @@ function start_fio_jobs {
 	blocksize=${10}
 	filename=${11}
 
+	if [[ "$name" == "interfered" ]]; then
+	   ACTUAL_IONICE="$IONICE"
+	fi
+
 	if [[ $type_bw_control != "none" ]]; then
 	    echo $BASHPID > /cgroup/$name/cgroup.procs
 	fi
@@ -248,7 +252,7 @@ invalidate=1\n
 "
 
 	if [[ $name == interfered && $MODE != demo ]]; then
-	    echo -e "$jobvar" | $IONICE "$FIO_PATH" --minimal - > \
+	    echo -e "$jobvar" | $ACTUAL_IONICE "$FIO_PATH" --minimal - > \
 					"${name}-stats.txt" &
 
 	    # write interfered fio pid to temporary file
@@ -275,11 +279,11 @@ invalidate=1\n
 	    if [[ $MODE == demo ]]; then
 		dump=--status-interval=100ms
 	    fi
-	    echo -e "$jobvar" | $IONICE "$FIO_PATH" $dump - > \
-					"${name}-stats.txt" &
+	    echo -e "$jobvar" | $ACTUAL_IONICE "$FIO_PATH" $dump - \
+					       > "${name}-stats.txt" &
 	    tmp_fio_pid="$!"
 
-	    if [[ "$1" == "interfered" ]]; then
+	    if [[ "$name" == "interfered" ]]; then
 		# write interfered fio pid to temporary file
 		echo "$tmp_fio_pid" > "$FIO_PID_FILE"
 	    fi
@@ -739,7 +743,8 @@ if [ $num_I_per_group -gt 1 ]; then
 fi
 
 if [ "$i_ionice_opts" != "" ]; then
-    IONICE="ionice $i_ionice_ops"
+    IONICE="ionice $i_ionice_opts"
+    echo Set ionice to $IONICE
 fi
 
 if (( num_groups > 0 && \
