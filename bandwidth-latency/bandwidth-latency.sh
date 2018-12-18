@@ -146,6 +146,10 @@ $0 [-b <type of bandwidth control (none -> no control | prop -> proportional sha
    [-m default|demo|simulated] ($MODE)
    [-h] (to get help)
 
+As for ionice options, here is an example to have real-time
+I/O-priority class, and ionice 2:
+-e \"-c1 -n2\"
+
 For options that contain one value for each group of interferers, such
 as, e.g., rate limits (-R), it is also possible to provide only one
 value, which will be used for all groups. For example, if there are 3
