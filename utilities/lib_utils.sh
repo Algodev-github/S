@@ -415,6 +415,7 @@ function start_interleaved_readers
 
         ZONE_SIZE=16384
         SKIP_BYTES=$[((${NUM_READERS}-1)*${ZONE_SIZE})+1]
+		ZONE_MODE=strided
 
         echo Starting $NUM_READERS interleaved readers
         for ((i = 0 ; $i < $NUM_READERS ; i++))
@@ -424,6 +425,7 @@ function start_interleaved_readers
 		--filename=$READFILE \
                 --ioengine=sync --iomem=malloc --bs=$ZONE_SIZE \
                 --offset=$READ_OFFSET --zonesize=$ZONE_SIZE \
+				--zonemode=$ZONE_MODE \
 		--zoneskip=$SKIP_BYTES > /dev/null &
         done
 }
