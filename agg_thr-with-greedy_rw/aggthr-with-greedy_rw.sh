@@ -24,6 +24,7 @@ MAXRATE=${8-0} # If useful with other schedulers than bfq, 16500
 		   # MB/s hard disk.
 
 VERBOSITY=$9
+PERF_PROF=${10}
 
 if [[ "$VERBOSITY" == verbose ]]; then
     REDIRECT=/dev/stdout
@@ -39,10 +40,12 @@ Usage (as root):\n\
                            [seq | rand | raw_seq | raw_rand ]\n\
                            [stat_dest_dir] [duration] [sync]\n\
                            [max_write-kB-per-sec] [verbose]\n\
+			   [perf_prof]
 \n\
 first parameter equal to \"\" or cur-sched -> do not change scheduler\n\
 raw_seq/raw_rand -> read directly from device (no writers allowed)\n\
 sync parameter equal to yes -> invoke sync before starting readers/writers\n\
+\n\
 \n\
 For example:\n\
 sudo ./aggthr-with_greedy_rw.sh bfq 10 0 rand ..\n\
@@ -50,12 +53,21 @@ switches to bfq and launches 10 rand readers and 10 rand writers\n\
 with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
 \n\
+If perf_prof is different than an empty string, then the CPU is set to\n\
+maximum, constant speed.\n\
+\n\
 Default parameter values are \"\", $NUM_WRITERS, $NUM_WRITERS, \
-$RW_TYPE, $STAT_DEST_DIR, $DURATION, $SYNC and $MAXRATE\n"
+$RW_TYPE, $STAT_DEST_DIR, $DURATION, $SYNC, $MAXRATE and $PERF_PROF.\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
         exit
+fi
+
+if [[ "$BASE_DIR" == "" && "$RW_TYPE" != raw_seq && "$RW_TYPE" != raw_rand ]];
+then
+	echo Sorry, only raw I/O allowed on $HIGH_LEV_DEV
+	exit 1
 fi
 
 mkdir -p $STAT_DEST_DIR
@@ -72,11 +84,23 @@ rm -rf results-${sched}
 mkdir -p results-$sched
 cd results-$sched
 
+function reset_pm {
+	if [[ "$PERF_PROF" != "" ]]; then
+		cpupower frequency-set -g powersave -d 800MHz
+		cpupower idle-set -E
+	fi
+}
+
 # setup a quick shutdown for Ctrl-C
-trap "shutdwn 'fio iostat'; exit" sigint
+trap "reset_pm; shutdwn 'fio iostat';  exit" sigint
 
 init_tracing
 set_tracing 1
+
+if [[ "$PERF_PROF" != "" ]]; then
+	cpupower frequency-set -g performance -d 3.50GHz -u 3.50GHz
+	cpupower idle-set -D 0
+fi
 
 start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
@@ -125,6 +149,9 @@ while [ $secs -gt 0 ]; do
     : $((secs-=2))
 done
 echo > $REDIRECT
+
+cpupower frequency-set -g powersave -d 800MHz
+cpupower idle-set -E
 
 shutdwn 'fio iostat'
 

@@ -17,5 +17,8 @@ This suite evaluates:
   (figure of merit measured by many other suites too)
 - throughput with processes doing interleaved I/O, which mimics the
   typical I/O pattern of applications like qemu
+- efficiency of block layer and I/O schedulers in terms of maximum
+  number of IOPS supported (this functionality also makes it easy
+  to profile every component of the block layer)
 
 See USAGE-INSTALLATION for all details.
