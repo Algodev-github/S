@@ -317,6 +317,7 @@ function start_readers_writers
 	NUM_WRITERS=$2
 	RW_TYPE=$3
 	MAXRATE=${4-0}
+	ncpus=$(nproc --all)
 
 	if [[ ${NUM_READERS} -eq 0 && ${NUM_WRITERS} -eq 0 ]]; then
 	    return
@@ -386,6 +387,14 @@ offset=${offset}M\n
 		jobvar=$jobvar"
 filename=${BASE_FILE_PATH}$i\n
 "
+	fi
+
+	if [[ "$PERF_PROF" != "" ]]; then
+		jobvar=$jobvar"
+cpus_allowed=$(( $i % $ncpus ))\n
+"
+	fi
+
 	done
 
 	for ((i = 0 ; $i < ${NUM_WRITERS} && $IS_RAW != "yes"; i++))
@@ -397,6 +406,11 @@ filename=${BASE_FILE_PATH}_write$i\n
 size=${FILE_SIZE_MB}M\n
 $SETMAXRATE\n
 "
+	if [[ "$PERF_PROF" != "" ]]; then
+		jobvar=$jobvar"
+cpus_allowed=$(( $i % $ncpus ))\n
+"
+	fi
 	done
 
 	echo -e $jobvar | $FIO - > /dev/null 2>&1 &
