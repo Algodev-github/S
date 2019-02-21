@@ -13,7 +13,7 @@ function select_packages_and_manager
 		   [dd]=coreutils [bc]=bc [fio]=fio [killall]=psmisc \
 		   [g++]=gcc-c++ [git]=git-core [mplayer]=mplayer \
 		   [xterm]=xterm [gnome-terminal]=gnome-terminal \
-		   [pv]=pv \
+		   [pv]=pv [lsscsi]=lsscsi\
 		 )
     declare -A deb_packages
     deb_packages=( [fio]=fio [iostat]=sysstat [/usr/bin/time]=time \
@@ -21,7 +21,7 @@ function select_packages_and_manager
 		   [dd]=coreutils [bc]=bc [fio]=fio [killall]=psmisc \
 		   [g++]=g++ [git]=git [mplayer]=mplayer \
 		   [xterm]=xterm [gnome-terminal]=gnome-terminal \
-		   [pv]=pv \
+		   [pv]=pv [lsscsi]=lsscsi\
 		 )
 
     declare -A pack_managers
