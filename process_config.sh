@@ -94,6 +94,38 @@ function check_create_mount_part
     HIGH_LEV_DEV=$BACKING_DEVS
 }
 
+function use_nullb_dev
+{
+	lsmod | grep null_blk > /dev/null
+
+	if [ $? -eq 0 ]; then
+		modprobe -r null_blk 2> /dev/null
+		if [ $? -eq 1 ]; then # null_blk is not a module but built-in
+			echo "ERROR: failed to unload null_blk module"
+			exit 1
+		fi
+	fi
+
+	Q_MODE=1 # Default queue_mode=1 single queue
+	CUR_DEV=$(basename `mount | grep "on / " | cut -f 1 -d " "` | \
+		sed 's/\(...\).*/\1/g')
+	# Check if blk-mq is enabled
+	if [ -d /sys/block/$CUR_DEV/mq ]; then
+		Q_MODE=2
+	fi
+
+	modprobe null_blk queue_mode=$Q_MODE irqmode=0 completion_nsec=0 \
+		nr_devices=1
+	if [ $? -ne 0 ]; then
+		echo "ERROR: failed to load null_blk module"
+		exit 1
+	fi
+
+	BACKING_DEVS=nullb0
+	HIGH_LEV_DEV=$BACKING_DEVS
+	BASE_DIR= # empty, to signal that there is no fs and no file to create
+}
+
 function use_scsi_debug_dev
 {
     ../utilities/check_dependencies.sh lsscsi mkfs.ext4 fsck.ext4 sfdisk
@@ -131,7 +163,19 @@ function format_and_use_test_dev
 
 function get_max_affordable_file_size
 {
-    if [[ "$FIRST_PARAM" == "-h" || ! -d $BASE_DIR ]]; then
+    if [[ "$FIRST_PARAM" == "-h" ]]; then
+	echo
+	exit
+    fi
+
+    if [[ "$BASE_DIR" == "" ]]; then
+	TOT_SIZE=$(blockdev --getsize64 /dev/$HIGH_LEV_DEV)
+	TOT_SIZE_MB=$(( $TOT_SIZE / 1000000 ))
+	echo $(( $TOT_SIZE_MB / 100 ))
+	exit
+    fi
+
+    if [[ ! -d $BASE_DIR ]]; then
 	echo
 	exit
     fi
@@ -165,6 +209,11 @@ function prepare_basedir
 
     if [[ "$SCSI_DEBUG" == yes ]]; then
 	use_scsi_debug_dev # this will set BASE_DIR
+	return
+    fi
+
+    if [[ "$NULLB" == yes ]]; then
+	use_nullb_dev
 	return
     fi
 
@@ -241,7 +290,9 @@ function prepare_basedir
 prepare_basedir
 
 # paths of files to read/write in the background
-BASE_FILE_PATH=$BASE_DIR/largefile
+if [[ "$BASE_DIR" != "" ]]; then
+	BASE_FILE_PATH=$BASE_DIR/largefile
+fi
 
 if [[ "$DEVS" == "" ]]; then
     DEVS=$BACKING_DEVS

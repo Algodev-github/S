@@ -5,7 +5,14 @@
 # Set to yes if you want to use SCSI_DEBUG; this will override your
 # possible choice for TEST_PARTITION below, and will set BASE_DIR too,
 # automatically, overriding your possible choice for BASE_DIR below.
+# scsi_debug is not a good option for performance profiling, use
+# nullb for that (next option).
 SCSI_DEBUG=no
+
+# Set to yes if you want to use the nullb device; this will override your
+# possible choice for TEST_PARTITION below, and will set BASE_DIR too,
+# automatically, overriding your possible choice for BASE_DIR below.
+NULLB=no
 
 # Set the following parameter to the name (not the full path) of a
 # device or of a partition, if you want to perform tests on that

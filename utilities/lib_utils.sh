@@ -285,6 +285,11 @@ function create_files
 {
 	NUM_READERS=$1
 	SUFFIX=$2
+
+	if [[ "$BASE_DIR" == "" ]]; then
+		return
+	fi
+
 	mkdir -p ${BASE_DIR}
 
 	for ((i = 0 ; $i < $NUM_READERS ; i++)); do
