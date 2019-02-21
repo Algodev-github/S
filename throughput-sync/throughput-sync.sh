@@ -1,6 +1,7 @@
 #!/bin/bash
 # Copyright (C) 2013 Paolo Valente <paolo.valente@unimore.it>
 #                    Arianna Avanzini <avanzini.arianna@gmail.com>
+# Copyright (C) 2019 Paolo Valente <paolo.valente@linaro.org>
 
 ../utilities/check_dependencies.sh awk dd fio iostat
 if [[ $? -ne 0 ]]; then
@@ -32,10 +33,10 @@ else
     REDIRECT=/dev/null
 fi
 
-# see the following string for usage, or invoke aggthr_of_greedy_rw.sh -h
+# see the following string for usage, or invoke throughput-sync.sh -h
 usage_msg="\
 Usage (as root):\n\
-./aggthr-with-greedy_rw.sh [\"\" | cur-sched | bfq | cfq | ...]\n\
+./throughput-sync.sh [\"\" | cur-sched | bfq | cfq | ...]\n\
                            [num_readers] [num_writers]\n\
                            [seq | rand | raw_seq | raw_rand ]\n\
                            [stat_dest_dir] [duration] [sync]\n\
@@ -48,7 +49,7 @@ sync parameter equal to yes -> invoke sync before starting readers/writers\n\
 \n\
 \n\
 For example:\n\
-sudo ./aggthr-with_greedy_rw.sh bfq 10 0 rand ..\n\
+sudo ./throughput-sync.sh bfq 10 0 rand ..\n\
 switches to bfq and launches 10 rand readers and 10 rand writers\n\
 with each reader reading from the same file. The file containing\n\
 the computed stats is stored in the .. dir with respect to the cur dir.\n\
@@ -57,7 +58,7 @@ If perf_prof is different than an empty string, then the CPU is set to\n\
 maximum, constant speed.\n\
 \n\
 Default parameter values are \"\", $NUM_WRITERS, $NUM_WRITERS, \
-$RW_TYPE, $STAT_DEST_DIR, $DURATION, $SYNC, $MAXRATE and $PERF_PROF.\n"
+$RW_TYPE, $STAT_DEST_DIR, $DURATION, $SYNC, $MAXRATE, \"$VERBOSITY\" and \"$PERF_PROF\".\n"
 
 if [ "$1" == "-h" ]; then
         printf "$usage_msg"
@@ -133,7 +134,7 @@ echo Measurement started, and lasting $DURATION seconds > $REDIRECT
 
 start_time=$(date +'%s')
 
-# start logging aggthr
+# start logging thr
 iostat -tmd /dev/$HIGH_LEV_DEV 2 | tee iostat.out > $REDIRECT &
 
 # wait for reader/writer start-up transitory to terminate

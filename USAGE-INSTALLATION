@@ -24,17 +24,29 @@ In the root directory:
 
 Each benchmark is implemented by a bash script, stored in a separate directory.
 Here is the list of the directories and of the main scripts they contain:
-agg_thr-with-greedy_rw: aggthr-with-greedy_rw.sh
-	Measures the aggregated throughput with parallel, greedy (i.e.,
-	continuously issuing I/O requests) readers and/or writers. Both
-	readers and writers are implemented with fio, and may be sequential
-	or random.
-	Files are read from and written to the /tmp/test directory (created
-	if non existing).
+throughput-sync: throughput-sync.sh
+	Measures aggregated throughput with parallel, greedy (i.e.,
+	continuously issuing I/O requests), sync readers and/or writers.
+	Both readers and writers are implemented with fio, and may be
+	sequential or random.
 	This type of workload is also used as background in the other tests.
+	Being the I/O sync, every I/O request tends to cause the maximum
+	possible overhead throughput the system. Then the workloads generated
+	by this script are the most demanding static workloads for reaching
+	a high throughput.
 	At the end of the test, the min, max, avg, std deviation,
 	confidence interval of the read/write/total aggregated throughput
 	values sampled during the run is reported.
+	This benchmark can also be used to measure the maximum throughput
+	sustainable by the block layer, as a function of the current I/O
+	scheduler. To attain this goal, it is sufficient to:
+	- set NULLB=yes in .S-config.sh
+	- enable the performance profiling mode from the command line when
+	  invoking throughput-sync.sh
+	- set raw_rand as type of I/O (or raw_seq for specific goals, if you
+	  know what you are doing)
+	- start a number of readers equal to, or multiple of, the number of
+	  available virtual CPUs
 file-copy: file-copy.sh
 	Launches parallel file copies. Only generates background workload,
 	and does not compute any statistic.

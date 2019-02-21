@@ -235,7 +235,7 @@ function repeat
 
 function throughput
 {
-	cd ../agg_thr-with-greedy_rw
+	cd ../throughput-sync
 
 	echo
 	echo Workloads: ${thr_wl_infix[@]}
@@ -246,7 +246,7 @@ function throughput
 	    wl_string="$wl_name ($wl_id/${#thr_wl[@]})"
 	    echo
 	    echo Testing workload $wl_string
-	    repeat throughput "aggthr-with-greedy_rw.sh $1 $wl" \
+	    repeat throughput "throughput-sync.sh $1 $wl" \
 		$schedname-${thr_wl_infix[w]}-10sec-aggthr_stat.txt
 	    ((++wl_id))
 	done
