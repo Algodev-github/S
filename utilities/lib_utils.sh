@@ -311,27 +311,6 @@ function create_files_rw_type
 	fi
 }
 
-function start_raw_readers
-{
-    NUM_READERS=$1
-    R_TYPE=$2
-
-    if [ "$R_TYPE" == "raw_seq" ]; then
-        for ((i = 0 ; $i < ${NUM_READERS} ; i++))
-        do
-            $FIO --name=seqreader$i -rw=read --size=${FILE_SIZE_MB}M \
-                --offset=$[$i*$FILE_SIZE_MB]M --numjobs=1 \
-		--filename=/dev/$HIGH_LEV_DEV > /dev/null &
-        done
-    else
-        if [ $NUM_READERS -gt 0 ]; then
-            $FIO --name=randreader$i -rw=randread --numjobs=$NUM_READERS \
-		 --filename=/dev/$HIGH_LEV_DEV > /dev/null &
-        fi
-    fi
-    echo Started $NUM_READERS $R_TYPE readers on /dev/$HIGH_LEV_DEV
-}
-
 function start_readers_writers
 {
 	NUM_READERS=$1
@@ -359,9 +338,15 @@ function start_readers_writers
 	fi
 	echo
 
-	if [[ "$RW_TYPE" != seq ]]; then
+	if [[ "$RW_TYPE" != seq && "$RW_TYPE" != raw_seq ]]; then
 		TYPE_PREF=rand
 	fi
+	if [[ "$RW_TYPE" == raw_seq || "$RW_TYPE" == raw_rand ]]; then
+		IS_RAW=yes
+	else
+		IS_RAW=no
+	fi
+
 	for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 	do
 		rm -f ${BASE_FILE_PATH}_write$i
@@ -378,14 +363,32 @@ invalidate=1\n
 
 	for ((i = 0 ; $i < ${NUM_READERS} ; i++))
 	do
+		if [[ "$IS_RAW" != yes && "${BASE_FILE_PATH}" == "" ]]; then
+			break
+		fi
 	    jobvar=$jobvar"
 [${RW_TYPE}reader$i]\n
 readwrite=${TYPE_PREF}read\n
+"
+
+	if [[ "$IS_RAW" == yes ]]; then
+		jobvar=$jobvar"
+filename=/dev/$HIGH_LEV_DEV\n
+"
+		if [[ "$TYPE_PREF" != rand ]]; then
+			offset=$(( $i * $FILE_SIZE_MB ))
+			jobvar=$jobvar"
+size=${FILE_SIZE_MB}M\n
+offset=${offset}M\n
+"
+		fi
+	else
+		jobvar=$jobvar"
 filename=${BASE_FILE_PATH}$i\n
 "
 	done
 
-	for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
+	for ((i = 0 ; $i < ${NUM_WRITERS} && $IS_RAW != "yes"; i++))
 	do
 	    jobvar=$jobvar"
 [${RW_TYPE}writer$i]\n
@@ -407,10 +410,8 @@ function start_readers_writers_rw_type
 	MAXRATE=$4
 	if [[ "$R_TYPE" != "raw_seq" && "$R_TYPE" != "raw_rand" ]]; then
 		create_files_rw_type $NUM_READERS $RW_TYPE
-		start_readers_writers $NUM_READERS $NUM_WRITERS $R_TYPE $MAXRATE
-	else
-		start_raw_readers $NUM_READERS $R_TYPE
 	fi
+	start_readers_writers $NUM_READERS $NUM_WRITERS $R_TYPE $MAXRATE
 }
 
 function start_interleaved_readers
