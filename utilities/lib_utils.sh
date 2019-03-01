@@ -397,8 +397,11 @@ cpus_allowed=$(( $i % $ncpus ))\n
 
 	done
 
-	for ((i = 0 ; $i < ${NUM_WRITERS} && $IS_RAW != "yes"; i++))
+	for ((i = 0 ; $i < ${NUM_WRITERS} ; i++))
 	do
+	    if [[ "$IS_RAW" == "yes" ]]; then
+		break
+	    fi
 	    jobvar=$jobvar"
 [${RW_TYPE}writer$i]\n
 readwrite=${TYPE_PREF}write\n
