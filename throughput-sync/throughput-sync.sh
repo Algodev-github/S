@@ -151,8 +151,10 @@ while [ $secs -gt 0 ]; do
 done
 echo > $REDIRECT
 
-cpupower frequency-set -g powersave -d 800MHz
-cpupower idle-set -E
+if [[ "$PERF_PROF" != "" ]]; then
+    cpupower frequency-set -g powersave -d 800MHz
+    cpupower idle-set -E
+fi
 
 shutdwn 'fio iostat'
 
