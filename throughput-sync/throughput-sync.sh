@@ -105,6 +105,10 @@ fi
 
 start_readers_writers_rw_type $NUM_READERS $NUM_WRITERS $RW_TYPE $MAXRATE
 
+# add short sleep to avoid false bursts of creations of
+# processes doing I/O
+sleep 0.3
+
 echo Flushing caches > $REDIRECT
 if [ "$SYNC" != "yes" ]; then
 	echo Not syncing > $REDIRECT
@@ -142,11 +146,11 @@ secs=$DURATION
 
 while [ $secs -gt 0 ]; do
     echo "Remaining time: $secs" > $REDIRECT
+    sleep 2
     if [[ "$SYNC" == "yes" && $NUM_WRITERS -gt 0 ]]; then
 	echo Syncing again in parallel ... > $REDIRECT
 	sync &
     fi
-    sleep 2
     : $((secs-=2))
 done
 echo > $REDIRECT

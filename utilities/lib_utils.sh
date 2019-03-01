@@ -413,6 +413,10 @@ cpus_allowed=$(( $i % $ncpus ))\n
 	fi
 	done
 
+	# add short sleep to avoid false bursts of creations of
+	# processes doing I/O
+	sleep 0.3
+
 	echo -e $jobvar | $FIO - > /dev/null 2>&1 &
 }
 
