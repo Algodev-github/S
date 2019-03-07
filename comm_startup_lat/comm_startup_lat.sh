@@ -364,7 +364,7 @@ if (( $NUM_READERS > 0 || $NUM_WRITERS > 0)); then
 				      $MAXRATE
 
 	# wait for reader/writer start-up transitory to terminate
-	secs=$(transitory_duration 7)
+	secs=$(transitory_duration 3)
 
 	while [ $secs -ge 0 ]; do
 	    echo -ne "Waiting for transitory to terminate: $secs\033[0K\r"
