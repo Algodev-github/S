@@ -237,7 +237,7 @@ function transitory_duration
     fi
     # the extra 6 seconds mainly follow from the fact that fio is
     # slow to start many jobs
-    echo $((MAX_RAIS_SEC + 2))
+    echo $((MAX_RAIS_SEC + 4))
 }
 
 function shutdwn
