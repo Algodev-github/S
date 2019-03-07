@@ -231,13 +231,13 @@ function transitory_duration
 	fi
     fi
     if [[ "$FNAME" != "" ]]; then
-	MAX_RAIS_SEC=$(($(cat $FNAME) / 1000 + 1))
+	MAX_RAIS_SEC=$(( $(cat $FNAME) / 1000 ))
     else
 	MAX_RAIS_SEC=$OTHER_SCHEDULER_DURATION
     fi
     # the extra 6 seconds mainly follow from the fact that fio is
     # slow to start many jobs
-    echo $((MAX_RAIS_SEC + 6))
+    echo $((MAX_RAIS_SEC + 2))
 }
 
 function shutdwn
