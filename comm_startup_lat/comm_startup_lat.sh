@@ -275,6 +275,12 @@ function compile_replayer
 
 ## Main ##
 
+if [[ "$BASE_DIR" = "" ]]; then
+	echo Sorry, you configured the suite for not using filesystems,
+	echo but this is a benchmark requiring the use of a filesystem.
+	exit 1
+fi
+
 FIRSTWORD=`echo $COMMAND | awk '{print $1}'`
 
 if [ "$FIRSTWORD" == replay-startup-io ]; then
