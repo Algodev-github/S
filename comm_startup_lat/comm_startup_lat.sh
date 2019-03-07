@@ -164,6 +164,12 @@ function invoke_commands {
 			printf "Iteration $(($i+1)) / $NUM_ITER\n"
 		fi
 
+		if [[ $i -eq 0 || "$TAKE_GLOBAL_TRACE" == "" ]]; then
+			init_tracing
+			set_tracing 0
+			set_tracing 1
+		fi
+
 		TIME=`(time sleep $SLEEPTIME_ITER) 2>&1`
 		TOO_LONG=$(echo "$TIME > $SLEEPTIME_ITER * 10 + 10" | bc -l)
 		if [[ "$MAX_STARTUP" != 0 && $TOO_LONG == 1 ]]; then
@@ -373,9 +379,6 @@ fi
 if [ "$IOSTAT" == "yes" ]; then
 	iostat -tmd /dev/$HIGH_LEV_DEV 3 | tee iostat.out > $REDIRECT &
 fi
-
-init_tracing
-set_tracing 1
 
 invoke_commands
 
