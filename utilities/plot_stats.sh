@@ -97,9 +97,9 @@ function create_label_positions()
 	    create_label_file $in_file_name 3 +.20 $label_y_offset label_2.plt
 	    ;;
 	3)
-	    create_label_file $in_file_name 2 -.14 $label_y_offset label_1.plt
-	    create_label_file $in_file_name 3 +.20 $label_y_offset label_2.plt
-	    create_label_file $in_file_name 4 +.30 $label_y_offset label_3.plt
+	    create_label_file $in_file_name 2 -.25 $label_y_offset label_1.plt
+	    create_label_file $in_file_name 3 -.01 $label_y_offset label_2.plt
+	    create_label_file $in_file_name 4 +.26 $label_y_offset label_3.plt
 	    ;;
 	4)
 	    create_label_file $in_file_name 2 -.30 $label_y_offset label_1.plt
