@@ -24,7 +24,9 @@ function find_dev_for_dir
 	echo Could not follow link for $PART, probably a remote file system
 	exit
     fi
+
     PART=$(basename $PART)
+    REALPART=$(basename $REALPATH)
 
     BACKING_DEVS=
     if [[ "$(echo $PART | egrep loop)" != "" ]]; then
@@ -33,7 +35,7 @@ function find_dev_for_dir
     else
 	# get devices from partition
 	for dev in $(ls /sys/block/); do
-	    match=$(lsblk /dev/$dev | egrep $PART)
+	    match=$(lsblk /dev/$dev | egrep "$PART|$REALPART")
 	    if [[ "$match" == "" ]]; then
 		continue
 	    fi
@@ -63,7 +65,7 @@ function find_dev_for_dir
     fi
 
     if [[ "$BACKING_DEVS" == "" ]]; then
-	echo Block devices for partition $PART unrecognized.
+	echo Block devices for partition $PART or $REALPART unrecognized.
 	if [ "$SUDO_USER" != "" ]; then
 	    eval echo Try setting your target devices manually \
 		 in ~$SUDO_USER/.S-config.sh
