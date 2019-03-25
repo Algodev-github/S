@@ -52,6 +52,17 @@ function set_tracing {
 	fi
 }
 
+function load_all_sched_modules {
+    for mod in bfq-iosched bfq-mq-iosched mq-deadline kyber-iosched \
+			   cfq-iosched deadline-iosched; do
+	modprobe $mod > /dev/null 2>&1
+	if [ $? != 0 ]; then
+	    echo -n Failed to load $mod, tests will be executed
+	    echo " without this scheduler"
+	fi
+    done
+}
+
 # Check whether an X display can be accessed.
 function test_X_access {
 	COMMAND="$1"

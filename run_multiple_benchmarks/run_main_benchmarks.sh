@@ -27,10 +27,9 @@ below). The latter usually provides accurate results, without
 executing any X application.
 
 If no set of I/O schedulers or an empty set of I/O schedulers, i.e.,
-\"\", is given, then all available schedulers are tested. Recall that,
-if a scheduler is built as a module, then the module must be loaded
-for the scheduler to be present in the list of available
-schedulers. In contrast, if cur-sched is passed, then benchmarks will
+\"\", is given, then all available schedulers are tested (all
+scheduler modules will be loaded automatically).
+In contrast, if cur-sched is passed, then benchmarks will
 be run only with the current I/O scheduler.
 
 For the bandwidth-latency test, it is not enough to write only
@@ -689,6 +688,7 @@ fi
 if [[ "$SCHEDULERS" == "" ]]; then
     if [[ "$BENCHMARKS" != bandwith-latency ]]; then
 	dev=$(echo $DEVS | awk '{ print $1 }')
+	load_all_sched_modules
 	SCHEDULERS="$(cat /sys/block/$dev/queue/scheduler | \
 			  sed 's/\[//' | sed 's/\]//')"
     else
