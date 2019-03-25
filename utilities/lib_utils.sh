@@ -203,6 +203,27 @@ function get_scheduler
     cat /sys/block/$dev/queue/scheduler | sed 's/.*\[\(.*\)\].*/\1/'
 }
 
+function save_scheduler
+{
+    SAVEDSCHED=$(get_scheduler)
+}
+
+function restore_scheduler
+{
+    for dev in $DEVS; do
+	echo $SAVEDSCHED  /sys/block/$dev/queue/scheduler
+	echo $SAVEDSCHED > /sys/block/$dev/queue/scheduler 2>&1 | \
+	    echo &> /dev/null
+	PIPE_STATUS=${PIPESTATUS[0]}
+	NEW_SCHED=$(cat /sys/block/$dev/queue/scheduler | \
+			egrep "\[$SAVEDSCHED\]")
+	if [[ $PIPE_STATUS -ne 0 || "$NEW_SCHED" == "" ]]; then
+	    echo "Restore of $SAVEDSCHED failed:" > /dev/tty
+	    cat /sys/block/$dev/queue/scheduler > /dev/tty
+	fi
+    done
+}
+
 function set_scheduler
 {
     if [[ "$sched" != "" && "$sched" != cur-sched ]] ; then

@@ -702,6 +702,7 @@ else
     SCHEDNAMES=$SCHEDULERS
 fi
 
+save_scheduler
 
 echo Benchmarks beginning on `date +%y%m%d\ %H:%M`
 
@@ -830,6 +831,8 @@ if command -v tracker-control >/dev/null 2>&1; then
     echo tracker-control -s
     tracker-control -s
 fi
+
+restore_scheduler
 
 if [[ "$FAILURE" == yes ]]; then
     exit 1
