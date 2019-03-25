@@ -1,4 +1,6 @@
 #!/bin/bash
+PREVPWD=$(pwd)
+cd $(dirname $0)
 . ../config_params.sh
 . ../utilities/lib_utils.sh
 
@@ -82,7 +84,6 @@ sudo ./run_main_benchmarks.sh \"throughput replayed-startup video-playing\" \"bf
 sudo ./run_main_benchmarks.sh \"\" \"\" raw also-rand
 
 "
-
 BENCHMARKS=${1-}
 SCHEDULERS=${2-}
 MODE=${3-}
@@ -835,6 +836,7 @@ fi
 restore_scheduler
 
 if [[ "$FAILURE" == yes ]]; then
+    cd $PREVPWD
     exit 1
 fi
 
@@ -850,3 +852,5 @@ if [[ $NUM_REPETITIONS -gt 1 ]]; then
     fi
     ./plot_stats.sh $RES_DIR ref gif 1.55 print_tables
 fi
+
+cd $PREVPWD
