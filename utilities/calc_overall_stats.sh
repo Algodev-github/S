@@ -198,11 +198,13 @@ function per_subdirectory_loop
 	startup_lat)
 		num_quants=4 # Start-up time, plus throughput quantities
 		record_lines=$((1 + ($num_quants) * 3))
-		thr_table_file=`pwd`/`basename $single_test_res_dir`-throughput-table.txt
+		thr_table_file=\
+`pwd`/`basename $single_test_res_dir`-throughput-table.txt
 		target_quantity_table_file=\
 `pwd`/`basename $single_test_res_dir`-time-table.txt
 		target_quantity_type="Start-up time [sec]"
 		reference_value_label="Start-up time on idle device"
+		UOM="sec"
 		;;
 	kern_task)
 		num_quants=4
@@ -212,6 +214,7 @@ function per_subdirectory_loop
 `pwd`/`basename $single_test_res_dir`-progress-table.txt
 		target_quantity_type="Completion percentage"
 		reference_value_label="Completion percentage on idle device"
+		UOM="lines"
 		;;
 	video_playing)
 		num_quants=6
@@ -221,6 +224,7 @@ function per_subdirectory_loop
 `pwd`/`basename $single_test_res_dir`-drop_rate-table.txt
 		target_quantity_type="Drop rate"
 		reference_value_label="Drop rate with no heavy background workload"
+		UOM="drop rate"
 		;;
 	bandwidth-latency)
 		# Aggregated throughputs, plus interfered throughput and latency
@@ -311,6 +315,7 @@ function per_subdirectory_loop
 
 	line_created=False
 	numX=0
+	declare -a failed_scheds=()
 
 	for sched in $SCHEDULERS; do
 	    file_loop $single_test_res_dir
@@ -318,15 +323,28 @@ function per_subdirectory_loop
 		if [[ "$line_created" == True ]]; then
 		    printf "%20s" X >> $thr_table_file
 
+		    if [[ "$res_type" == throughput ]]; then
+		    echo -n throughput--${wl_improved_name}--$sched \
+			     >> $res_list_file
+			    echo " fail" >> $res_list_file
+		    fi
+
 		    if [[ $res_type != throughput ]]; then
 			printf "%20s" X >> $target_quantity_table_file
+
+			echo -n \
+	$(basename $single_test_res_dir)--${wl_improved_name}--$sched \
+			     >> $res_list_file
+			echo " fail" >> $res_list_file
 		    fi
 		fi
+		failed_scheds+=($sched)
 		numX=$((numX + 1))
 		continue
 	    fi
 
-	    for ((cur_quant = 0 ; cur_quant < $num_quants ; cur_quant++));
+	    for ((cur_quant = 0 ; cur_quant < $num_quants ;
+		  cur_quant++));
 	    do
 		cat line_file$cur_quant | tee -a $out_file > $REDIRECT
 		second_field=`tail -n 1 $out_file | awk '{print $2}'`
@@ -364,6 +382,12 @@ function per_subdirectory_loop
 
 		    for ((i = 0 ; i < numX ; i++)) ; do
 			printf "%20s" X >> $thr_table_file
+
+			if [[ "$res_type" == throughput ]]; then
+		    echo -n throughput-${wl_improved_name}-${failed_scheds[$i]} \
+			     >> $res_list_file
+			    echo " fail" >> $res_list_file
+			fi
 		    done
 
 		    if [[ $res_type != throughput ]]; then
@@ -371,6 +395,11 @@ function per_subdirectory_loop
 			    >> $target_quantity_table_file
 			for ((i = 0 ; i < numX ; i++)) ; do
 			    printf "%20s" X >> $target_quantity_table_file
+
+			    echo -n \
+		 $(basename $single_test_res_dir)-${wl_improved_name}-${failed_scheds[$i]} \
+			     >> $res_list_file
+			    echo " fail" >> $res_list_file
 			done
 		    fi
 		    line_created=True
@@ -418,6 +447,10 @@ function per_subdirectory_loop
 		   [[ $cur_quant -eq 1 && \
 		      "$res_type" == video_playing ]] ; then
 
+		    echo -n \
+		$(basename $single_test_res_dir)--${wl_improved_name}--${sched} \
+			 >> $res_list_file
+
 		    if (("$res_type" == startup_lat)) ||
 		       (("$res_type" == video_playing)); then
 			field_num=3
@@ -431,9 +464,15 @@ function per_subdirectory_loop
 		    if [[ "$target_field" == "" || \
 			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
+			echo " fail $target_field $UOM" \
+			     >> $res_list_file
+		    else
+			echo " pass $target_field $UOM" \
+			     >> $res_list_file
 		    fi
 
 		    printf "%20s" $target_field >> $target_quantity_table_file
+
 		elif [[ "$res_type" != bandwidth-latency ]] && \
 			 ((((cur_quant == 0)) && \
 		      [[ "$res_type" != video_playing ]]) ||
@@ -441,13 +480,26 @@ function per_subdirectory_loop
 		      [[ $res_type != video_playing ]]) ||
 		     ((( cur_quant == 3)) && \
 		      [[ $res_type == video_playing ]])); then
+		    if [[ $res_type == throughput ]]; then
+			echo -n throughput--${wl_improved_name}--${sched} \
+			     >> $res_list_file
+		    fi
+
 		    target_field=`tail -n 1 $out_file | awk '{print $3}'`
 
 		    if [[ "$target_field" == "" || \
 			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
+			if [[ $res_type == throughput ]]; then
+			    echo " fail" >> $res_list_file
+			fi
+		    else
+			if [[ $res_type == throughput ]]; then
+			    echo " pass $target_field MB/s" >> $res_list_file
+			fi
 		    fi
 		    printf "%20s" $target_field  >> $thr_table_file
+
 		fi
 
 		rm line_file$cur_quant number_file$cur_quant
@@ -492,6 +544,9 @@ else
 fi
 
 cd $results_dir
+
+res_list_file="$(pwd)/result_list.txt"
+rm -f $res_list_file
 
 # result type explicitly provided
 if [ "$res_type" != "" ]; then
