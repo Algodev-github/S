@@ -19,6 +19,15 @@ The set of benchmarks can be built out of the following benchmarks:
 throughput startup replayed-startup fairness video-playing kernel-devel interleaved-io
 bandwidth-latency
 
+Both the startup and the replayed-startup benchmarks measures start-up
+times for three applications, which are represent, respectively, the
+classes of small, medium and large applications. But, if one does not
+want to wait for three applications to be benchmarked, the
+replayed-startup benchmark can be reduced to just the mid-size
+application. To this goal, write
+replayed-gnome-term-startup
+instead of replayed-startup
+
 If no set or an empty set, i.e., \"\", is given, then all default benchmarks are
 executed. Default benchmarks are: $DEF_BENCHMARKS.
 
@@ -55,7 +64,7 @@ sequential/random I/O are allowed.
 
 Be aware that only-reads and only-seq options are stronger than fs, raw and
 also-rand ones.  Thus, when in conflict they override them (i.e. only-seq
-ovverides also-rand).
+overrides also-rand).
 
 Please note that the also-rand, only-reads and only-seq options do not
 affect the following tests:
@@ -322,6 +331,14 @@ function replayed-startup
 {
     cmd_lines=("${replay_commands[@]}")
     actual_testcases=("${replayed_testcases[@]}");
+
+    do_startup $1
+}
+
+function replayed-gnome-term-startup
+{
+    cmd_lines=("${replay_commands[1]}")
+    actual_testcases=("${replayed_testcases[1]}");
 
     do_startup $1
 }
@@ -648,7 +665,7 @@ if [[ "${#kern_wl[@]}" -eq "0" ]]; then
     echo "WARNING: no kernel-devel workload left after filtering" >&2
 fi
 
-if [[ "$(echo $BENCHMARKS | egrep replayed-startup)" != "" ]]; then
+if [[ "$(echo $BENCHMARKS | egrep replayed)" != "" ]]; then
     ../utilities/check_dependencies.sh dd fio iostat bc g++
 
     if [[ $? -ne 0 ]]; then
