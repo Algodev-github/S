@@ -2,23 +2,23 @@ Small collection of benchmarks for storage I/O - Version 3.0
 
 This suite evaluates:
 - responsiveness, by measuring start-up times of real applications
-  under real background workloads
+  under configurable background workloads
 - latency for soft real-time applications, by measuring playback
-  quality (drop rate) of video and audio under real background
+  quality (drop rate) of video and audio under configurable background
   workloads
 - speed of code-development tasks (make, git checkout, git merge, git
-  grep) under real background workloads, plus responsiveness while one
-  of these dev tasks is executed
+  grep) under configurable background workloads, plus responsiveness
+  while one of these dev tasks is executed
 - minimum per-client bandwidth guaranteed to a set of clients doing
-  any possible type of I/O
-- maximum per-client latency guaranteed to a set of clients doing any
-  possible type of I/O
+  configurable types of I/O
+- maximum per-client latency guaranteed to a set of clients doing
+  configurable types of I/O
 - throughput with processes doing filesystem or raw I/O in parallel
   (figure of merit measured by many other suites too)
 - throughput with processes doing interleaved I/O, which mimics the
   typical I/O pattern of applications like qemu
 - efficiency of block layer and I/O schedulers in terms of maximum
-  number of IOPS supported (this functionality also makes it easy
-  to profile every component of the block layer)
+  number of IOPS supported (this functionality makes it easy to
+  profile the desired component of the block layer)
 
 See USAGE-INSTALLATION for all details.

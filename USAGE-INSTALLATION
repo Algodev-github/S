@@ -162,16 +162,18 @@ utilities: several files here
 
 MAIN DEPENDENCIES
 
-You need at least fio, iostat (from the sysstat package), awk, time
-and bc installed. For the file-copy.sh script you need pv. For the
+All dependencies are installed automatically, except for LibreOffice
+Writer (needed only for some specific test). These dependencies are at
+least fio, iostat (from the sysstat package), awk, time and bc
+installed. For the file-copy.sh script you need pv. For the
 kernel-development benchmark you also need git and make, whereas
 gnuplot is needed to generate plots through plot_stats.sh (gnuplot-x11
 to handle also x11 terminals, i.e., to make plot windows), and mplayer
 is needed for the video-playing benchmark. To let the
-run_main_benchmarks.sh script send mail reports about the test progress,
-you must have a mail transfer agent (such as, e.g., msmtp) and a mail
-client (such as, e.g., mailx) installed and correctly configured to
-send e-mails.
+run_main_benchmarks.sh script send mail reports about the test
+progress, you must have a mail transfer agent (such as, e.g., msmtp)
+and a mail client (such as, e.g., mailx) installed and correctly
+configured to send e-mails.
 
 USAGE AND OUTPUT OF THE BENCHMARKS
 
@@ -196,5 +198,10 @@ i) run multiple benchmarks automatically through a general script like
    benchmarks, this script also invokes calc_overall_stats.sh and
    plot_stats.sh to generate both global statistics and plots
    automatically (for most but not yet all benchmarks).
+
+A special case is the ad hoc script
+run_multiple_benchmarks/test_responsiveness.sh
+that executes only the minimum set of tests needed to get an idea of
+the responsiveness of your system.
 
 For examples and brief help just invoke the desired script with -h.
