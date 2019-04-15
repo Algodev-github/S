@@ -223,26 +223,34 @@ function prepare_basedir
     if [[ "$TEST_DEV" != "" ]]; then
 	DISK=$(lsblk -o TYPE /dev/$TEST_DEV | egrep disk)
 
-	if [[ "$DISK" == "" ]]; then
-	    TEST_PARTITION=$TEST_DEV
-	else
-	    TEST_PARTITION=${TEST_DEV}1
+	if [[ "$DISK" != "" ]]; then
 	    FORMAT_DISK=$FORMAT
 	fi
 
-	lsblk -o MOUNTPOINT /dev/$TEST_PARTITION > mountpoints 2> /dev/null
+	for partnum in "" 1 2 3 4; do
+	    TEST_PARTITION=${TEST_DEV}$partnum
 
-	cur_line=$(tail -n +2  mountpoints | head -n 1)
-	i=3
-	while [[ "$cur_line" == "" && $i -lt $(cat mountpoints | wc -l) ]]; do
-	    cur_line=$(tail -n +$i mountpoints | head -n 1)
-	    i=$(( i+1 ))
+	    lsblk -o MOUNTPOINT /dev/$TEST_PARTITION \
+		  > mountpoints 2> /dev/null
+
+	    cur_line=$(tail -n +2  mountpoints | head -n 1)
+	    i=3
+	    while [[ "$cur_line" == "" && \
+			 $i -lt $(cat mountpoints | wc -l) ]]; do
+		cur_line=$(tail -n +$i mountpoints | head -n 1)
+		i=$(( i+1 ))
+	    done
+
+	    if [[ "$cur_line" != "" ]]; then
+		break
+	    fi
 	done
 
 	rm mountpoints
 
 	if [[ "$cur_line" == "" && "$FORMAT_DISK" != yes ]]; then
-	    echo Sorry, no mountpoint found for test partition $TEST_PARTITION.
+	    echo -n Sorry, no mountpoint found for test partitions
+	    echo up to $TEST_PARTITION.
 	    echo Set FORMAT=yes and TEST_DEV=\<actual drive\> if you want
 	    echo me to format drive, create fs and mount it for you.
 	    echo Aborting.
