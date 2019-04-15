@@ -221,6 +221,10 @@ function prepare_basedir
     fi
 
     if [[ "$TEST_DEV" != "" ]]; then
+	if [[ $(echo $TEST_DEV | cut -c1) == / ]]; then
+	    TEST_DEV=$(readlink -f $TEST_DEV)
+	    TEST_DEV=$(echo $TEST_DEV | sed 's</dev/<<')
+	fi
 	DISK=$(lsblk -o TYPE /dev/$TEST_DEV | egrep disk)
 
 	if [[ "$DISK" != "" ]]; then
