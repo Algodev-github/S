@@ -14,9 +14,10 @@ SCSI_DEBUG=no
 # automatically, overriding your possible choice for BASE_DIR below.
 NULLB=no
 
-# Set the following parameter to the name (not the full path) of a
-# device or of a partition, if you want to perform tests on that
-# device or partition.
+# Set the following parameter to the name or the full path of a device
+# or of a partition, if you want to perform tests on that device or
+# partition. In the next comments, we assume for simplicity that
+# TEST_DEV is set to just the name of a device.
 #
 # If you go for a device, then the following two alternatives are
 # handled differently: first, the device contains the partition
