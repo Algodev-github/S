@@ -202,6 +202,31 @@ function get_max_affordable_file_size
     echo $(( $MAXSIZE_MiB>$file_size_MiB ? $file_size_MiB : $MAXSIZE_MiB ))
 }
 
+function find_partition {
+    for partnum in "" 1 2 3 4; do
+	TEST_PARTITION=${TEST_DEV}$partnum
+
+	lsblk -o MOUNTPOINT /dev/$TEST_PARTITION \
+	      > mountpoints 2> /dev/null
+
+	cur_line=$(tail -n +2  mountpoints | head -n 1)
+	i=3
+	while [[ "$cur_line" == "" && \
+		     $i -lt $(cat mountpoints | wc -l) ]]; do
+	    cur_line=$(tail -n +$i mountpoints | head -n 1)
+	    i=$(( i+1 ))
+	done
+
+	    if [[ "$cur_line" != "" ]]; then
+		break
+	    fi
+    done
+
+    rm mountpoints
+
+    echo $cur_line
+}
+
 function prepare_basedir
 {
     # NOTE: the following cases are mutually exclusive
@@ -222,8 +247,20 @@ function prepare_basedir
 
     if [[ "$TEST_DEV" != "" ]]; then
 	if [[ $(echo $TEST_DEV | cut -c1) == / ]]; then
-	    TEST_DEV=$(readlink -f $TEST_DEV)
-	    TEST_DEV=$(echo $TEST_DEV | sed 's</dev/<<')
+	    if [[ "${TEST_DEV: -1}" == [0-9] ]]; then
+		parent_devs=$(lsblk -no pkname $TEST_DEV)
+		if [[ $(echo $parent_devs | wc -l) -eq 1 && \
+			  $(echo $parent_devs | wc -w) -eq 1 ]]; then
+		    TEST_PARTITION=$TEST_DEV
+		    TEST_PARTITION=$(readlink -f $TEST_PARTITION)
+		    TEST_PARTITION=$(echo $TEST_PARTITION | sed 's</dev/<<')
+
+		    TEST_DEV=$parent_devs
+		fi
+	    else
+		TEST_DEV=$(readlink -f $TEST_DEV)
+		TEST_DEV=$(echo $TEST_DEV | sed 's</dev/<<')
+	    fi
 	fi
 	DISK=$(lsblk -o TYPE /dev/$TEST_DEV | egrep disk)
 
@@ -231,41 +268,26 @@ function prepare_basedir
 	    FORMAT_DISK=$FORMAT
 	fi
 
-	for partnum in "" 1 2 3 4; do
-	    TEST_PARTITION=${TEST_DEV}$partnum
+	if [[ $TEST_PARTITION != "" ]]; then
+	    mntpoint=$(lsblk -no MOUNTPOINT /dev/$TEST_PARTITION)
+	else
+	    mntpoint=$(find_partition)
+	fi
 
-	    lsblk -o MOUNTPOINT /dev/$TEST_PARTITION \
-		  > mountpoints 2> /dev/null
-
-	    cur_line=$(tail -n +2  mountpoints | head -n 1)
-	    i=3
-	    while [[ "$cur_line" == "" && \
-			 $i -lt $(cat mountpoints | wc -l) ]]; do
-		cur_line=$(tail -n +$i mountpoints | head -n 1)
-		i=$(( i+1 ))
-	    done
-
-	    if [[ "$cur_line" != "" ]]; then
-		break
-	    fi
-	done
-
-	rm mountpoints
-
-	if [[ "$cur_line" == "" && "$FORMAT_DISK" != yes ]]; then
-	    echo -n Sorry, no mountpoint found for test partitions
+	if [[ "$mntpoint" == "" && "$FORMAT_DISK" != yes ]]; then
+	    echo -n "Sorry, no mountpoint found for test partitions "
 	    echo up to $TEST_PARTITION.
 	    echo Set FORMAT=yes and TEST_DEV=\<actual drive\> if you want
 	    echo me to format drive, create fs and mount it for you.
 	    echo Aborting.
 	    exit
-	elif  [[ "$cur_line" == "" ]]; then # implies $FORMAT_DISK == yes
+	elif  [[ "$mntpoint" == "" ]]; then # implies $FORMAT_DISK == yes
 	    format_and_use_test_dev
-	    cur_line=$BASE_DIR
+	    mntpoint=$BASE_DIR
 	fi
 
-	cur_line=${cur_line%/} # hate to see consecutive / in paths :)
-	BASE_DIR="$cur_line/var/lib/S"
+	mntpoint=${mntpoint%/} # hate to see consecutive / in paths :)
+	BASE_DIR="$mntpoint/var/lib/S"
     fi
 
     if [[ ! -d $BASE_DIR ]]; then
