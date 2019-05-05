@@ -255,22 +255,26 @@ function prepare_basedir
     fi
 
     if [[ "$TEST_DEV" != "" ]]; then
-	if [[ $(echo $TEST_DEV | cut -c1) == / ]]; then
-	    if [[ "${TEST_DEV: -1}" == [0-9] ]]; then
-		parent_devs=$(lsblk -no pkname $TEST_DEV)
-		if [[ $(echo $parent_devs | wc -l) -eq 1 && \
-			  $(echo $parent_devs | wc -w) -eq 1 ]]; then
-		    TEST_PARTITION=$TEST_DEV
-		    TEST_PARTITION=$(readlink -f $TEST_PARTITION)
-		    TEST_PARTITION=$(echo $TEST_PARTITION | sed 's</dev/<<')
-
-		    TEST_DEV=$parent_devs
-		fi
-	    else
-		TEST_DEV=$(readlink -f $TEST_DEV)
-		TEST_DEV=$(echo $TEST_DEV | sed 's</dev/<<')
-	    fi
+	# add /dev/ if not present
+	if [[ $(echo $TEST_DEV | cut -c1) != / ]]; then
+	    TEST_DEV=/dev/$TEST_DEV
 	fi
+
+	if [[ "${TEST_DEV: -1}" == [0-9] ]]; then
+	    parent_devs=$(lsblk -no pkname $TEST_DEV)
+	    if [[ $(echo $parent_devs | wc -l) -eq 1 && \
+		  $(echo $parent_devs | wc -w) -eq 1 ]]; then
+		TEST_PARTITION=$TEST_DEV
+	        TEST_PARTITION=$(readlink -f $TEST_PARTITION)
+	        TEST_PARTITION=$(echo $TEST_PARTITION | sed 's</dev/<<')
+
+	        TEST_DEV=$parent_devs
+	    fi
+	else
+	    TEST_DEV=$(readlink -f /dev/$TEST_DEV)
+	    TEST_DEV=$(echo $TEST_DEV | sed 's</dev/<<')
+	fi
+
 	DISK=$(lsblk -o TYPE /dev/$TEST_DEV | egrep disk)
 
 	if [[ "$DISK" != "" ]]; then
