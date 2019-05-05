@@ -326,7 +326,7 @@ function prepare_basedir
 	exit
     fi
 
-    if [[ -d $BASE_DIR ]]; then
+    if [[ "$TEST_DEV" != "" && -d $BASE_DIR ]]; then
 	find_dev_for_dir $BASE_DIR
     fi
 }
