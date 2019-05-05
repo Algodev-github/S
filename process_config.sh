@@ -41,7 +41,7 @@ function find_dev_for_dir
 	    fi
 	    disk_line=$(lsblk -n -i /dev/$dev | egrep disk | egrep -v "^ |^\`|\|")
 	    if [[ "$disk_line" != "" && \
-		      ( "$(lsblk -n -o TRAN /dev/$dev)" != "" || \
+		      ( "$(lsblk -n -o TRAN /dev/$dev 2> /dev/null)" != "" || \
 			    $(echo $dev | egrep mmc) != "" ) ]]; then
 		BACKING_DEVS="$BACKING_DEVS $dev"
 
