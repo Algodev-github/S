@@ -88,10 +88,18 @@ function check_create_mount_part
 	fsck.ext4 -n ${BACKING_DEVS}1
 	if [[ $? -ne 0 ]]; then
 	    mkfs.ext4 -F ${BACKING_DEVS}1
+	    if [ $? -ne 0 ]; then
+		echo Filesystem creation failed, aborting.
+		exit
+	    fi
 	fi
 
 	mkdir -p $BASE_DIR
 	mount ${BACKING_DEVS}1 $BASE_DIR
+	if [ $? -ne 0 ]; then
+		echo Mount failed, aborting.
+		exit
+	fi
     fi
     BACKING_DEVS=$(basename $BACKING_DEVS)
     HIGH_LEV_DEV=$BACKING_DEVS
