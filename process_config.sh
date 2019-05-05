@@ -255,21 +255,24 @@ function prepare_basedir
     fi
 
     if [[ "$TEST_DEV" != "" ]]; then
-	# add /dev/ if not present
-	if [[ $(echo $TEST_DEV | cut -c1) != / ]]; then
-	    TEST_DEV=/dev/$TEST_DEV
-	fi
+	# strip /dev/ if present
+	TEST_DEV=$(echo $TEST_DEV | sed 's</dev/<<')
 
 	if [[ "${TEST_DEV: -1}" == [0-9] ]]; then
-	    parent_devs=$(lsblk -no pkname $TEST_DEV)
-	    if [[ $(echo $parent_devs | wc -l) -eq 1 && \
-		  $(echo $parent_devs | wc -w) -eq 1 ]]; then
-		TEST_PARTITION=$TEST_DEV
-	        TEST_PARTITION=$(readlink -f $TEST_PARTITION)
-	        TEST_PARTITION=$(echo $TEST_PARTITION | sed 's</dev/<<')
-
-	        TEST_DEV=$parent_devs
+	    parent_dev=$(readlink /sys/class/block/$TEST_DEV)
+	    parent_dev=${parent_dev%/*}
+	    parent_dev=${parent_dev##*/}
+	    if [[ "$parent_dev" == block ]]; then # not a partition
+		parent_dev=
 	    fi
+	fi
+
+	if [[ "$parent_dev" != "" ]]; then
+	    TEST_PARTITION=/dev/$TEST_DEV
+	    TEST_PARTITION=$(readlink -f $TEST_PARTITION)
+	    TEST_PARTITION=$(echo $TEST_PARTITION | sed 's</dev/<<')
+
+	    TEST_DEV=$parent_dev
 	else
 	    TEST_DEV=$(readlink -f /dev/$TEST_DEV)
 	    TEST_DEV=$(echo $TEST_DEV | sed 's</dev/<<')
