@@ -19,15 +19,16 @@ NULLB=no
 # partition. In the next comments, we assume for simplicity that
 # TEST_DEV is set to just the name of a device.
 #
-# If you go for a device, then the following two alternatives are
-# handled differently: first, the device contains the partition
-# /dev/${TEST_DEV}1 and /dev/${TEST_DEV}1 contains a mounted
+# The following two alternatives are handled differently: first, the
+# device contains the partition ${TEST_DEV}1 (or ${TEST_DEV}p1,
+# depending on the type of device) and ${TEST_DEV}1 contains a mounted
 # filesystem; second, the latter compound condition does not hold. In
 # the first case, all test files are created in that filesystem. In
 # the second case, the execution is simply aborted if the following
 # FORMAT parameter is not set to yes. If, instead, FORMAT is set to
 # yes, then
-# - the device is formatted so as to contain a partition ${TEST_DEV}1;
+# - the device is formatted so as to contain a partition ${TEST_DEV}1
+#   or ${TEST_DEV}p1;
 # - an ext4 filesystem is made on that partition;
 # - that filesystem is mounted.
 #
