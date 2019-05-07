@@ -234,8 +234,13 @@ function set_scheduler
 	    echo $sched > /sys/block/$dev/queue/scheduler 2>&1 | \
 		echo &> /dev/null
 	    PIPE_STATUS=${PIPESTATUS[0]}
-	    NEW_SCHED=$(cat /sys/block/$dev/queue/scheduler | \
+	    if [[ $(cat /sys/block/$dev/queue/scheduler | wc -w) -gt 1 ]]; then
+		NEW_SCHED=$(cat /sys/block/$dev/queue/scheduler | \
 			    egrep "\[$sched\]")
+	    else
+		NEW_SCHED=$(cat /sys/block/$dev/queue/scheduler)
+	    fi
+
 	    if [[ $PIPE_STATUS -ne 0 || "$NEW_SCHED" == "" ]]; then
 		echo "Switch to $sched failed:" > /dev/tty
 		cat /sys/block/$dev/queue/scheduler > /dev/tty
