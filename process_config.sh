@@ -80,15 +80,29 @@ function find_dev_for_dir
 
 function check_create_mount_part
 {
-    if [[ ! -b ${BACKING_DEVS}1 ]]; then
-	echo 'start=2048, type=83' | sfdisk $BACKING_DEVS
+    if [[ $(echo $BACKING_DEVS | egrep "mmc|nvme") != "" ]]; then
+	extra_char=p
+    fi
+
+    TARGET_PART=${BACKING_DEVS}${extra_char}1
+
+    if [[ ! -b $TARGET_PART ]]; then
+	(
+	 echo o # Create a new empty DOS partition table
+	 echo n # Add a new partition
+	 echo p # Primary partition
+	 echo 1 # Partition number
+	 echo   # First sector (Accept default: 1)
+	 echo   # Last sector (Accept default: varies)
+	 echo w # Write changes
+	) | fdisk $BACKING_DEVS > /dev/null
     fi
 
     BASE_DIR=$1
     if [[ "$(mount | egrep $BASE_DIR)" == "" ]]; then
-	fsck.ext4 -n ${BACKING_DEVS}1
+	fsck.ext4 -n $TARGET_PART
 	if [[ $? -ne 0 ]]; then
-	    mkfs.ext4 -F ${BACKING_DEVS}1
+	    mkfs.ext4 -F $TARGET_PART
 	    if [ $? -ne 0 ]; then
 		echo Filesystem creation failed, aborting.
 		exit
@@ -96,7 +110,7 @@ function check_create_mount_part
 	fi
 
 	mkdir -p $BASE_DIR
-	mount ${BACKING_DEVS}1 $BASE_DIR
+	mount $TARGET_PART $BASE_DIR
 	if [ $? -ne 0 ]; then
 		echo Mount failed, aborting.
 		exit
@@ -212,23 +226,15 @@ function get_max_affordable_file_size
 }
 
 function find_partition {
-    for partnum in "" 1 2 3 4; do
-	TEST_PARTITION=${TEST_DEV}$partnum
+    lsblk -rno MOUNTPOINT /dev/$TEST_DEV \
+	> mountpoints 2> /dev/null
 
-	lsblk -o MOUNTPOINT /dev/$TEST_PARTITION \
-	      > mountpoints 2> /dev/null
-
-	cur_line=$(tail -n +2  mountpoints | head -n 1)
-	i=3
-	while [[ "$cur_line" == "" && \
-		     $i -lt $(cat mountpoints | wc -l) ]]; do
-	    cur_line=$(tail -n +$i mountpoints | head -n 1)
-	    i=$(( i+1 ))
-	done
-
-	    if [[ "$cur_line" != "" ]]; then
-		break
-	    fi
+    cur_line=$(tail -n +2  mountpoints | head -n 1)
+    i=3
+    while [[ "$cur_line" == "" && \
+	     $i -lt $(cat mountpoints | wc -l) ]]; do
+	cur_line=$(tail -n +$i mountpoints | head -n 1)
+	i=$(( i+1 ))
     done
 
     rm mountpoints
@@ -291,10 +297,11 @@ function prepare_basedir
 	fi
 
 	if [[ "$mntpoint" == "" && "$FORMAT_DISK" != yes ]]; then
-	    echo -n "Sorry, no mountpoint found for test partitions "
-	    echo up to $TEST_PARTITION.
+	    echo -n "Sorry, no mountpoint found for partitions "
+	    echo in $TEST_DEV,
+	    echo or no partition in $TEST_DEV at all.
 	    echo Set FORMAT=yes and TEST_DEV=\<actual drive\> if you want
-	    echo me to format drive, create fs and mount it for you.
+	    echo me to format the drive, create a fs and mount it for you.
 	    echo Aborting.
 	    exit
 	elif  [[ "$mntpoint" == "" ]]; then # implies $FORMAT_DISK == yes
