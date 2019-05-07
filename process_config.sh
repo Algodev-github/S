@@ -345,6 +345,7 @@ function prepare_basedir
     else
 	# in case no path setting BACKING_DEVS has been followed:
 	BACKING_DEVS=$TEST_DEV
+        HIGH_LEV_DEV=$BACKING_DEVS
     fi
 }
 
