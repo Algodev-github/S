@@ -342,6 +342,9 @@ function prepare_basedir
 
     if [[ "$TEST_DEV" == "" && -d $BASE_DIR ]]; then
 	find_dev_for_dir $BASE_DIR
+    else
+	# in case no path setting BACKING_DEVS has been followed:
+	BACKING_DEVS=$TEST_DEV
     fi
 }
 
