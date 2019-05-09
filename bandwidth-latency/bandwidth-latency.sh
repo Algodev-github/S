@@ -190,6 +190,23 @@ function clean_and_exit {
 	exit
 }
 
+function signal_interfered_end
+{
+	# Synchronization between:
+	# - the end of this function (which writes to file the fio output)
+	# - and the start of the compute_statistics function (which is spawned
+	#   in parallel and needs to read the fio output from file)
+	# is needed.
+	# Since the wait shell builtin can not wait for pids which are not
+	# child of the same shell (i.e. child of a different subshell) a
+	# magic line is appended to the interfered-stats.txt file; in order
+	# to wait until the presence of that magic line in the function
+	# compute_statistics
+	if [[ "$1" == "interfered" ]]; then
+	    echo "$MAGIC_LINE" >> ${name}-stats.txt
+	fi
+}
+
 # Since the invocation command of this function is always terminated with the
 # control operator '&', the command which invoke this function executes
 # asynchronously in a subshell.
@@ -234,6 +251,11 @@ function start_fio_jobs {
 	if [ "$rate" != MAX ]; then
 	    if [[ "${rate: -1}" == M ]]; then
 		rate=$(echo $rate | sed 's/M/000/')
+	    fi
+	    if [[ $rate -eq 0 ]]; then
+		echo none > $FIO_PID_FILE
+		signal_interfered_end $name
+		return
 	    fi
 	    jobvar=$jobvar"rate=${rate}k\n "
 	fi
@@ -293,19 +315,8 @@ invalidate=1\n
 	    fi
 	    wait "$tmp_fio_pid"  # wait for interfered fio death
 	fi
-	# Synchronization between:
-	# - the end of this function (which writes to file the fio output)
-	# - and the start of the compute_statistics function (which is spawned
-	#   in parallel and needs to read the fio output from file)
-	# is needed.
-	# Since the wait shell builtin can not wait for pids which are not
-	# child of the same shell (i.e. child of a different subshell) a
-	# magic line is appended to the interfered-stats.txt file; in order
-	# to wait until the presence of that magic line in the function
-	# compute_statistics
-	if [[ "$1" == "interfered" ]]; then
-	    echo "$MAGIC_LINE" >> ${name}-stats.txt
-	fi
+
+	signal_interfered_end $name
 }
 
 function get_io {
@@ -528,7 +539,9 @@ function execute_intfered_and_shutdwn_intferers {
 	while ! [[ -f "$FIO_PID_FILE" && "$(cat "$FIO_PID_FILE")" != "" ]]; do
 	    sleep 0.01
 	done
-	kill -INT "$(cat "$FIO_PID_FILE")"
+	if [[ "$(cat $FIO_PID_FILE)" != none ]]; then
+	    kill -INT "$(cat "$FIO_PID_FILE")"
+	fi
 
 	shutdwn iostat
 	shutdwn fio
