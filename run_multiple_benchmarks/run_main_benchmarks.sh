@@ -676,6 +676,7 @@ if [[ "$(echo $BENCHMARKS | egrep replayed)" != "" ]]; then
     if [[ ! -f replay-startup-io || \
 	      replay-startup-io.cc -nt replay-startup-io ]]; then
 	echo Compiling replay-startup-io ...
+	../utilities/check_dependencies.sh /usr/include/libaio.h
 	g++ -std=c++11 -pthread -Wall replay-startup-io.cc \
 	    -o replay-startup-io -laio
 	if [ $? -ne 0 ]; then
