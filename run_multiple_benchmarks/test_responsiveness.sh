@@ -11,6 +11,12 @@ script measures the time that it takes to start gnome-terminal
 - while each of the following two heavy workloads is being served in
   the background: ten parallel file reads, or five parallell file
   reads plus five parallel file writes.
+
+NOTE: test_responsiveness.sh invokes run_main_benchmarks.sh through sudo; so,
+there is no need to invoke test_responsiveness.sh with sudo. If you do, then
+run_main_benchmarks.sh gets executed as root, and, regardless of what user
+you actually are, /root is used as home (so /root/.S-config.sh is used as
+configuration file).
 "
 
 if [ "$1" == "-h" ]; then
