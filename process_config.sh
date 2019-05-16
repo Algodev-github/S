@@ -15,13 +15,41 @@ else
     FIRST_PARAM=$1
 fi
 
+function print_dev_help
+{
+    # find right path to config file, used in help messages
+    if [ "$SUDO_USER" != "" ]; then
+	eval REALHOME=~$SUDO_USER
+    else
+	eval REALHOME=~
+    fi
+    CONFPATH=${REALHOME}/.S-config.sh
+
+    echo
+    echo To address this issue, you can
+    echo - either set the parameter BASE_DIR, in $CONFPATH, to a directory
+    echo "  that you know to be in a local filesystem (such a local filesystem"
+    echo "  must be mounted on a supported physical or virtual device);"
+    echo - or set the parameter TEST_DEV, in $CONFPATH, to \
+	 the \(supported\) device
+    echo "  or partition you want to use for your tests."
+    echo
+    echo See the comments in $CONFPATH for details and more options.
+}
+
 function find_dev_for_dir
 {
     PART=$(df -P $1 | awk 'END{print $1}')
 
     REALPATH=$(readlink -f $PART) # moves to /dev/dm-X in case of device mapper
     if [[ "$REALPATH" == "" ]]; then
-	echo Could not follow link for $PART, probably a remote file system
+	echo The directory where you want me store my test files,
+	echo namely $1,
+	echo is contained in the following partition:
+	echo $PART.
+	echo Unfortunately, such a partition does seem to correspond
+	echo to any local partition \(it is probably a remote filesystem\).
+	print_dev_help
 	exit
     fi
 
@@ -56,6 +84,7 @@ function find_dev_for_dir
 		if [[ "$(echo $HIGH_LEV_DEV | egrep md)" != "" ]]; then
 		    echo -n Stacked raids not supported
 		    echo " ($HIGH_LEV_DEV + $dev), sorry."
+		    print_dev_help
 		    exit
 		fi
 
@@ -68,12 +97,7 @@ function find_dev_for_dir
 
     if [[ "$BACKING_DEVS" == "" ]]; then
 	echo Block devices for partition $PART or $REALPART unrecognized.
-	if [ "$SUDO_USER" != "" ]; then
-	    eval echo Try setting your target devices manually \
-		 in ~$SUDO_USER/.S-config.sh
-	else
-	    echo Try setting your target devices manually in ~/.S-config.sh
-	fi
+	print_dev_help
 	exit
     fi
 }
