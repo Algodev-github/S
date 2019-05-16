@@ -37,9 +37,39 @@ function print_dev_help
     echo See the comments in $CONFPATH for details and more options.
 }
 
+function find_partition_for_dir
+{
+    PART=
+    longest_substr=
+    mount |
+	{ while IFS= read -r var
+	  do
+	      mountpoint=$(echo "$var" | \
+			       sed 's<.* on \(.*\)<\1<' | \
+			       sed 's<\(.*\) type.*<\1<')
+	      substr=$(printf "%s\n%s\n" "$mountpoint" "$1" | \
+			   sed -e 'N;s/^\(.*\).*\n\1.*$/\1/')
+
+	      if [[ "$substr" == $mountpoint && \
+			${#substr} -gt ${#longest_substr} ]] ; then
+		  longest_substr=$substr
+		  PART=$(echo "$var" | cut -f 1 -d " ")
+	      fi
+	  done
+	  echo $PART
+	}
+}
+
 function find_dev_for_dir
 {
-    PART=$(df -P $1 | awk 'END{print $1}')
+    PART=$(find_partition_for_dir $1)
+
+    if [[ "$PART" == "" ]]; then
+	echo Sorry, failed to find the partition containing the directory
+	echo $1.
+	print_dev_help
+	exit
+    fi
 
     REALPATH=$(readlink -f $PART) # moves to /dev/dm-X in case of device mapper
     if [[ "$REALPATH" == "" ]]; then
@@ -230,7 +260,11 @@ function get_max_affordable_file_size
 	exit
     fi
 
-    PART=$(df -P $BASE_DIR | awk 'END{print $1}')
+    PART=$(find_partition_for_dir $BASE_DIR)
+
+    if [[ "$(df | egrep $PART)" == "" ]]; then # it must be /dev/root
+	PART=/dev/root
+    fi
 
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
     FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
@@ -353,7 +387,11 @@ function prepare_basedir
 	mkdir -p $BASE_DIR
     fi
 
-    PART=$(df -P $BASE_DIR | awk 'END{print $1}')
+    PART=$(find_partition_for_dir $BASE_DIR)
+    if [[ "$(df | egrep $PART)" == "" ]]; then # it must be /dev/root
+	PART=/dev/root
+    fi
+
     FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
 
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
