@@ -77,7 +77,7 @@ function find_dev_for_dir
 	echo namely $1,
 	echo is contained in the following partition:
 	echo $PART.
-	echo Unfortunately, such a partition does seem to correspond
+	echo Unfortunately, such a partition does not seem to correspond
 	echo to any local partition \(it is probably a remote filesystem\).
 	print_dev_help
 	exit
