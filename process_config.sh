@@ -44,6 +44,12 @@ function find_partition_for_dir
     mount |
 	{ while IFS= read -r var
 	  do
+	      curpart=$(echo "$var" | cut -f 1 -d " ")
+
+	      if [[ "$(echo $curpart | egrep '/')" == "" ]]; then
+		  continue
+	      fi
+
 	      mountpoint=$(echo "$var" | \
 			       sed 's<.* on \(.*\)<\1<' | \
 			       sed 's<\(.*\) type.*<\1<')
@@ -62,7 +68,9 @@ function find_partition_for_dir
 
 function find_dev_for_dir
 {
-    PART=$(find_partition_for_dir $1)
+    if [[ "$PART" == "" ]]; then
+	PART=$(find_partition_for_dir $1)
+    fi
 
     if [[ "$PART" == "" ]]; then
 	echo Sorry, failed to find the partition containing the directory
@@ -260,7 +268,9 @@ function get_max_affordable_file_size
 	exit
     fi
 
-    PART=$(find_partition_for_dir $BASE_DIR)
+    if [[ "$PART" == "" ]]; then
+	PART=$(find_partition_for_dir $BASE_DIR)
+    fi
 
     if [[ "$(df | egrep $PART)" == "" ]]; then # it must be /dev/root
 	PART=/dev/root
@@ -387,7 +397,10 @@ function prepare_basedir
 	mkdir -p $BASE_DIR
     fi
 
-    PART=$(find_partition_for_dir $BASE_DIR)
+    if [[ "$PART" == "" ]]; then
+	PART=$(find_partition_for_dir $BASE_DIR)
+    fi
+
     if [[ "$(df | egrep $PART)" == "" ]]; then # it must be /dev/root
 	PART=/dev/root
     fi
