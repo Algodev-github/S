@@ -836,7 +836,6 @@ if [ "$i_dirname" != "" ]; then
 	echo updated
 fi
 create_files 1 _interfered
-echo i_filename=${BASE_FILE_PATH}_interfered0 >/dev/$OUT 2>&1
 i_filename=${BASE_FILE_PATH}_interfered0
 if [ "$i_dirname" != "" ]; then
 	BASE_FILE_PATH=$OLD_BASE_FILE_PATH
@@ -848,7 +847,6 @@ if [ "$I_dirnames" != "" ]; then
 fi
 create_files $num_groups
 for ((i = 0 ; $i < $num_groups ; i++)); do
-	echo I_filenames[$i]=${BASE_FILE_PATH}$i >/dev/$OUT 2>&1
 	I_filenames[$i]=${BASE_FILE_PATH}$i
 done
 if [ "$I_dirnames" != "" ]; then
@@ -883,7 +881,7 @@ if [[ "$type_bw_control" == low ]]; then
     # (the latter must also be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
     if [[ "$groupdirs" != "" ]]; then
-	umount $groupdirs >/dev/$OUT 2>&1 # to make the io controller available
+	umount $groupdirs >/dev/null 2>&1 # to make the io controller available
     fi
     if [[ $? -ne 0 ]]; then
 	exit 1
@@ -894,13 +892,11 @@ fi
 
 # create groups
 mkdir -p /cgroup
-umount /cgroup >/dev/$OUT 2>&1
+umount /cgroup >/dev/null 2>&1
 
 if [[ $controller == blkio ]]; then
-    echo mount -t cgroup -o blkio none /cgroup >/dev/$OUT 2>&1
     mount -t cgroup -o blkio none /cgroup >/dev/$OUT 2>&1
 else
-    echo mount -t cgroup2 none /cgroup >/dev/$OUT 2>&1
     mount -t cgroup2 none /cgroup >/dev/$OUT 2>&1
     echo "+io" > /cgroup/cgroup.subtree_control
 fi
