@@ -10,47 +10,7 @@ if [[ $? -ne 0 ]]; then
 	exit
 fi
 
-function init_tracing {
-	if [ "$TRACE" == "1" ] ; then
-		if [ ! -d /sys/kernel/debug/tracing ] ; then
-			mount -t debugfs none /sys/kernel/debug
-		fi
-		echo nop > /sys/kernel/debug/tracing/current_tracer
-		echo 500000 > /sys/kernel/debug/tracing/buffer_size_kb
-		echo "${SCHED}*" "__${SCHED}*" >\
-			/sys/kernel/debug/tracing/set_ftrace_filter
-		echo blk > /sys/kernel/debug/tracing/current_tracer
-	fi
-}
-
-function set_tracing {
-	if [ "$TRACE" == "1" ] ; then
-	    if [[ -e /sys/kernel/debug/tracing/tracing_enabled && \
-		$(cat /sys/kernel/debug/tracing/tracing_enabled) -ne $1 ]]; then
-			echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
-			echo $1 > /sys/kernel/debug/tracing/tracing_enabled
-		fi
-		dev=$(echo $DEVS | awk '{ print $1 }')
-		if [[ -e /sys/block/$dev/trace/enable && \
-			  $(cat /sys/block/$dev/trace/enable) -ne $1 ]]; then
-		    echo "echo $1 > /sys/block/$dev/trace/enable"
-		    echo $1 > /sys/block/$dev/trace/enable
-		fi
-
-		if [ "$1" == 0 ]; then
-		    for cpu_path in /sys/kernel/debug/tracing/per_cpu/cpu?
-		    do
-			stat_file=$cpu_path/stats
-			OVER=$(grep "overrun" $stat_file | \
-			    grep -v "overrun: 0")
-			if [ "$OVER" != "" ]; then
-			    cpu=$(basename $cpu_path)
-			    echo $OVER on $cpu, please increase buffer size!
-			fi
-		    done
-		fi
-	fi
-}
+. ../utilities/tracing.sh
 
 function load_all_sched_modules {
     for mod in bfq-iosched bfq-mq-iosched mq-deadline kyber-iosched \
