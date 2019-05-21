@@ -175,8 +175,14 @@ function clean_and_exit {
 
 	# destroy cgroups and unmount controller
 	for ((i = 0 ; $i < $num_groups ; i++)) ; do
-		rmdir /cgroup/InterfererGroup$i >/dev/$OUT 2>&1
+	    for pid in $(cat /cgroup/InterfererGroup$i/cgroup.procs); do
+		echo $pid /cgroup/cgroup.procs
+	    done
+	    rmdir /cgroup/InterfererGroup$i >/dev/$OUT 2>&1
 	done
+	    for pid in $(cat /cgroup/interfered/cgroup.procs); do
+		echo $pid /cgroup/cgroup.procs
+	    done
 	rmdir /cgroup/interfered >/dev/$OUT 2>&1
 
 	if [[ $controller == io ]]; then
