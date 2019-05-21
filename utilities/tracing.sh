@@ -3,7 +3,9 @@
 # HOW TO USE THE FOLLOWING TWO FUNCTIONS
 #
 # 1) Include this file
-# 2) Set TRACE=1 if you do want to activate tracing
+# 2) Set TRACE=1 if you do want to activate tracing. This parameter is useful
+#    in that it allows you to make your code take or not take traces, by just
+#    changing the value of this parameter
 # 3) Set DEVS to the name of the device for which you want to take a trace;
 #    just the name (e.g., sda), not the full path (e.g., /dev/sda)
 # 4) Set SCHED to the name of the scheduler for which you want to take a trace
@@ -20,6 +22,7 @@
 # SCHED=bfq # if needed, replace with the name of the actual scheduler to trace
 # init_tracing
 #
+# echo > /sys/kernel/debug/tracing/trace # empty the trace (useful if TRACE=0)
 # set_tracing 1
 # <commands generating I/O>
 # set_tracing 0
