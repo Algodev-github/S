@@ -999,10 +999,12 @@ for i in $(seq 0 $((num_groups - 1))); do
 
     echo start_fio_jobs InterfererGroup$i 0 $wthr \
 	$iot $rat linear $I_IO_depth \
-	$num_I_per_group $I_direct $bs ${I_filenames[$i]} >/dev/$OUT 2>&1
+	$num_I_per_group $I_direct $I_dsync $bs ${I_filenames[$i]} \
+	>/dev/$OUT 2>&1
     (start_fio_jobs InterfererGroup$i 0 $wthr \
 	$iot $rat linear $I_IO_depth \
-	$num_I_per_group $I_direct $bs ${I_filenames[$i]} >/dev/$OUT 2>&1) &
+	$num_I_per_group $I_direct $I_dsync $bs ${I_filenames[$i]} \
+	>/dev/$OUT 2>&1) &
 done
 
 if [[ $MODE != demo ]]; then
