@@ -8,18 +8,16 @@
 #    changing the value of this parameter
 # 3) Set DEVS to the name of the device for which you want to take a trace;
 #    just the name (e.g., sda), not the full path (e.g., /dev/sda)
-# 4) Set SCHED to the name of the scheduler for which you want to take a trace
-# 5) Invoke init_tracing
-# 6) Invoke set_tracing 1 when you want to turn tracing on
-# 7) Invoke set_tracing 0 when you want to turn tracing off
-# 8) For faster browsing, copy the trace to a real file
+# 4) Invoke init_tracing
+# 5) Invoke set_tracing 1 when you want to turn tracing on
+# 6) Invoke set_tracing 0 when you want to turn tracing off
+# 7) For faster browsing, copy the trace to a real file
 #
 # Here is an example:
 #
 # . <path_to_tracing.sh>
 # TRACE=1
 # DEVS=sda # if needed, replace with the name of the actual device to trace
-# SCHED=bfq # if needed, replace with the name of the actual scheduler to trace
 # init_tracing
 #
 # echo > /sys/kernel/debug/tracing/trace # empty the trace (useful if TRACE=0)
@@ -35,8 +33,6 @@ function init_tracing {
 		fi
 		echo nop > /sys/kernel/debug/tracing/current_tracer
 		echo 500000 > /sys/kernel/debug/tracing/buffer_size_kb
-		echo "${SCHED}*" "__${SCHED}*" >\
-			/sys/kernel/debug/tracing/set_ftrace_filter
 		echo blk > /sys/kernel/debug/tracing/current_tracer
 	fi
 }
