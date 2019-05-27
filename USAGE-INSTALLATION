@@ -1,7 +1,14 @@
 INSTALLATION
 
-No installation step needed. But some dependencies must be met. See
-section MAIN DEPENDENCIES.
+No actual installation needed, just download/clone the package; e.g.,
+$ git clone https://github.com/Algodev-github/S
+
+The suite has some dependencies, which get installed automatically as
+scripts are executed. See section MAIN DEPENDENCIES for more details.
+
+FOR THE IMPATIENTS
+
+Jump directly to the last section "QUICK EXAMPLE OF USE".
 
 CONTENTS
 
@@ -199,9 +206,42 @@ i) run multiple benchmarks automatically through a general script like
    plot_stats.sh to generate both global statistics and plots
    automatically (for most but not yet all benchmarks).
 
-A special case is the ad hoc script
-run_multiple_benchmarks/test_responsiveness.sh
-that executes only the minimum set of tests needed to get an idea of
-the responsiveness of your system.
+A special case is the test_responsiveness.sh script, commented in the
+next section.
 
 For examples and brief help just invoke the desired script with -h.
+
+QUICK EXAMPLE OF USE
+
+If you are interested only in having an idea of the responsiveness of
+your system, then type:
+
+$ S/run_multiple_benchmarks/test_responsiveness.sh
+
+This will measure the time needed to start an average-size
+application, for each available I/O scheduler (automatically
+selected), and with two of the most responsiveness-unfriendly I/O
+workloads in the background.
+
+If, in addition to responsiveness, you also want to measure throughput
+with filesystem I/O, for several significant workloads, and again for
+each available I/O scheduler, then:
+
+$ sudo S/run_multiple_benchmarks/run_main_benchmarks.sh "throughput replayed-gnome-term-startup"
+
+Or pass only throughput if you want to measure only throughput.
+
+Both scripts take their measurements by creating, reading and writing
+some test files in the S directory itself. If this is not what you
+want, then invoke first
+
+$ sudo S/run_multiple_benchmarks/run_main_benchmarks.sh -h
+
+just to make sure that the file ~/.S-config.sh gets created
+automatically (if not present already).
+
+After that, modify the value assigned to BASE_DIR in ~/.S-config.sh if
+you want to change the directory in which test files are created. Or,
+if you want to choose explicitly the device on which to run bechmarks,
+set TEST_DEV to the name of that device. Read the comments on TEST_DEV
+in the file ~/.S-config.sh for full details and other options.

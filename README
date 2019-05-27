@@ -21,4 +21,5 @@ This suite evaluates:
   number of IOPS supported (this functionality makes it easy to
   profile the desired component of the block layer)
 
-See USAGE-INSTALLATION for all details.
+See USAGE-INSTALLATION for all details. In particular, that file
+also contains a quick but complete example of use.
