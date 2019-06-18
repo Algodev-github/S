@@ -45,8 +45,8 @@ duration=10
 # i stands for interfered in next parameter names.
 #
 # weight or bandwidth threshold (throttling) for interfered;
-# or 'unset' to not set the parameter at all
-i_weight_threshold="unset"
+# or 'default' to leave the parameter unchanged
+i_weight_threshold="default"
 # ionice options for the interfered: the interfered is started with
 # ionice only if this string is not null
 i_ionice_opts=""
@@ -83,8 +83,8 @@ num_I_per_group=1
 # number of groups of interferers
 num_groups=1
 # weights or bandwidth thresholds (throttling) for the groups of interferers;
-# use 'unset' to not set this parameter at all for a group of interferers
-I_weight_thresholds=(unset)
+# use 'default' to not change this parameter at all for a group of interferers
+I_weight_thresholds=(default)
 # target latencies for the groups of interferers in the io.low limit
 # for blk-throttle (usec)
 I_thrtl_lats=(100)
@@ -826,7 +826,7 @@ if [[ $MODE == demo && "$SIMUL" != yes ]]; then
     clear
 elif [[ $MODE == demo && "$SIMUL" == yes ]]; then
      num_groups=0
-     i_weight_threshold=unset
+     i_weight_threshold=default
 fi
 
 # create files if needed
@@ -910,8 +910,8 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	wthr=${I_weight_thresholds[0]}
     fi
 
-    if [[ "$wthr" == "unset" ]]; then
-	echo Not setting weight/limits for interferer group $i >/dev/$OUT 2>&1
+    if [[ "$wthr" == "default" ]]; then
+	echo Not changing weight/limits for interferer group $i >/dev/$OUT 2>&1
 	continue
     fi
 
@@ -958,8 +958,8 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 done
 
 mkdir -p /cgroup/interfered
-if [[ "$i_weight_threshold" == unset ]]; then
-    echo Not setting weight/limits for interfered >/dev/$OUT 2>&1
+if [[ "$i_weight_threshold" == default ]]; then
+    echo Not changing weight/limits for interfered >/dev/$OUT 2>&1
 else
     set_weight_limit_for_interfered
 fi
