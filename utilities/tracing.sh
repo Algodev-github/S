@@ -35,7 +35,16 @@ function init_tracing {
 		echo blk > /sys/kernel/debug/tracing/current_tracer
 
 		echo > /sys/kernel/debug/tracing/trace
+		rm -f trace
 	fi
+}
+
+function copy_trace {
+    if [[ "$1" == 0 && "$trace_needs_copying" != "" ]]; then
+	echo -n Copying block trace to $PWD ...
+	    cp /sys/kernel/debug/tracing/trace .
+	    echo " done"
+    fi
 }
 
 function set_tracing {
@@ -43,14 +52,13 @@ function set_tracing {
 	return
     fi
 
+    trace_needs_copying=
     if [[ -e /sys/kernel/debug/tracing/tracing_enabled && \
 	      $(cat /sys/kernel/debug/tracing/tracing_enabled) -ne $1 ]]; then
 	echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
 	echo $1 > /sys/kernel/debug/tracing/tracing_enabled
 
-	echo -n Copying block trace to $PWD ...
-	cp /sys/kernel/debug/tracing/trace .
-	echo " done"
+	trace_needs_copying=yes
     fi
 
     dev=$(echo $DEVS | awk '{ print $1 }')
@@ -59,9 +67,7 @@ function set_tracing {
 	echo "echo $1 > /sys/block/$dev/trace/enable"
 	echo $1 > /sys/block/$dev/trace/enable
 
-	echo -n Copying block trace to $PWD ...
-	cp /sys/kernel/debug/tracing/trace .
-	echo " done"
+	trace_needs_copying=yes
     fi
 
     if [ "$1" == 0 ]; then
@@ -70,10 +76,13 @@ function set_tracing {
 	    stat_file=$cpu_path/stats
 	    OVER=$(grep "overrun" $stat_file | \
 		       grep -v "overrun: 0")
-	    if [ "$OVER" != "" ]; then
+	    if [[ "$OVER" != "" && "$trace_needs_copying" != ""  ]]; then
 		cpu=$(basename $cpu_path)
 		echo $OVER on $cpu, please increase buffer size!
+		trace_needs_copying=
 	    fi
 	done
+
+	copy_trace $1
     fi
 }
