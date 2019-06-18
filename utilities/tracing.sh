@@ -11,7 +11,7 @@
 # 4) Invoke init_tracing
 # 5) Invoke set_tracing 1 when you want to turn tracing on
 # 6) Invoke set_tracing 0 when you want to turn tracing off
-# 7) For faster browsing, copy the trace to a real file
+# 7) Browse the trace in your current dir (where these functions copy it)
 #
 # Here is an example:
 #
@@ -24,7 +24,6 @@
 # set_tracing 1
 # <commands generating I/O>
 # set_tracing 0
-# cp /sys/kernel/debug/tracing/trace .
 
 function init_tracing {
 	if [ "$TRACE" == "1" ] ; then
@@ -34,34 +33,47 @@ function init_tracing {
 		echo nop > /sys/kernel/debug/tracing/current_tracer
 		echo 500000 > /sys/kernel/debug/tracing/buffer_size_kb
 		echo blk > /sys/kernel/debug/tracing/current_tracer
+
+		echo > /sys/kernel/debug/tracing/trace
 	fi
 }
 
 function set_tracing {
-	if [ "$TRACE" == "1" ] ; then
-	    if [[ -e /sys/kernel/debug/tracing/tracing_enabled && \
-		$(cat /sys/kernel/debug/tracing/tracing_enabled) -ne $1 ]]; then
-			echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
-			echo $1 > /sys/kernel/debug/tracing/tracing_enabled
-		fi
-		dev=$(echo $DEVS | awk '{ print $1 }')
-		if [[ -e /sys/block/$dev/trace/enable && \
-			  $(cat /sys/block/$dev/trace/enable) -ne $1 ]]; then
-		    echo "echo $1 > /sys/block/$dev/trace/enable"
-		    echo $1 > /sys/block/$dev/trace/enable
-		fi
+    if [ "$TRACE" == "0" ] ; then
+	return
+    fi
 
-		if [ "$1" == 0 ]; then
-		    for cpu_path in /sys/kernel/debug/tracing/per_cpu/cpu?
-		    do
-			stat_file=$cpu_path/stats
-			OVER=$(grep "overrun" $stat_file | \
-			    grep -v "overrun: 0")
-			if [ "$OVER" != "" ]; then
-			    cpu=$(basename $cpu_path)
-			    echo $OVER on $cpu, please increase buffer size!
-			fi
-		    done
-		fi
-	fi
+    if [[ -e /sys/kernel/debug/tracing/tracing_enabled && \
+	      $(cat /sys/kernel/debug/tracing/tracing_enabled) -ne $1 ]]; then
+	echo "echo $1 > /sys/kernel/debug/tracing/tracing_enabled"
+	echo $1 > /sys/kernel/debug/tracing/tracing_enabled
+
+	echo -n Copying block trace to $PWD ...
+	cp /sys/kernel/debug/tracing/trace .
+	echo " done"
+    fi
+
+    dev=$(echo $DEVS | awk '{ print $1 }')
+    if [[ -e /sys/block/$dev/trace/enable && \
+	      $(cat /sys/block/$dev/trace/enable) -ne $1 ]]; then
+	echo "echo $1 > /sys/block/$dev/trace/enable"
+	echo $1 > /sys/block/$dev/trace/enable
+
+	echo -n Copying block trace to $PWD ...
+	cp /sys/kernel/debug/tracing/trace .
+	echo " done"
+    fi
+
+    if [ "$1" == 0 ]; then
+	for cpu_path in /sys/kernel/debug/tracing/per_cpu/cpu?
+	do
+	    stat_file=$cpu_path/stats
+	    OVER=$(grep "overrun" $stat_file | \
+		       grep -v "overrun: 0")
+	    if [ "$OVER" != "" ]; then
+		cpu=$(basename $cpu_path)
+		echo $OVER on $cpu, please increase buffer size!
+	    fi
+	done
+    fi
 }
