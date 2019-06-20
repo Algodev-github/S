@@ -35,7 +35,7 @@ UTIL_DIR=`cd ../utilities; pwd`
 
 # type of bandwidth control
 # (none-> no control | prop->proportional share | low->low limits |
-#  max->max limits | latency->)
+#  max->max limits | latency->latency controller)
 # cgroups-v2 is needed to use low limits, so it must be enabled in the kernel
 type_bw_control=prop
 # I/O Scheduler (blank -> leave scheduler unchanged)
@@ -122,10 +122,12 @@ function show_usage {
 	echo "\
 Usage and default values:
 
-$0 [-b <type of bandwidth control (none -> no control | prop -> proportional share,
-	low -> low limits, max -> max limits)>] ($type_bw_control)
+$0 [-b <type of bandwidth control (none -> no control |
+        prop -> proportional share |
+	low -> low limits | max -> max limits |
+        lat -> latency>] ($type_bw_control)
    [-s <I/O Scheduler>] (\"$sched\")
-   [-w <weight, low limit or max limit for the interfered>] ($i_weight_threshold)
+   [-w <weight, low limit, max limit or target latency for the interfered>] ($i_weight_threshold)
    [-e ionice options for the interfered (set only if non empty)] ($i_ionice_opts)
    [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
    [-t <I/O type for the interfered (read|write|randread|randwrite)>] ($i_IO_type)
@@ -692,8 +694,9 @@ function set_weight_limit_for_interfered
 	    wthr=$i_weight_threshold
 	fi
 
-	    for dev in $DEVS; do
-		if [[ "$type_bw_control" == low ]]; then
+	for dev in $DEVS; do
+	    case "$type_bw_control" in
+		low)
 		    echo "$(cat /sys/block/$dev/dev) rbps=$wthr wbps=$wthr latency=$i_thrtl_lat idle=1000" \
 			 > /cgroup/interfered/${controller}.low
 		    if [[ $? -ne 0 ]]; then
@@ -702,7 +705,8 @@ function set_weight_limit_for_interfered
 		    fi
 		    echo /cgroup/interfered/${controller}.low:
 		    cat /cgroup/interfered/${controller}.low
-		else
+		;;
+		max)
 		    echo "$(cat /sys/block/$dev/dev) $wthr" \
 			 > /cgroup/interfered/${controller}.throttle.read_bps_device
 		    if [[ $? -ne 0 ]]; then
@@ -720,8 +724,19 @@ function set_weight_limit_for_interfered
 		    fi
 		    echo /cgroup/interfered/${controller}.throttle.write_bps_device:
 		    cat /cgroup/interfered/${controller}.throttle.write_bps_device
-		fi
-	    done
+		    ;;
+		lat)
+		    echo "$(cat /sys/block/$dev/dev) target=$wthr" \
+			 > /cgroup/interfered/${controller}.latency
+		    if [[ $? -ne 0 ]]; then
+			echo Failed to set latency limit for interfered on $dev
+			exit 1
+		    fi
+		    echo /cgroup/interfered/${controller}.latency:
+		    cat /cgroup/interfered/${controller}.latency
+		    ;;
+	    esac
+	done
     fi
 }
 
@@ -751,7 +766,8 @@ while [[ "$#" > 0 ]]; do case $1 in
 	    if [[ "$type_bw_control" != none && \
 		      "$type_bw_control" != prop && \
 		      "$type_bw_control" != low && \
-		      "$type_bw_control" != max ]]; then
+		      "$type_bw_control" != max && \
+		      "$type_bw_control" != lat ]]; then
 		echo Policy $type_bw_control not recognized
 		exit
 	    fi
@@ -893,9 +909,9 @@ fi
 
 controller=blkio
 
-if [[ "$type_bw_control" == low ]]; then
-    # NOTE: cgroups-v2 needed to use low limits
-    # (the latter must also be enabled in the kernel)
+if [[ "$type_bw_control" == low || "$type_bw_control" == lat ]]; then
+    # NOTE: cgroups-v2 needed to use low or latency limits
+    # (cgroups-v2 must be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
     if [[ "$groupdirs" != "" ]]; then
 	umount $groupdirs >/dev/null 2>&1 # to make the io controller available
@@ -915,6 +931,10 @@ if [[ $controller == blkio ]]; then
     mount -t cgroup -o blkio none /cgroup >/dev/$OUT 2>&1
 else
     mount -t cgroup2 none /cgroup >/dev/$OUT 2>&1
+    if [[ $? -ne 0 ]]; then
+	echo Failed to mount cgroups-v2 hierarchy
+	exit 1
+    fi
     echo "+io" > /cgroup/cgroup.subtree_control
 fi
 
@@ -958,7 +978,7 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 
 	    echo /cgroup/InterfererGroup$i/${controller}.low:
 	    cat /cgroup/InterfererGroup$i/${controller}.low
-	else
+	elif [[ "$type_bw_control" == max ]]; then
 	    for dev in $DEVS; do
 		echo "$(cat /sys/block/$dev/dev) $wthr" \
 		     > /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
