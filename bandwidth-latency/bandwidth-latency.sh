@@ -34,9 +34,9 @@ LC_NUMERIC=C
 UTIL_DIR=`cd ../utilities; pwd`
 
 # type of bandwidth control
-# (none-> no control | prop->proportional share | low->low limits | max->max limits)
-# cgroups-v2 is needed to use low limits
-# (which must also be enabled in the kernel)
+# (none-> no control | prop->proportional share | low->low limits |
+#  max->max limits | latency->)
+# cgroups-v2 is needed to use low limits, so it must be enabled in the kernel
 type_bw_control=prop
 # I/O Scheduler (blank -> leave scheduler unchanged)
 sched=
@@ -681,6 +681,10 @@ function set_weight_limit_for_interfered
     if [[ "$type_bw_control" == prop ]]; then
 	echo $i_weight_threshold > \
 	     /cgroup/interfered/${controller}.${PREFIX}weight
+	if [[ $? -ne 0 ]]; then
+	    echo Failed to set weight for interfered
+	    exit 1
+	fi
     elif [[ "$type_bw_control" != none ]]; then
 	if [[ "${i_weight_threshold: -1}" == M ]]; then
 	    wthr=$(echo $i_weight_threshold | sed 's/M/000000/')
@@ -692,15 +696,28 @@ function set_weight_limit_for_interfered
 		if [[ "$type_bw_control" == low ]]; then
 		    echo "$(cat /sys/block/$dev/dev) rbps=$wthr wbps=$wthr latency=$i_thrtl_lat idle=1000" \
 			 > /cgroup/interfered/${controller}.low
+		    if [[ $? -ne 0 ]]; then
+			echo Failed to set low limit for interfered on $dev
+			exit 1
+		    fi
 		    echo /cgroup/interfered/${controller}.low:
 		    cat /cgroup/interfered/${controller}.low
 		else
 		    echo "$(cat /sys/block/$dev/dev) $wthr" \
 			 > /cgroup/interfered/${controller}.throttle.read_bps_device
+		    if [[ $? -ne 0 ]]; then
+			echo Failed to set read max limit for interfered on $dev
+			exit 1
+		    fi
 		    echo /cgroup/interfered/${controller}.throttle.read_bps_device:
 		    cat /cgroup/interfered/${controller}.throttle.read_bps_device
+
 		    echo "$(cat /sys/block/$dev/dev) $wthr" \
 			 > /cgroup/interfered/${controller}.throttle.write_bps_device
+		    if [[ $? -ne 0 ]]; then
+			echo Failed to set write max limit for interfered on $dev
+			exit 1
+		    fi
 		    echo /cgroup/interfered/${controller}.throttle.write_bps_device:
 		    cat /cgroup/interfered/${controller}.throttle.write_bps_device
 		fi
@@ -933,7 +950,6 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	    for dev in $DEVS; do
 		echo "$(cat /sys/block/$dev/dev) rbps=$wthr wbps=$wthr latency=$lat idle=1000" \
 		     > /cgroup/InterfererGroup$i/${controller}.low
-
 		if [[ $? -ne 0 ]]; then
 		    echo Failed to set low limit for interferer group $i on $dev
 		    exit 1
@@ -946,10 +962,19 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	    for dev in $DEVS; do
 		echo "$(cat /sys/block/$dev/dev) $wthr" \
 		     > /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
+		if [[ $? -ne 0 ]]; then
+		    echo Failed to set read max limit for interferer group $i on $dev
+		    exit 1
+		fi
 		echo /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device:
 		cat /cgroup/InterfererGroup$i/${controller}.throttle.read_bps_device
+
 		echo "$(cat /sys/block/$dev/dev) $wthr" \
 		     > /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device
+		if [[ $? -ne 0 ]]; then
+		    echo Failed to set write max limit for interferer group $i on $dev
+		    exit 1
+		fi
 		echo /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device:
 		cat /cgroup/InterfererGroup$i/${controller}.throttle.write_bps_device
 	    done
