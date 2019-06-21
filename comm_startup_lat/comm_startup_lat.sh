@@ -206,6 +206,10 @@ function invoke_commands {
 			{ time sleep 0.2 ; } >/dev/null 2>&1; \
 			time ""$COMMAND" 2>&1`
 
+		# if you want to exploit group scheduling, add a
+		# command like this in the above variable
+		# echo $BASHPID > /cgroup/<group_name>/cgroup.procs;
+
 		TIME=$(echo $COM_TIME | awk '{print $NF}')
 
 		if [[ "$MAX_STARTUP" != "0" ]]; then
