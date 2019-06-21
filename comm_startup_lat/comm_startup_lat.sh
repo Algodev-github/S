@@ -206,9 +206,15 @@ function invoke_commands {
 			{ time sleep 0.2 ; } >/dev/null 2>&1; \
 			time ""$COMMAND" 2>&1`
 
-		# if you want to exploit group scheduling, add a
-		# command like this in the above variable
+		# If you want to exploit group scheduling, the
+		# following trick apparently does not work well: add
+		# the following command in the above variable
 		# echo $BASHPID > /cgroup/<group_name>/cgroup.procs;
+		#
+		# So, as of now, the best way is to execute all this
+		# script in a group, with 0 readers and 0 writers, and
+		# to generate background workload with a separate
+		# script (such as throughput_sync.sh).
 
 		TIME=$(echo $COM_TIME | awk '{print $NF}')
 
