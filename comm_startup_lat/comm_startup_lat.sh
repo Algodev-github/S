@@ -399,4 +399,5 @@ fi
 cd ..
 
 # rm work dir
+cp -f results-${sched}/trace .
 rm -rf results-${sched}
