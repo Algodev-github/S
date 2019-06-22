@@ -185,4 +185,5 @@ print_save_agg_thr $file_name
 cd ..
 
 # rm work dir
+cp -f results-${sched}/trace .
 rm -rf results-${sched}
