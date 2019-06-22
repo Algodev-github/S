@@ -405,5 +405,7 @@ fi
 cd ..
 
 # rm work dir
-cp -f results-${sched}/trace .
+if [ -f results-${sched}/trace ]; then
+    cp -f results-${sched}/trace .
+fi
 rm -rf results-${sched}
