@@ -84,7 +84,7 @@ currently in use for this becnhmark and the \"dd\" command used as noise.
 # greadily. At such it creates the maximum possible short-term interference:
 # it lasts little, so with BFQ it enjoys weight raising all the time, and it
 # does as much I/O as possible, so it interferes as much as possible
-COMMAND="dd if=/var/lib/S/smallfile of=/dev/null iflag=nocache bs=1M count=15"
+COMMAND="dd if=$BASE_DIR/smallfile of=/dev/null iflag=nocache bs=1M count=15"
 
 PLAYER_CMD="mplayer"
 
@@ -289,7 +289,7 @@ cd results-$sched
 trap "clean_and_exit" sigint
 
 # file read by the interfering command
-create_file /var/lib/S/smallfile 15
+create_file $BASE_DIR/smallfile 15
 
 echo Preliminary cache-flush to block until previous writes have been completed\
      > $REDIRECT
