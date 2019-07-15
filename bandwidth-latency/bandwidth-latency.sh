@@ -72,6 +72,8 @@ i_direct=0
 i_dsync=0
 # Block size for the interfered
 i_blocksize=4k
+# Let fio wait for a five-second ramp time before starting to take measurements
+i_wait_ramp=yes
 # name of the directory containing the file read/written by the interfered; if
 # empty, then the per-config default directory is used
 i_dirname=
@@ -137,6 +139,7 @@ $0 [-b <type of bandwidth control (none -> no control |
    [-c <1=direct I/O, 0=non direct I/O for interfered>] ($i_direct)
    [-y <n=fdatasync every n writes, 0=no fdatasync for interfered>] ($i_dsync)
    [-z <block size for interfered (with suffix k, m, ...)>] ($i_blocksize)
+   [-a <yes=await five-second ramp time before starting to take interfered stats>] ($i_wait_ramp)
    [-f <dirname for file read/written by interfered>] ($i_dirname)
    [-n <number of groups of interferers>] ($num_I_per_group)
    [-i <number of interferers in each group>] ($num_groups)
@@ -244,7 +247,7 @@ function start_fio_jobs {
 	filename=${12}
 
 	if [[ "$name" == "interfered" ]]; then
-	   ACTUAL_IONICE="$IONICE"
+	    ACTUAL_IONICE="$IONICE"
 	fi
 
 	if [[ $type_bw_control != "none" ]]; then
@@ -274,6 +277,11 @@ function start_fio_jobs {
 	    fi
 	    jobvar=$jobvar"rate=${rate}k\n "
 	fi
+
+	if [[ "$name" == "interfered" && $i_wait_ramp == yes ]]; then
+	    jobvar=$jobvar"ramp_time=5\n "
+	fi
+
 	jobvar=$jobvar\
 "ioengine=$ioengine\n
 loops=10000\n
@@ -288,7 +296,6 @@ thread=0\n
 filename=$filename\n
 iodepth=$depth\n
 numjobs=$num_jobs\n
-ramp_time=5\n
 invalidate=1\n
 [$name]
 "
@@ -547,7 +554,11 @@ function execute_intfered_and_shutdwn_intferers {
 	if [[ $MODE == demo ]]; then
 	    wait_and_print_bars
 	else
-	    sleep $(( $duration + 5 )) # 5 seconds for ramptime
+	    if [[ $i_wait_ramp == yes ]]; then
+		sleep $(( $duration + 5 )) # 5 seconds for ramptime
+	    else
+		sleep $(( $duration )) # 5 seconds for ramptime
+	    fi
 	fi
 
 	# Since the interfered fio pid to kill might not yet being written to
@@ -783,6 +794,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 	-c) i_direct="$2";;
 	-y) i_dsync="$2";;
 	-z) i_blocksize="$2";;
+	-a) i_wait_ramp="$2";;
 	-f) i_dirname="$2";;
 	-n) num_groups="$2";;
 	-i) num_I_per_group="$2";;
