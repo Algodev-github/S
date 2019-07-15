@@ -53,11 +53,11 @@ function create_label_file
         " front\n",\
         (row++)'$x_offset$GIF_OFFSET', '$y_offset'*0.75; \
         else if ($'$col_idx' < 100) \
-        printf "set label \"%.2g\" at %g,%g center font \"arial,'$FONT_SIZE'\""\
+        printf "set label \"%.3f\" at %g,%g center font \"arial,'$FONT_SIZE'\""\
         " front\n",\
         $'$col_idx', (row++)'$x_offset$GIF_OFFSET', $'$col_idx'+'$y_offset'; \
         else \
-        printf "set label \"%.3g\" at %g,%g center font \"arial,'$FONT_SIZE'\""\
+        printf "set label \"%.f\" at %g,%g center font \"arial,'$FONT_SIZE'\""\
         " front\n",\
         $'$col_idx', (row++)'$x_offset$GIF_OFFSET', $'$col_idx'+'$y_offset'}' \
 	< $in_file_name	> $label_file
@@ -73,7 +73,7 @@ function create_label_positions()
 {
 
     if [ "$term_mode" == "gif" ] ; then
-    	FONT_SIZE=10
+	FONT_SIZE=10
 	GIF_OFFSET=+.02
     else
 	FONT_SIZE=15
@@ -86,7 +86,7 @@ function create_label_positions()
 	fi
     fi
 
-    label_y_offset=`echo "$max_y/100 * 3" | bc -l`
+    label_y_offset=`echo "$max_y/100 * 2" | bc -l`
 
     case "$1" in
 	1)
@@ -196,7 +196,7 @@ function plot_histograms()
 	printf "
         #set key horizontal 8000, 30
         set output \"${out_file_path}.gif\"
-        set term gif font \"arial,14\"
+        set term gif font \"arial,14\" size 1024,768
         " >> tmp.txt
 	    ;;
 	*)
