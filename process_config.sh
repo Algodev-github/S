@@ -194,15 +194,7 @@ function use_nullb_dev
 		fi
 	fi
 
-	Q_MODE=1 # Default queue_mode=1 single queue
-	CUR_DEV=$(basename `mount | grep "on / " | cut -f 1 -d " "` | \
-		sed 's/\(...\).*/\1/g')
-	# Check if blk-mq is enabled
-	if [ -d /sys/block/$CUR_DEV/mq ]; then
-		Q_MODE=2
-	fi
-
-	modprobe null_blk queue_mode=$Q_MODE irqmode=0 completion_nsec=0 \
+	modprobe null_blk queue_mode=2 irqmode=0 completion_nsec=0 \
 		nr_devices=1
 	if [ $? -ne 0 ]; then
 		echo "ERROR: failed to load null_blk module"
