@@ -354,6 +354,11 @@ function prepare_basedir
 	    mntpoint=$(lsblk -no MOUNTPOINT /dev/$TEST_PARTITION)
 	else
 	    mntpoint=$(find_partition)
+
+	    if [[ "$mntpoint" == "" ]]; then
+		# check whether whole dev is used as a degenerate partition
+		mntpoint=$(lsblk -no MOUNTPOINT /dev/$TEST_DEV)
+	    fi
 	fi
 
 	if [[ "$mntpoint" == "" && "$FORMAT_DISK" != yes ]]; then
