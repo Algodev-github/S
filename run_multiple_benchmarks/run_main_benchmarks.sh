@@ -462,8 +462,8 @@ function bandwidth-latency
 	    I_weights_limits="15M 15M 15M 15M 30M 30M 30M 30M 30M"
 	    ;;
 	none)
-	    i_weight_limit=unset
-	    I_weights_limits="unset unset unset unset unset unset unset unset unset"
+	    i_weight_limit=default
+	    I_weights_limits="default default default default default default default default default"
 	    ;;
 	*)
 	    echo Unrecognized policy $policy
