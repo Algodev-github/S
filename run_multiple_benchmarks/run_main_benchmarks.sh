@@ -547,18 +547,23 @@ function run_only_lat_case
     rep_bw_lat="repeat $case_name"
 
     for ((idx = 0 ; idx < ${#type_combinations[@]}; idx++)); do
+	if [[ ${type_combinations[$idx]} =~ write ]]; then
+	    fsync_rate=1
+	else
+	    fsync_rate=0
+	fi
 	echo $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 1 \
 		    -e \"$i_ionice_opts\" \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
-		    -r $i_rate"
+		    -r $i_rate" -a no -Y $fsync_rate
 	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 1 \
 		    -e \"$i_ionice_opts\" \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
-		    -r $i_rate"
+		    -r $i_rate" -a no -Y $fsync_rate
     done
 
     if [[ -d $RES_DIR/$case_name ]]; then
@@ -780,7 +785,7 @@ if [[ "$SCHEDULERS" == "" ]]; then
 	SCHEDULERS="$(cat /sys/block/$dev/queue/scheduler | \
 			  sed 's/\[//' | sed 's/\]//')"
     else
-	SCHEDULERS="prop-bfq max-none low-none"
+	SCHEDULERS="prop-bfq lat-none max-none low-none"
     fi
 fi
 
@@ -869,7 +874,7 @@ for sched in $SCHEDULERS; do
 	echo "for $benchmark ($bench_id/$num_benchs)"
 	send_email "$benchmark tests beginning"
 
-	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none-')
+	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none-|^lat-')
 
 	if [[ $benchmark != bandwidth-latency && $benchmark != latency && \
 		  "$policy_part" != "" ]]; then
