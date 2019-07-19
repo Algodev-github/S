@@ -7,7 +7,7 @@ usage_msg="\
 Usage:\n\
 calc_overall_stats.sh test_result_dir \
 <Scheduler array> [<Reference case>]
-   [throughput | startup_lat | kern_task | bandwidth-latency] [verbose]\n\
+   [throughput | startup_lat | kern_task | bandwidth-latency | latency] [verbose]\n\
    \n\
    The last param is needed only if the type(s) of the results cannot be
    inferred from the name of the test-result directory.
@@ -25,10 +25,10 @@ calc_overall_stats.sh test_result_dir \
    Passing the array of schedulers of interest explicitly is instead a
    way to select only part of the results (e.g., \"bfq noop\"), and
    not the default schedulers (${schedulers[@]}). For the
-   bandwidth-latency benchmark, you must give not just scheduler
+   bandwidth-latency and latency benchmarks, you must give not just scheduler
    names, but pairs \"policy name\"-\"scheduler name\". For example:
-   prop-bfq, low-none, max-mq-deadline. Then you cannot leave this
-   option empty for the bandwidth-latency benchmark.
+   prop-bfq, lat-none, low-none, max-mq-deadline. Then you cannot leave this
+   option empty for the bandwidth-latency or latency benchmarks.
 
    Actually, scheduler names are just filter for file names. There is
    no constraint on the possible values of each item, hence this array
@@ -38,8 +38,9 @@ calc_overall_stats.sh test_result_dir \
    run in the host. The array to select the different result files may
    be: \"no-host-wl 1r-seq 5r-seq\". Be very careful with these
    keywords, because you risk to mix files of a different nature: for
-   example, in case of the bandwidth-latency benchmarks, different
-   policies (prop, low and max) can be used with the same scheduler.
+   example, in case of the bandwidth-latency and latency benchmarks,
+   different policies (prop, low and max) can be used with the same
+   scheduler.
 
    Finally, it is possible to change the reference case with respect
    to the default cases, which otherwise vary with the type of benchmark.
@@ -92,7 +93,7 @@ function file_loop
 {
 	n=0
 
-	if [[ $res_type == bandwidth-latency ]]; then
+	if [[ $res_type =~ latency ]]; then
 	    in_files=$(find $1 -name "bw_lat-$sched---*---${workload_filter}*.txt")
 	    in_files=$(echo $in_files | egrep $sched)
 	else
@@ -117,7 +118,7 @@ function file_loop
 
 function write_header
 {
-    if [[ $res_type != bandwidth-latency ]]; then
+    if [[ ! $res_type =~ latency ]]; then
 	table_title=$(basename $1)
 	table_title=$(echo $table_title | sed 's/-table.txt//g')
 	table_title=$(echo $table_title | sed 's/_/ /g')
@@ -131,7 +132,7 @@ function write_header
     echo "# Next columns: $2$5" >> $1
     echo "#               $6" >> $1
 
-    if [[ $res_type != bandwidth-latency ]]; then
+    if [[ ! $res_type =~ latency ]]; then
 	echo "# Reference case: $3" >> $1
 	echo "# Reference-case meaning: $4" >> $1
     else
@@ -140,7 +141,7 @@ function write_header
     fi
 
     echo "#" >> $1
-    if [[ $res_type == bandwidth-latency ]]; then
+    if [[ $res_type =~ latency ]]; then
 	printf "%-${WL_FIELD_LEN}s" "# Workload  " >> $1
     else
 	echo -en "# Workload  " >> $1
@@ -168,8 +169,8 @@ function set_res_type
 	video_playing)
 	    res_type=video_playing
 	    ;;
-	bandwidth-latency)
-	    res_type=bandwidth-latency
+	bandwidth-latency|latency)
+	    res_type=$1
 	    WL_FIELD_LEN=40
 	    ;;
 	*)
@@ -226,7 +227,7 @@ function per_subdirectory_loop
 		reference_value_label="Drop rate with no heavy background workload"
 		UOM="drop rate"
 		;;
-	bandwidth-latency)
+	bandwidth-latency|latency)
 		# Aggregated throughputs, plus interfered throughput and latency
 		num_quants=5
 		record_lines=$((1 + $num_quants * 3))
@@ -252,7 +253,7 @@ function per_subdirectory_loop
 		", or X if results are" \
 		"unreliable because workloads did not stop when asked to"
 	    ;;
-	bandwidth-latency)
+	bandwidth-latency|latency)
 	    if [[ -f $1/title.txt ]]; then
 		scenario=" for $(cat $1/title.txt)"
 	    fi
@@ -287,7 +288,7 @@ function per_subdirectory_loop
 	    ;;
     esac
 
-    if [[ $res_type == bandwidth-latency ]]; then
+    if [[ $res_type =~ latency ]]; then
 	for file_path in $(find $1/repetition0 -name "bw_lat-*-stat.txt"); do
 	    bw_lat_file_name=$(basename $file_path)
 	    workload_filter=$(echo $bw_lat_file_name | sed 's/.*---.*---//')
@@ -353,7 +354,7 @@ function per_subdirectory_loop
 		    tee -a $out_file > $REDIRECT
 
 		if [[ "$line_created" != True ]] ; then
-		    if [[ "$res_type" == bandwidth-latency ]]; then
+		    if [[ "$res_type" =~ latency ]]; then
 			wl_improved_name=$(tail -n 5 $out_file | head -n 1)
 			wl_improved_name=$(echo $wl_improved_name | \
 					sed 's/Results for one //g')
@@ -405,7 +406,7 @@ function per_subdirectory_loop
 		    line_created=True
 		fi
 
-		if [[ "$res_type" == bandwidth-latency ]]; then
+		if [[ "$res_type" =~ latency ]]; then
 		    target_field=$(tail -n 1 $out_file |\
 				       awk '{printf "%.3f\n", $3}')
 		    if [[ "$target_field" == "" || \
@@ -443,7 +444,7 @@ function per_subdirectory_loop
 
 		if [[ $cur_quant -eq 0 && "$res_type" != throughput && \
 			  "$res_type" != video_playing && \
-			  "$res_type" != bandwidth-latency ]] ||
+			  ! "$res_type" =~ latency ]] ||
 		   [[ $cur_quant -eq 1 && \
 		      "$res_type" == video_playing ]] ; then
 
@@ -473,7 +474,7 @@ function per_subdirectory_loop
 
 		    printf "%20s" $target_field >> $target_quantity_table_file
 
-		elif [[ "$res_type" != bandwidth-latency ]] && \
+		elif [[ ! "$res_type" =~ latency ]] && \
 			 ((((cur_quant == 0)) && \
 		      [[ "$res_type" != video_playing ]]) ||
 		     ((( cur_quant == 1)) && [[ $res_type != throughput ]] && \
@@ -559,7 +560,7 @@ echo Searching for benchmark results ... > $REDIRECT
 num_dir_visited=0
 # filters make, checkout, merge, grep and interleaved-io not yet
 # added, because the code for these cases is not yet complete
-for filter in throughput startup video_playing bandwidth-latency; do
+for filter in throughput startup video_playing bandwidth-latency latency; do
     for single_test_res_dir in `find $results_dir -name "*$filter*" -type d`; do
 	echo Computing $filter overall stats in $single_test_res_dir > $REDIRECT
 	per_subdirectory_loop $single_test_res_dir $filter
