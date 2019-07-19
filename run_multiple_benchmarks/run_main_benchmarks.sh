@@ -553,13 +553,13 @@ function run_only_lat_case
 	    fsync_rate=0
 	fi
 	echo $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
-		    ${type_combinations[$idx]} -n 1 \
+		    ${type_combinations[$idx]} -n 15 \
 		    -e \"$i_ionice_opts\" \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
 		    -r $i_rate" -a no -Y $fsync_rate
 	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
-		    ${type_combinations[$idx]} -n 1 \
+		    ${type_combinations[$idx]} -n 15 \
 		    -e \"$i_ionice_opts\" \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
