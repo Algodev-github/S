@@ -557,13 +557,13 @@ function run_only_lat_case
 		    -e \"$i_ionice_opts\" \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
-		    -r $i_rate -a no -Y $fsync_rate"
+		    -r $i_rate -a no -Y $fsync_rate -d 2"
 	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
 		    ${type_combinations[$idx]} -n 15 \
 		    -e \"$i_ionice_opts\" \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
-		    -r $i_rate -a no -Y $fsync_rate"
+		    -r $i_rate -a no -Y $fsync_rate -d 2"
     done
 
     if [[ -d $RES_DIR/$case_name ]]; then
