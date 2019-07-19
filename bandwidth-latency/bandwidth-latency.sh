@@ -40,6 +40,8 @@ UTIL_DIR=`cd ../utilities; pwd`
 type_bw_control=prop
 # I/O Scheduler (blank -> leave scheduler unchanged)
 sched=
+# ioengine
+ioengine=
 # test duration (interferer execution time)
 duration=10
 # i stands for interfered in next parameter names.
@@ -129,6 +131,7 @@ $0 [-b <type of bandwidth control (none -> no control |
 	low -> low limits | max -> max limits |
         lat -> latency>] ($type_bw_control)
    [-s <I/O Scheduler>] (\"$sched\")
+   [-g <ioengine: empty to have sync or libaio chosen automatically>] ($ioengine)
    [-w <weight, low limit, max limit or target latency for the interfered>] ($i_weight_threshold)
    [-e ionice options for the interfered (set only if non empty)] ($i_ionice_opts)
    [-l <target latency for the interfered in io.low limit for blk-throttle> ($i_thrtl_lat)
@@ -254,10 +257,12 @@ function start_fio_jobs {
 	    echo $BASHPID > /cgroup/$name/cgroup.procs
 	fi
 
-	if [ $depth -gt 1 ]; then
+	if [[ "$ioengine" == "" ]]; then
+	    if [[ $depth -gt 1 ]]; then
 		ioengine=libaio
-	else
+	    else
 		ioengine=sync
+	    fi
 	fi
 
 	if [ $dur -eq 0 ]; then
@@ -784,6 +789,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 	    fi
 	    ;;
 	-s) sched="$2";;
+	-g) ioengine="$2";;
 	-w) i_weight_threshold="$2";;
 	-e) i_ionice_opts="$2";;
 	-l) i_thrtl_lat="$2";;
