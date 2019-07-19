@@ -592,7 +592,7 @@ function latency
 	    I_weights_limits=default
 	    ;;
 	none)
-	    i_prio_class="-c 1" # real-time priority class
+	    i_ionice_opts="-c 1" # real-time priority class
 	    i_weight_limit=default
 	    I_weights_limits=default
 	    ;;
