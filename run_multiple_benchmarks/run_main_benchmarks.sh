@@ -17,7 +17,7 @@ Usage (as root):\n\
 
 The set of benchmarks can be built out of the following benchmarks:
 throughput startup replayed-startup fairness video-playing kernel-devel interleaved-io
-bandwidth-latency
+bandwidth-latency latency
 
 Both the startup and the replayed-startup benchmarks measures start-up
 times for three applications, which are represent, respectively, the
@@ -43,10 +43,10 @@ scheduler modules will be loaded automatically).
 In contrast, if cur-sched is passed, then benchmarks will
 be run only with the current I/O scheduler.
 
-For the bandwidth-latency test, it is not enough to write only
-scheduler names. Pairs policy-scheduler must be passed, with policy
-equal to prop, low or max. If present, the policy part is simply
-stripped away for the other benchmarks.
+For the bandwidth-latency and latency tests, it is not enough to write
+only scheduler names. Pairs policy-scheduler must be passed, with
+policy equal to prop, low or max. If present, the policy part is
+simply stripped away for the other benchmarks.
 
 By default the generated I/O background workloads involve files (fs mode
 or no value, i.e. \"\").  Otherwise (on raw mode) device is used directly
@@ -68,7 +68,7 @@ overrides also-rand).
 
 Please note that the also-rand, only-reads and only-seq options do not
 affect the following tests:
-	bandwidth-latency, fairness and interleaved-io.
+	bandwidth-latency, latency, fairness and interleaved-io.
 Which have ad-hoc configurations, not tweakable from the command line.
 
 Examples.
@@ -157,7 +157,8 @@ function repeat
 	if [ "$test_suffix" == startup ] ; then
 		out_filename=$5
 	else
-	    if [[ "$3" != "" && $1 != bandwidth-latency ]]; then
+	    if [[ "$3" != "" && $1 != bandwidth-latency && $1 != latency ]]
+	    then
 		out_filename=$3
 	    else
 		out_filename=
@@ -191,7 +192,7 @@ function repeat
 
 		if [ "$test_suffix" == startup ] ; then
 			bash $2 "$3" $RES_DIR/$1/repetition$i $4
-		else if [[ "$(echo $1 | egrep bandwidth-latency)" != "" ]]; then
+		else if [[ "$(echo $1 | egrep latency)" != "" ]]; then
 			 # use eval to handle double quotes in $2
 			 eval $2 -o $RES_DIR/$1/repetition$i
 		     else
@@ -534,6 +535,73 @@ function bandwidth-latency
 # 	     MAX 1M
 }
 
+function run_only_lat_case
+{
+    case_name=$1
+    title=$2
+    iodepth=${3-1}
+    bs="${4-4k}"
+    I_rates=${5-MAX}
+    i_rate=${6-MAX}
+
+    rep_bw_lat="repeat $case_name"
+
+    for ((idx = 0 ; idx < ${#type_combinations[@]}; idx++)); do
+	echo $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
+		    ${type_combinations[$idx]} -n 1 \
+		    -e \"$i_ionice_opts\" \
+		    -w $i_weight_limit -W \"$I_weights_limits\" \
+		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
+		    -r $i_rate"
+	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
+		    ${type_combinations[$idx]} -n 1 \
+		    -e \"$i_ionice_opts\" \
+		    -w $i_weight_limit -W \"$I_weights_limits\" \
+		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
+		    -r $i_rate"
+    done
+
+    if [[ -d $RES_DIR/$case_name ]]; then
+	echo $title > $RES_DIR/$case_name/title.txt
+    fi
+}
+
+function latency
+{
+    cd ../bandwidth-latency
+
+    # get scheduler name
+    schedname=$(echo $sched | sed 's/[^-]*-//')
+    policy=$(echo $sched | sed "s/-$schedname//g")
+
+    # latency tests for a Samsung SSD 970 PRO
+    case $policy in
+	prop)
+	    i_ionice_opts="-c 1" # real-time priority class
+	    i_weight_limit=default
+	    I_weights_limits=default
+	    ;;
+	lat)
+	    i_ionice_opts=
+	    i_weight_limit=10 # 10 us target latency
+	    I_weights_limits=default
+	    ;;
+	none)
+	    i_prio_class="-c 1" # real-time priority class
+	    i_weight_limit=default
+	    I_weights_limits=default
+	    ;;
+	*)
+	    echo Unrecognized policy $policy
+	    return
+	    ;;
+    esac
+
+    type_combinations=("-t randread -T read" "-t randread -T write")
+    run_only_lat_case latency-sync-reads-or-writes \
+	     "interferer workloads made of seq sync readers or seq writers"
+}
+
 # MAIN
 
 if [ "$1" == "-h" ]; then
@@ -705,7 +773,8 @@ if [[ "$BENCHMARKS" == "" ]]; then
 fi
 
 if [[ "$SCHEDULERS" == "" ]]; then
-    if [[ "$BENCHMARKS" != bandwith-latency ]]; then
+    if [[ "$BENCHMARKS" != bandwith-latency && \
+	      "$BENCHMARKS" != latency ]]; then
 	dev=$(echo $DEVS | awk '{ print $1 }')
 	load_all_sched_modules
 	SCHEDULERS="$(cat /sys/block/$dev/queue/scheduler | \
@@ -802,13 +871,13 @@ for sched in $SCHEDULERS; do
 
 	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none-')
 
-	if [[ $benchmark != bandwidth-latency && \
+	if [[ $benchmark != bandwidth-latency && $benchmark != latency && \
 		  "$policy_part" != "" ]]; then
 	    echo Scheduler name $sched contains a policy component $policy_part, but
 	    echo benchmark $benchmark is not bandwidth-latency: this is not
 	    echo supported yet.
 	    continue
-	elif [[ $benchmark == bandwidth-latency && \
+	elif [[ ($benchmark == bandwidth-latency || $benchmark == latency) && \
 		    "$policy_part" == "" ]]; then
 	    echo Missing policy part for bandwidth-latency benchmark in $sched
 	    continue
