@@ -551,7 +551,7 @@ rm -f $res_list_file
 
 # result type explicitly provided
 if [ "$res_type" != "" ]; then
-    per_subdirectory_loop $results_dir
+    per_subdirectory_loop $results_dir $res_type
     exit
 fi
 
