@@ -67,9 +67,10 @@ function quant_loops
 				exit
 			   }
 			   n++ }' > line_file$cur_quant
+
 		second_field=`cat line_file$cur_quant | awk '{print $2}'`
 		if [ "$second_field" == "of" ] || \
-			[ "$second_field" == "completion" ] ; then
+		       [ "$second_field" == "completion" ] ; then
 			cat $in_file | awk \
 				-v line_to_print=$(($cur_quant * 3 + 2))\
 				'{ if (n == line_to_print) {
@@ -350,8 +351,15 @@ function per_subdirectory_loop
 		cat line_file$cur_quant | tee -a $out_file > $REDIRECT
 		second_field=`tail -n 1 $out_file | awk '{print $2}'`
 
-		cat number_file$cur_quant | $CALC_AVG_AND_CO 99 | \
-		    tee -a $out_file > $REDIRECT
+		if [[ $(egrep X number_file$cur_quant) != "" ]]; then
+		    echo "         min         max         avg     std_dev" | \
+			tee -a $out_file > $REDIRECT
+		    echo "         X           X           X       X" | \
+			tee -a $out_file > $REDIRECT
+		else
+		    cat number_file$cur_quant | $CALC_AVG_AND_CO 99 | \
+			tee -a $out_file > $REDIRECT
+		fi
 
 		if [[ "$line_created" != True ]] ; then
 		    if [[ "$res_type" =~ latency ]]; then
@@ -408,10 +416,14 @@ function per_subdirectory_loop
 
 		if [[ "$res_type" =~ latency ]]; then
 		    target_field=$(tail -n 1 $out_file |\
-				       awk '{printf "%.3f\n", $3}')
+				       awk '{print $3}')
+
 		    if [[ "$target_field" == "" || \
 			      ! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
+		    else
+			target_field=$(tail -n 1 $out_file |\
+					   awk '{printf "%.3f\n", $3}')
 		    fi
 
 		    if [[ $cur_quant -eq 0 ]]; then
@@ -426,7 +438,8 @@ function per_subdirectory_loop
 
 			if [[ $cur_quant -eq 3 ]]; then
 			    # it's interfered throughput
-			    if [[ "$target_field" != X ]]; then
+			    if [[ "$target_field" != X && "$tot_thr" != X ]]
+			    then
 				interf_tot_thr=$(echo "$tot_thr - $target_field" | bc -l)
 			    else
 				interf_tot_thr=$tot_thr

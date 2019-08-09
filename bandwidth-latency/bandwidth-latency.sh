@@ -674,6 +674,7 @@ function compute_statistics {
 	     \($i_weight_threshold, ${I_weight_thresholds[@]}\)\
 	    | tee $file_name
 
+	BW_LAT_RESULTS=true
 	print_save_agg_thr $file_name
 
 	print_save_stat_line "Interfered total throughput" \

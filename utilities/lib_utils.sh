@@ -461,7 +461,7 @@ function print_save
 	command=$3
 	extra_rm_lines=${4:-0}
 
-	echo "$message" | tee -a ${thr_stat_file_name}
+	echo -n "$message" | tee -a ${thr_stat_file_name}
 	len=$(cat iostat.out | grep ^$HIGH_LEV_DEV | wc -l)
 	# collect iostat aggthr lines into one file, throwing away:
 	# . the first sample, because it just contains a wrong value
@@ -470,8 +470,19 @@ function print_save
 	#   performed at the end of the test
 	cat iostat.out | grep ^$HIGH_LEV_DEV | awk "{ $command }" |\
 		tail -n$(($len-1-$extra_rm_lines)) | head -n$(($len-1)) > iostat-aggthr
-	sh $CALC_AVG_AND_CO 99 < iostat-aggthr |\
+	if [[ "$BW_LAT_RESULTS" == true && \
+		  $(cat iostat-aggthr | wc -l ) -le 1 ]]
+	then
+	    echo " ERROR - too few values." | tee -a ${thr_stat_file_name}
+	    echo "         min         max         avg     std_dev" | \
+		tee -a ${thr_stat_file_name}
+	    echo "         X           X           X       X" | \
+		tee -a ${thr_stat_file_name}
+	else
+	    echo | tee -a ${thr_stat_file_name}
+	    sh $CALC_AVG_AND_CO 99 < iostat-aggthr | \
 		tee -a $thr_stat_file_name
+	fi
 }
 
 function print_save_agg_thr
@@ -481,6 +492,4 @@ function print_save_agg_thr
 	print_save $1 "Aggregated throughput:" 'print $3 + $4' $2
 	print_save $1 "Read throughput:" 'print $3' $2
 	print_save $1 "Write throughput:" 'print $4' $2
-
-	echo
 }
