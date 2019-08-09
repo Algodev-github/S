@@ -275,7 +275,7 @@ function per_subdirectory_loop
 		none "" \
 		"std deviation)" \
 		"of I/O requests of interfered" \
-		"Latencies$scenario"
+		"I/O latencies$scenario"
 	    ;;
 	*)
 	    write_header $thr_table_file "Aggregate throughput [MB/sec]" \
