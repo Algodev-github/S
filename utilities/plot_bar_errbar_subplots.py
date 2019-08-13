@@ -63,7 +63,7 @@ def autolabel(rects, axis, xpos='center'):
     for rect in rects:
         height = rect.get_height()
         axis.text(rect.get_x() + rect.get_width()*offset[xpos],
-                      rect.get_y() + rect.get_height() + .9,
+                      rect.get_y() + rect.get_height() + max_lat/80.,
                       '{:.4g}'.format(height), ha=ha[xpos], va='bottom',
                       size=8)
 
@@ -80,6 +80,21 @@ def create_subplot(values, errors, colors, axis, title):
     axis.set_title(title, size=10)
     return bar_renderers
 
+# compute max to position labels at a fixed offset above bars
+max_lat = 0
+for line in content[8:]:
+    line_elems = line.split()
+    numbers = line_elems[1:]
+
+    values = np.asarray(numbers[::2]).astype(np.float).tolist()
+    errors = np.asarray(numbers[1::2]).astype(np.float).tolist()
+
+    sums = [a + b for a, b in zip(values, errors)]
+
+    local_max_lat = np.amax(sums)
+    if max_lat < local_max_lat:
+        max_lat = local_max_lat
+
 i = 0
 for line in content[8:]:
     line_elems = line.split()
@@ -95,6 +110,7 @@ for line in content[8:]:
                                 interferers_name + '\n' + target_name,
                                 ))
     i += 1
+
 
 
 ax[0].set_ylabel('Latency [ms]') # add left y label
