@@ -63,7 +63,7 @@ def autolabel(rects, axis, xpos='center'):
     for rect in rects:
         height = rect.get_height()
         axis.text(rect.get_x() + rect.get_width()*offset[xpos],
-                      rect.get_y() + rect.get_height() / 2.,
+                      rect.get_y() + rect.get_height() + .9,
                       '{:.4g}'.format(height), ha=ha[xpos], va='bottom',
                       size=8)
 
