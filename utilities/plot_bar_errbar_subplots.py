@@ -73,8 +73,7 @@ def create_subplot(values, errors, colors, axis, title):
     bar_renderers = []
     ind = np.arange(len(values))
 
-    r = axis.bar(ind, values, yerr=errors, width=0.5, color=colors[0],
-                         align='edge', capsize=5)
+    r = axis.bar(ind, values, yerr=errors, width=0.5, alpha=0.6, ecolor='black',                         align='edge', capsize=5)
     autolabel(r, axis)
     bar_renderers.append(r)
 
