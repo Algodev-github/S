@@ -605,6 +605,10 @@ function latency
     type_combinations=("-t randread -T read" "-t randread -T write")
     run_only_lat_case latency-sync-reads-or-writes \
 	     "interferer workloads made of seq sync readers or seq writers"
+
+    type_combinations=("-t randread -T read -C 1" "-t randread -T write -C 1")
+    run_only_lat_case latency-sync-reads-or-writes \
+	     "interferer workloads made of direct seq sync readers or seq writers"
 }
 
 # MAIN
