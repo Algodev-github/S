@@ -934,8 +934,11 @@ fi
 
 controller=blkio
 
-if [[ "$type_bw_control" == low || "$type_bw_control" == lat || \
-    "$type_bw_control" == weight ]]; then
+# prefer v2 also for prop policy
+if [[ ( "$type_bw_control" == prop && \
+	    "$(mount | egrep "type cgroup2")" != "" ) || \
+	  "$type_bw_control" == low || "$type_bw_control" == lat || \
+	  "$type_bw_control" == weight ]]; then
     # NOTE: cgroups-v2 needed to use low limits or latency/weight controller
     # (cgroups-v2 must be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
