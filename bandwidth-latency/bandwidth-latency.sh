@@ -35,7 +35,7 @@ UTIL_DIR=`cd ../utilities; pwd`
 
 # type of bandwidth control
 # (none-> no control | prop->proportional share | low->low limits |
-#  max->max limits | latency->latency controller)
+#  max->max limits | latency->latency controller | weight->weight controller)
 # cgroups-v2 is needed to use low limits, so it must be enabled in the kernel
 type_bw_control=prop
 # I/O Scheduler (blank -> leave scheduler unchanged)
@@ -128,6 +128,7 @@ Usage and default values:
 
 $0 [-b <type of bandwidth control (none -> no control |
         prop -> proportional share |
+        weight -> weight controller |
 	low -> low limits | max -> max limits |
         lat -> latency>] ($type_bw_control)
    [-s <I/O Scheduler>] (\"$sched\")
@@ -661,7 +662,8 @@ function compute_statistics {
 	    IO_depth_part="I/O depth $i_IO_depth"
 	fi
 
-	if [[ $type_bw_control == prop ]]; then
+	if [[ "$type_bw_control" == prop || "$type_bw_control" == weight ]]
+	then
 	    param_name=weights
 	else
 	    param_name=limits
@@ -697,7 +699,7 @@ function restore_low_latency
 
 function set_weight_limit_for_interfered
 {
-    if [[ "$type_bw_control" == prop ]]; then
+    if [[ "$type_bw_control" == prop || "$type_bw_control" == weight ]]; then
 	echo $i_weight_threshold > \
 	     /cgroup/interfered/${controller}.${PREFIX}weight
 	if [[ $? -ne 0 ]]; then
@@ -784,7 +786,8 @@ while [[ "$#" > 0 ]]; do case $1 in
 		      "$type_bw_control" != prop && \
 		      "$type_bw_control" != low && \
 		      "$type_bw_control" != max && \
-		      "$type_bw_control" != lat ]]; then
+		      "$type_bw_control" != lat && \
+		      "$type_bw_control" != weight ]]; then
 		echo Policy $type_bw_control not recognized
 		exit
 	    fi
@@ -868,7 +871,8 @@ fi
 if [[ $MODE == demo && "$SIMUL" != yes ]]; then
     i_IO_type=randread
     num_groups=4
-    if [[ $sched == bfq || $sched == bfq-mq || $sched == bfq-sq ]]; then
+    if [[ $sched == bfq || $sched == bfq-mq || $sched == bfq-sq || \
+	"$type_bw_control" == weight ]]; then
 	i_weight_threshold=300
 	i_weight_thresholds=(100)
     else
@@ -922,14 +926,15 @@ fi
 if [[ "${sched}" == "bfq" || "${sched}" == "bfq-mq" || \
 	"${sched}" == "bfq-sq" ]] ; then
 	PREFIX="${sched}."
-elif [ "${sched}" == "cfq" ] ; then
+elif [[ "${sched}" == "cfq" || "$type_bw_control" == weight ]] ; then
 	PREFIX=""
 fi
 
 controller=blkio
 
-if [[ "$type_bw_control" == low || "$type_bw_control" == lat ]]; then
-    # NOTE: cgroups-v2 needed to use low or latency limits
+if [[ "$type_bw_control" == low || "$type_bw_control" == lat || \
+    "$type_bw_control" == weight ]]; then
+    # NOTE: cgroups-v2 needed to use low limits or latency/weight controller
     # (cgroups-v2 must be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
     if [[ "$groupdirs" != "" ]]; then
@@ -955,6 +960,7 @@ else
 	exit 1
     fi
     echo "+io" > /cgroup/cgroup.subtree_control
+    echo 1 > /cgroup/io.weight.qos
 fi
 
 for ((i = 0 ; $i < $num_groups ; i++)) ; do
@@ -971,7 +977,7 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	continue
     fi
 
-    if [[ "$type_bw_control" == prop ]]; then
+    if [[ "$type_bw_control" == prop || "$type_bw_control" == weight ]]; then
 	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
 	echo "echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight"
     elif [[ "$type_bw_control" != none ]]; then
