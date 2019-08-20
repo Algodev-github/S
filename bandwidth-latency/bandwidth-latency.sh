@@ -700,6 +700,8 @@ function restore_low_latency
 function set_weight_limit_for_interfered
 {
     if [[ "$type_bw_control" == prop || "$type_bw_control" == weight ]]; then
+	echo \
+"echo $i_weight_threshold > /cgroup/interfered/${controller}.${PREFIX}weight"
 	echo $i_weight_threshold > \
 	     /cgroup/interfered/${controller}.${PREFIX}weight
 	if [[ $? -ne 0 ]]; then
