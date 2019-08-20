@@ -993,8 +993,12 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
     fi
 
     if [[ "$type_bw_control" == prop || "$type_bw_control" == weight ]]; then
-	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
 	echo "echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight"
+	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
+	if [[ $? -ne 0 ]]; then
+	    echo Failed to set weight for interferer group $i on $dev
+	    exit 1
+	fi
     elif [[ "$type_bw_control" != none ]]; then
 	if [[ "${wthr: -1}" == M ]]; then
 	    wthr=$(echo $wthr | sed 's/M/000000/')
