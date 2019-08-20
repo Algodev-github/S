@@ -962,14 +962,17 @@ else
 	exit 1
     fi
     echo "+io" > /cgroup/cgroup.subtree_control
-    for dev in $DEVS; do
-	echo "$(cat /sys/block/$dev/dev) enable=1" \
-	     > /cgroup/io.weight.qos
-	if [[ $? -ne 0 ]]; then
-	    echo Failed to enable weight controller
-	    exit 1
-	fi
-    done
+
+    if [[ "$type_bw_control" == weight ]]; then
+	for dev in $DEVS; do
+	    echo "$(cat /sys/block/$dev/dev) enable=1" \
+		 > /cgroup/io.weight.qos
+	    if [[ $? -ne 0 ]]; then
+		echo Failed to enable weight controller for $dev
+		exit 1
+	    fi
+	done
+    fi
 fi
 
 for ((i = 0 ; $i < $num_groups ; i++)) ; do
