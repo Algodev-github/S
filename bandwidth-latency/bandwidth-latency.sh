@@ -196,6 +196,17 @@ function clean_and_exit {
 
 	if [[ $controller == io ]]; then
 	    echo "-io" > /cgroup/cgroup.subtree_control
+
+	    if [[ -f /cgroup/io.weight.qos ]]; then
+		for dev in $DEVS; do
+		    echo "$(cat /sys/block/$dev/dev) enable=0" > \
+			 /cgroup/io.weight.qos
+		    if [[ $? -ne 0 ]]; then
+			echo Failed to disable weight controller for $dev
+		    fi
+		done
+	    fi
+
 	    mount -t cgroup -o blkio cgroup $groupdirs >/dev/$OUT 2>&1
 	fi
 
@@ -972,6 +983,14 @@ else
 		 > /cgroup/io.weight.qos
 	    if [[ $? -ne 0 ]]; then
 		echo Failed to enable weight controller for $dev
+		exit 1
+	    fi
+	done
+    elif [[ -f /cgroup/io.weight.qos ]]; then
+	for dev in $DEVS; do
+	    echo "$(cat /sys/block/$dev/dev) enable=0" > /cgroup/io.weight.qos
+	    if [[ $? -ne 0 ]]; then
+		echo Failed to disable weight controller for $dev
 		exit 1
 	    fi
 	done
