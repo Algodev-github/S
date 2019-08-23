@@ -53,8 +53,9 @@ of the test; this is reported in the output of the script. In case of a git grep
 the duration of the test is not fixed, but bounded by a maximum duration. The
 output of the script is the duration of the execution of the command in seconds.
 
-See the comments in the config_params.sh for details about the test
-repository.
+See the comments on KERN_* paramters in ~/.S-config.sh for details on
+test repositories. If ~/.S-config.sh does not exist, just invoke this
+script with -h to have it created.
 
 "
 
@@ -112,7 +113,7 @@ else
 
 	mkdir -p ${BASE_DIR}
 	echo Cloning into $KERN_DIR ...
-	git clone --branch v4.3 $KERN_REMOTE $KERN_DIR
+	git clone --branch v5.1 $KERN_REMOTE $KERN_DIR
 fi
 
 if [[ ! -f $KERN_DIR/.config ]]; then
@@ -123,7 +124,7 @@ fi
 (cd $KERN_DIR &&
 if [ "`git branch | grep base_branch`" == "" ]; then
 	echo Creating the base branch &&\
-	git branch base_branch v4.0 ;\
+	git branch base_branch v5.1 ;\
 fi)
 
 echo Executing $TASK prologue before actual test
@@ -147,21 +148,21 @@ case $TASK in
 			echo Removing previous branches &&\
 			git branch -D test1 ;\
 			echo Creating the branch to switch to &&\
-			git branch test1 v4.1)
+			git branch test1 v5.2)
 		;;
 	merge)
 		(cd $KERN_DIR &&\
 			echo Renaming the first branch if existing &&\
 			git branch -M test1 to_delete;\
 			echo Creating first branch to merge &&\
-			git branch test1 v4.1 &&\
+			git branch test1 v5.1 &&\
 			echo Switching to the first branch and cleaning &&\
 			git checkout -f test1 &&\
 			git clean -f -d ;
 			echo Removing previous branches &&\
 			git branch -D to_delete test2 ;\
 			echo Creating second branch to merge &&\
-			git branch test2 v4.2)
+			git branch test2 v5.2)
 		;;
 	grep)
 		(cd $KERN_DIR &&

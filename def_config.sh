@@ -92,8 +92,10 @@ NUM_BLOCKS=2000
 TRACE=0
 
 # The kernel-development benchmarks expect a repository in the
-# following directory. In particular, they play with v4.0, v4.1 and
-# v4.2, so they expect these versions to be present.
+# following directory. In particular, they play with v5.1, v5.2, so
+# they expect these versions to be present. If you have a repository
+# ready for testing, then make the following parameter point to
+# it. Otherwise see comments on next parameter.
 KERN_DIR=$BASE_DIR/linux.git-for_kern_dev_benchmarks
 # If no repository is found in the above directory, then a repository
 # is cloned therein. The source URL is stored in the following
