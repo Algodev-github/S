@@ -222,7 +222,7 @@ case $TASK in
 		echo Executing grep task
 		rm -f ${curr_dir}/timefile
 		(cd $KERN_DIR && /usr/bin/time -f %e git grep foo > ${curr_dir}/$TASK.out 2> ${curr_dir}/timefile) &
-		waited_pattern="Documentation/BUG-HUNTING"
+		waited_pattern="Documentation/admin-guide/bug-hunting.rst"
 		;;
 esac
 
