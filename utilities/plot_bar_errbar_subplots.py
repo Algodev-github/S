@@ -23,7 +23,7 @@ headline=content[7].split()
 
 scheds=headline[2:]
 
-labels = ['Average latency experienced by individual I/O operations of the target group (error bars show standard deviation)']
+labels = ['Average latency experienced by individual I/O operations of the target (error bars show standard deviation)']
 legend_colors = ['0.5']
 legend_range=1
 colors = ['0.5', '0.8']
