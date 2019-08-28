@@ -411,17 +411,18 @@ function run_case
     ref_value=$5
     I_rates="${6-\"MAX MAX MAX MAX 0 0 0 0 0\"}"
     i_rate=${7-MAX}
+    num_I=${8-9}
 
     rep_bw_lat="repeat $case_name"
 
     for ((idx = 0 ; idx < ${#type_combinations[@]}; idx++)); do
 	echo $rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
-		    ${type_combinations[$idx]} -n 9 \
+		    ${type_combinations[$idx]} -n $num_I \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
 		    -r $i_rate"
 	$rep_bw_lat "./bandwidth-latency.sh -s $schedname -b $policy \
-		    ${type_combinations[$idx]} -n 9 \
+		    ${type_combinations[$idx]} -n $num_I \
 		    -w $i_weight_limit -W \"$I_weights_limits\" \
 		    -R $I_rates -q $iodepth -Q $iodepth -Z $bs \
 		    -r $i_rate"
