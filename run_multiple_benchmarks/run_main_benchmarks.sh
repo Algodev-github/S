@@ -465,7 +465,7 @@ function bw-lat-equal-weights
 	     1 4k "interferer workloads made of seq sync readers or seq writers (all weights equal)" "" MAX MAX 7
 
     type_combinations=("-t randread -T randread" "-t read -T randread" \
-		      "-t randread -T write" "-t read -T write")
+		      "-t randread -T randwrite" "-t read -T randwrite")
     run_case bandwidth-latency-static-only-sync-rand-reads \
 	     1 4k "interferer workloads made of random sync readers or async writers (all weights equal)" "" MAX MAX 7
 }
