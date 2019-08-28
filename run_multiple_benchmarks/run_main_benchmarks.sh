@@ -462,12 +462,12 @@ function bw-lat-equal-weights
     type_combinations=("-t randread -T read" "-t read -T read" \
 		       "-t randread -T write" "-t read -T write")
     run_case bandwidth-latency-static-sync-reads-or-writes \
-	     1 4k "interferer workloads made of seq sync readers or seq writers (all weights equal)"
+	     1 4k "interferer workloads made of seq sync readers or seq writers (all weights equal)" "" MAX MAX 7
 
     type_combinations=("-t randread -T randread" "-t read -T randread" \
 		      "-t randread -T write" "-t read -T write")
     run_case bandwidth-latency-static-only-sync-rand-reads \
-	     1 4k "interferer workloads made of random sync readers or async writers (all weights equal)"
+	     1 4k "interferer workloads made of random sync readers or async writers (all weights equal)" "" MAX MAX 7
 }
 
 function bandwidth-latency
