@@ -148,6 +148,9 @@ ref_value=ref_line[-1]
 
 if ref_value.replace('.','',1).isdigit():
     [axis.axhline(y=float(ref_value), xmin=0.0, xmax=1, ls='dashed', c='black', lw=1, dashes=(4, 6)) for axis in ax]
+else:
+    legend_range=legend_range-1
+    no_ref_value=True
 
 
 class Handler(object):
@@ -170,9 +173,11 @@ handles[2] = patches.Rectangle((0,0),1,1)
 
 if no_pol_idx != -1:
     handles[3] = mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(7, 7))
-    handles[4] = mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(4, 6))
+    if not no_ref_value:
+        handles[4] = mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(4, 6))
 else:
-    handles[3] =  mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(4, 6))
+    if not no_ref_value:
+        handles[3] =  mlines.Line2D([], [], ls='dashed', c='black', lw=1, dashes=(4, 6))
 
 f.legend(handles=handles, labels=labels,
              handler_map={handles[2]: Handler(colors)},
