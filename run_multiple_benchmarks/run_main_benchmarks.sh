@@ -918,10 +918,11 @@ for sched in $SCHEDULERS; do
 	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none-|^lat-')
 
 	if [[ $benchmark != bandwidth-latency && $benchmark != latency && \
+		  $benchmark != bw-lat-equal-weights && \
 		  "$policy_part" != "" ]]; then
 	    echo Scheduler name $sched contains a policy component $policy_part, but
-	    echo benchmark $benchmark is not bandwidth-latency: this is not
-	    echo supported yet.
+	    echo benchmark $benchmark is not of type bandwidth-latency:
+	    echo this is not supported yet.
 	    continue
 	elif [[ ($benchmark == bandwidth-latency || $benchmark == latency) && \
 		    "$policy_part" == "" ]]; then
