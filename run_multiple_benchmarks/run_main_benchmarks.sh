@@ -17,7 +17,7 @@ Usage (as root):\n\
 
 The set of benchmarks can be built out of the following benchmarks:
 throughput startup replayed-startup fairness video-playing kernel-devel interleaved-io
-bandwidth-latency latency
+bandwidth-latency bq-lat-equal-weights latency
 
 Both the startup and the replayed-startup benchmarks measures start-up
 times for three applications, which are represent, respectively, the
