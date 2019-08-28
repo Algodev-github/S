@@ -433,6 +433,42 @@ function run_case
     fi
 }
 
+function bw-lat-equal-weights
+{
+    cd ../bandwidth-latency
+
+    # get scheduler name
+    schedname=$(echo $sched | sed 's/[^-]*-//')
+    policy=$(echo $sched | sed "s/-$schedname//g")
+
+    # throughput tests for a Plextor SSD with a 515 MB/s sequential
+    # peak rate, and a 160MB/s random peak rate
+    case $policy in
+	prop|weight)
+	    i_weight_limit=100
+	    I_weights_limits=100
+	    ;;
+	none)
+	    i_weight_limit=default
+	    I_weights_limits=default
+	    ;;
+	*)
+	    echo Unrecognized policy $policy
+	    return
+	    ;;
+    esac
+
+    type_combinations=("-t randread -T read" "-t read -T read" \
+		       "-t randread -T write" "-t read -T write")
+    run_case bandwidth-latency-static-sync-reads-or-writes \
+	     1 4k "interferer workloads made of seq sync readers or seq writers (all weights equal)"
+
+    type_combinations=("-t randread -T randread" "-t read -T randread" \
+		      "-t randread -T write" "-t read -T write")
+    run_case bandwidth-latency-static-only-sync-rand-reads \
+	     1 4k "interferer workloads made of random sync readers or async writers (all weights equal)"
+}
+
 function bandwidth-latency
 {
     cd ../bandwidth-latency
