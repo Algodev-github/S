@@ -981,13 +981,18 @@ else
 	for dev in $DEVS; do
 	    echo With the following configuration io.cost seems to make it to control I/O,
 	    echo on a standard SATA SSD, you may want to change it if you use a different device:
-	    echo echo "\"$(cat /sys/block/$dev/dev) enable=1 rpct=95.00 rlat=1000 wpct=95.00 wlat=20000 min=50.00 max=400.00\" > /cgroup/io.cost.qos"
-	    echo "$(cat /sys/block/$dev/dev) enable=1 rpct=95.00 rlat=1000 wpct=95.00 wlat=20000 min=50.00 max=400.00" \
+	    QoS="rpct=95 rlat=2500 wpct=95 wlat=5000"
+	    echo echo "\"$(cat /sys/block/$dev/dev) enable=1 $QoS\" > /cgroup/io.cost.qos"
+	    echo "$(cat /sys/block/$dev/dev) enable=1 $QoS" \
 		 > /cgroup/io.cost.qos
 	    if [[ $? -ne 0 ]]; then
 		echo Failed to enable weight controller for $dev
 		exit 1
 	    fi
+	    echo -n "/cgroup/io.cost.qos "
+	    cat /cgroup/io.cost.qos
+	    echo -n "/cgroup/io.cost.model "
+	    cat /cgroup/io.cost.model
 	done
     elif [[ -f /cgroup/io.cost.qos ]]; then
 	for dev in $DEVS; do
