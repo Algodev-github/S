@@ -79,9 +79,14 @@ def autolabel(rects, axis, xpos='center'):
     offset = {'center': 0.5, 'right': 0.57, 'left': 0.43}  # x_txt = x + w*off
 
     for rect in rects:
-        height = rect.get_height()
+        labelheight = height = rect.get_height()
+        if rect.get_y() > 0 and rect.get_y() < max_thr / 150 and labelheight < max_thr / 150:
+            labelheight = labelheight * 12;
+        elif rect.get_y() > 0 and rect.get_y() < max_thr / 100 and labelheight < max_thr / 100:
+            labelheight = labelheight * 10;
+
         axis.text(rect.get_x() + rect.get_width()*offset[xpos],
-                      rect.get_y() + rect.get_height() / 2.,
+                      rect.get_y() + labelheight / 2.,
                       '{:.4g}'.format(height), ha=ha[xpos], va='bottom',
                       size=8)
 
@@ -106,6 +111,22 @@ def create_subplot(matrix, colors, axis, title, reachable_thr):
     axis.set_title(title, size=10)
     return bar_renderers
 
+max_thr = 0
+i = 0
+for line in content[8:]:
+    line_elems = line.split()
+    numbers = line_elems[1:]
+
+    first_row = np.asarray(numbers[::2]).astype(np.float).tolist()
+    second_row = np.asarray(numbers[1::2]).astype(np.float).tolist()
+
+    mat = np.array([first_row, second_row])
+
+    tot_throughput = np.amax(mat.sum(axis=0))
+
+    max_thr = max(tot_throughput, max_thr)
+    i += 1
+
 i = 0
 for line in content[8:]:
     line_elems = line.split()
@@ -126,9 +147,6 @@ for line in content[8:]:
     target_name = re.sub(r" vs.*", '', workload_name)
     p.extend(create_subplot(mat, colors, ax[i], interferers_name + '\n' + target_name,
                                 reachable_thr))
-
-    tot_throughput = np.amax(mat.sum(axis=0))
-
     i += 1
 
 
