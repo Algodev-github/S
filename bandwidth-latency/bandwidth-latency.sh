@@ -979,9 +979,11 @@ else
 
     if [[ "$type_bw_control" == cost ]]; then
 	for dev in $DEVS; do
+	    QoS="rpct=95 rlat=2500 wpct=95 wlat=5000"
+	    # Alternative configurations:
+	    # HDD: rpct=95.00 rlat=40000 wpct=95.00 wlat=40000 min=25.00 max=200.00
 	    echo With the following configuration io.cost seems to make it to control I/O,
 	    echo on a standard SATA SSD, you may want to change it if you use a different device:
-	    QoS="rpct=95 rlat=2500 wpct=95 wlat=5000"
 	    echo echo "\"$(cat /sys/block/$dev/dev) enable=1 $QoS\" > /cgroup/io.cost.qos"
 	    echo "$(cat /sys/block/$dev/dev) enable=1 $QoS" \
 		 > /cgroup/io.cost.qos
