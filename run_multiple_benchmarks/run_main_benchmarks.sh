@@ -445,7 +445,7 @@ function bw-lat-equal-weights
     # throughput tests for a Plextor SSD with a 515 MB/s sequential
     # peak rate, and a 160MB/s random peak rate
     case $policy in
-	prop|weight)
+	prop|cost)
 	    i_weight_limit=100
 	    I_weights_limits=100
 	    ;;

@@ -35,7 +35,7 @@ UTIL_DIR=`cd ../utilities; pwd`
 
 # type of bandwidth control
 # (none-> no control | prop->proportional share | low->low limits |
-#  max->max limits | latency->latency controller | weight->weight controller)
+#  max->max limits | latency->latency controller | cost->cost controller)
 # cgroups-v2 is needed to use low limits, so it must be enabled in the kernel
 type_bw_control=prop
 # I/O Scheduler (blank -> leave scheduler unchanged)
@@ -128,7 +128,7 @@ Usage and default values:
 
 $0 [-b <type of bandwidth control (none -> no control |
         prop -> proportional share |
-        weight -> weight controller |
+        cost -> cost controller |
 	low -> low limits | max -> max limits |
         lat -> latency>] ($type_bw_control)
    [-s <I/O Scheduler>] (\"$sched\")
@@ -197,12 +197,12 @@ function clean_and_exit {
 	if [[ $controller == io ]]; then
 	    echo "-io" > /cgroup/cgroup.subtree_control
 
-	    if [[ -f /cgroup/io.weight.qos ]]; then
+	    if [[ -f /cgroup/io.cost.qos ]]; then
 		for dev in $DEVS; do
 		    echo "$(cat /sys/block/$dev/dev) enable=0" > \
-			 /cgroup/io.weight.qos
+			 /cgroup/io.cost.qos
 		    if [[ $? -ne 0 ]]; then
-			echo Failed to disable weight controller for $dev
+			echo Failed to disable cost controller for $dev
 		    fi
 		done
 	    fi
@@ -673,7 +673,7 @@ function compute_statistics {
 	    IO_depth_part="I/O depth $i_IO_depth"
 	fi
 
-	if [[ "$type_bw_control" == prop || "$type_bw_control" == weight ]]
+	if [[ "$type_bw_control" == prop || "$type_bw_control" == cost ]]
 	then
 	    param_name=weights
 	else
@@ -710,7 +710,7 @@ function restore_low_latency
 
 function set_weight_limit_for_interfered
 {
-    if [[ "$type_bw_control" == prop || "$type_bw_control" == weight ]]; then
+    if [[ "$type_bw_control" == prop || "$type_bw_control" == cost ]]; then
 	echo \
 "echo $i_weight_threshold > /cgroup/interfered/${controller}.${PREFIX}weight"
 	echo $i_weight_threshold > \
@@ -800,7 +800,7 @@ while [[ "$#" > 0 ]]; do case $1 in
 		      "$type_bw_control" != low && \
 		      "$type_bw_control" != max && \
 		      "$type_bw_control" != lat && \
-		      "$type_bw_control" != weight ]]; then
+		      "$type_bw_control" != cost ]]; then
 		echo Policy $type_bw_control not recognized
 		exit
 	    fi
@@ -885,7 +885,7 @@ if [[ $MODE == demo && "$SIMUL" != yes ]]; then
     i_IO_type=randread
     num_groups=4
     if [[ $sched == bfq || $sched == bfq-mq || $sched == bfq-sq || \
-	"$type_bw_control" == weight ]]; then
+	"$type_bw_control" == cost ]]; then
 	i_weight_threshold=300
 	i_weight_thresholds=(100)
     else
@@ -939,7 +939,7 @@ fi
 if [[ "${sched}" == "bfq" || "${sched}" == "bfq-mq" || \
 	"${sched}" == "bfq-sq" ]] ; then
 	PREFIX="${sched}."
-elif [[ "${sched}" == "cfq" || "$type_bw_control" == weight ]] ; then
+elif [[ "${sched}" == "cfq" || "$type_bw_control" == cost ]] ; then
 	PREFIX=""
 fi
 
@@ -949,8 +949,8 @@ controller=blkio
 if [[ ( "$type_bw_control" == prop && \
 	    "$(mount | egrep "type cgroup2")" != "" ) || \
 	  "$type_bw_control" == low || "$type_bw_control" == lat || \
-	  "$type_bw_control" == weight ]]; then
-    # NOTE: cgroups-v2 needed to use low limits or latency/weight controller
+	  "$type_bw_control" == cost ]]; then
+    # NOTE: cgroups-v2 needed to use low limits or latency/cost controller
     # (cgroups-v2 must be enabled in the kernel)
     groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
     if [[ "$groupdirs" != "" ]]; then
@@ -977,7 +977,7 @@ else
     fi
     echo "+io" > /cgroup/cgroup.subtree_control
 
-    if [[ "$type_bw_control" == weight ]]; then
+    if [[ "$type_bw_control" == cost ]]; then
 	for dev in $DEVS; do
 	    echo With the following configuration io.cost seems to make it to control I/O,
 	    echo on a standard SATA SSD, you may want to change it if you use a different device:
@@ -986,7 +986,7 @@ else
 	    echo "$(cat /sys/block/$dev/dev) enable=1 $QoS" \
 		 > /cgroup/io.cost.qos
 	    if [[ $? -ne 0 ]]; then
-		echo Failed to enable weight controller for $dev
+		echo Failed to enable cost controller for $dev
 		exit 1
 	    fi
 	    echo -n "/cgroup/io.cost.qos "
@@ -998,7 +998,7 @@ else
 	for dev in $DEVS; do
 	    echo "$(cat /sys/block/$dev/dev) enable=0" > /cgroup/io.cost.qos
 	    if [[ $? -ne 0 ]]; then
-		echo Failed to disable weight controller for $dev
+		echo Failed to disable cost controller for $dev
 		exit 1
 	    fi
 	done
@@ -1019,7 +1019,7 @@ for ((i = 0 ; $i < $num_groups ; i++)) ; do
 	continue
     fi
 
-    if [[ "$type_bw_control" == prop || "$type_bw_control" == weight ]]; then
+    if [[ "$type_bw_control" == prop || "$type_bw_control" == cost ]]; then
 	echo "echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight"
 	echo $wthr > /cgroup/InterfererGroup$i/${controller}.${PREFIX}weight
 	if [[ $? -ne 0 ]]; then
