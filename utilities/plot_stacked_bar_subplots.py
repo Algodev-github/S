@@ -33,7 +33,7 @@ if no_pol_idx != -1:
             'Avg throughput reached without any I/O control',
             'Min avg throughput to be guaranteed to target'
                 ]
-    legend_colors = ['0.85', '0.5', 'white', 'white', 'white']
+    legend_colors = ['turquoise', 'lightcoral', 'white', 'white', 'white']
     legend_range=5
 else:
     labels = ['Cumulative avg throughput of interferers',
@@ -41,10 +41,10 @@ else:
               'Avg total throughput (sum of bars)',
               'Min avg throughput to be guaranteed to target'
             ]
-    legend_colors = ['0.85', '0.5', 'white', 'white']
+    legend_colors = ['turquoise', 'lightcoral', 'white', 'white']
     legend_range=4
 
-colors = ['0.5', '0.85']
+colors = ['lightcoral', 'turquoise']
 
 ind = np.arange(len(scheds))
 width = 0.5
