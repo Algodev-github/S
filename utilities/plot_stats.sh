@@ -241,6 +241,25 @@ if [[ "$1" == "-h" || "$1" == "" ]]; then
         exit
 fi
 
+function plot_bw_lat_bars
+{
+    command=$1
+    if [[ $term_mode == png || $term_mode == eps ]]; then
+	file_type=$term_mode
+    fi
+    type python3 >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+	echo Install python3 if you want to get plots too
+	return
+    fi
+    python -c "import numpy" >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+	echo Install numpy for python3 if you want to get plots too
+	return
+    fi
+    ./$command $in_filename $file_type
+}
+
 function parse_table
 {
     in_filename=$1
@@ -252,14 +271,12 @@ function parse_table
 
     if [[ "$(echo $in_filename | \
        egrep ".*latency.*-bw-table.txt")" != "" ]]; then
-	if [[ $term_mode == png || $term_mode == eps ]]; then
-	    file_type=$term_mode
-	fi
-	python3 plot_stacked_bar_subplots.py $in_filename $file_type
+	plot_bw_lat_bars plot_stacked_bar_subplots.py
 	return
     elif [[ "$(echo $in_filename | \
 		egrep ".*latency.*-lat-table.txt")" != "" ]]; then
-	python3 ./plot_bar_errbar_subplots.py $in_filename $file_type
+	plot_bw_lat_bars plot_bar_errbar_subplots.py
+	return
     fi
 
     sed 's/X/-1/g' $in_filename > $in_filename.tmp1
