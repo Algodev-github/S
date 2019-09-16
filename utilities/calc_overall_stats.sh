@@ -501,6 +501,8 @@ function per_subdirectory_loop
 
 		    target_field=`tail -n 1 $out_file | awk '{print $3}'`
 
+		    all_stats_fields=`tail -n 1 $out_file | awk '{print $1 " " $2 " " $3 " " $4}'`
+
 		    if [[ "$target_field" == "" || \
 			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
@@ -509,7 +511,7 @@ function per_subdirectory_loop
 			fi
 		    else
 			if [[ $res_type == throughput ]]; then
-			    echo " pass $target_field MB/s" >> $res_list_file
+			    echo " pass $all_stats_fields MB/s" >> $res_list_file
 			fi
 		    fi
 		    printf "%20s" $target_field  >> $thr_table_file
