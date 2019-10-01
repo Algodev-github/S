@@ -17,6 +17,7 @@ what it contains.
 
 In the root directory:
 . def_config.sh
+
 	Default configuration of general parameters, driving the
 	execution of all benchmarks. Read the comments in this file to
 	learn what can be configured and how. On the very first
@@ -28,6 +29,12 @@ In the root directory:
 	just been copied from def_config.sh, or was already present in
 	the home directory.  Thus .S-config.sh is the file to modify,
 	to change the configuration.
+. create_config.sh
+	This script creates the file .S-config.sh in the user home, by
+	copying def_config.sh. This is an alternative way for creating
+	.S-config.sh, compared with just executing a benchmark script
+	(as explained above). This script may be useful if you want to
+	modify .S-config.sh before executing any benchmark script.
 
 Each benchmark is implemented by a bash script, stored in a separate directory.
 Here is the list of the directories and of the main scripts they contain:
