@@ -976,6 +976,10 @@ else
 	exit 1
     fi
     echo "+io" > /cgroup/cgroup.subtree_control
+    if [[ $? -ne 0 ]]; then
+	echo Failed to enable cgroups-v2 io controller
+	exit 1
+    fi
 
     if [[ "$type_bw_control" == cost ]]; then
 	for dev in $DEVS; do
