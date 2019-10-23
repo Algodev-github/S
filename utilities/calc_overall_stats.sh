@@ -475,13 +475,14 @@ function per_subdirectory_loop
 		    target_field=$(tail -n 1 $out_file |\
 		       		awk '{print $'$field_num'}')
 
+		    all_stats_fields=`tail -n 1 $out_file | awk '{print $1 " " $2 " " $3 " " $4}'`
+
 		    if [[ "$target_field" == "" || \
 			! "$target_field" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 			target_field=X
-			echo " fail $target_field $UOM" \
-			     >> $res_list_file
+			echo " fail" >> $res_list_file
 		    else
-			echo " pass $target_field $UOM" \
+			echo " pass $all_stats_fields $UOM" \
 			     >> $res_list_file
 		    fi
 
