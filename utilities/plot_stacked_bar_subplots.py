@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Execute me with python3!
 import numpy as np
 import matplotlib as mpl
