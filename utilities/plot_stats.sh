@@ -425,7 +425,7 @@ else
 fi
 
 if [[ "$(echo $1 | \
-       egrep "*latency.*-bw-table.txt")" != "" ]]; then
+       egrep ".*latency.*-bw-table.txt")" != "" ]]; then
     exit
 fi
 type gnuplot >/dev/null 2>&1
