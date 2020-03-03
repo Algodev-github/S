@@ -39,31 +39,8 @@ function print_dev_help
 
 function find_partition_for_dir
 {
-    PART=
-    longest_substr=
-    mount |
-	{ while IFS= read -r var
-	  do
-	      curpart=$(echo "$var" | cut -f 1 -d " ")
-
-	      if [[ "$(echo $curpart | egrep '/')" == "" ]]; then
-		  continue
-	      fi
-
-	      mountpoint=$(echo "$var" | \
-			       sed 's<.* on \(.*\)<\1<' | \
-			       sed 's<\(.*\) type.*<\1<')
-	      substr=$(printf "%s\n%s\n" "$mountpoint" "$1" | \
-			   sed -e 'N;s/^\(.*\).*\n\1.*$/\1/')
-
-	      if [[ "$substr" == $mountpoint && \
-			${#substr} -gt ${#longest_substr} ]] ; then
-		  longest_substr=$substr
-		  PART=$(echo "$var" | cut -f 1 -d " ")
-	      fi
-	  done
-	  echo $PART
-	}
+    PART=$(df --output=fstype $1 | tail -1)
+	echo $PART
 }
 
 function find_dev_for_dir
@@ -101,14 +78,10 @@ function find_dev_for_dir
     else
 	# get devices from partition
 	for dev in $(ls /sys/block/); do
-	    match=$(lsblk /dev/$dev | egrep "$PART|$REALPART")
-	    if [[ "$match" == "" ]]; then
-		continue
-	    fi
 	    disk_line=$(lsblk -n -i /dev/$dev | egrep disk | egrep -v "^ |^\`|\|")
 	    if [[ "$disk_line" != "" && \
 		      ( "$(lsblk -n -o TRAN /dev/$dev 2> /dev/null)" != "" || \
-			    $(echo $dev | egrep "mmc|sda|nvme") != "" \
+			    $(echo $dev | egrep "mmc|sda|nvme|zram") != "" \
 			) ]]; then
 		BACKING_DEVS="$BACKING_DEVS $dev"
 
