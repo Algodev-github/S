@@ -39,7 +39,7 @@ function print_dev_help
 
 function find_partition_for_dir
 {
-    PART=$(df --output=fstype $1 | tail -1)
+	PART=$(df --output=fstype $1 | tail -1)
 	echo $PART
 }
 
