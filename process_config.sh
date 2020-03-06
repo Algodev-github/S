@@ -264,12 +264,12 @@ function get_max_affordable_file_size
 	PART=$(find_partition_for_dir $BASE_DIR)
     fi
 
-    if [[ "$(df | egrep $PART)" == "" ]]; then # it must be /dev/root
+    if [[ "$(df $PART | egrep $PART)" == "" ]]; then # it must be /dev/root
 	PART=/dev/root
     fi
 
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
-    FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
+    FREESPACE=$(df $PART | egrep $PART | awk '{print $4}' | head -n 1)
     MAXTOTSIZE=$((($FREESPACE + $BASE_DIR_SIZE) / 2))
     MAXTOTSIZE_MiB=$(($MAXTOTSIZE / 1024))
     MAXSIZE_MiB=$((MAXTOTSIZE_MiB / 15))
@@ -398,11 +398,11 @@ function prepare_basedir
 	PART=$(find_partition_for_dir $BASE_DIR)
     fi
 
-    if [[ "$(df | egrep $PART)" == "" ]]; then # it must be /dev/root
+    if [[ "$(df $PART | egrep $PART)" == "" ]]; then # it must be /dev/root
 	PART=/dev/root
     fi
 
-    FREESPACE=$(df | egrep $PART | awk '{print $4}' | head -n 1)
+    FREESPACE=$(df $PART | egrep $PART | awk '{print $4}' | head -n 1)
 
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
 
