@@ -5,7 +5,7 @@
 # first, a little code to to automate stuff; configuration parameters
 # then follow
 
-if [[ "$1" != "-h" && "$(id -u)" -ne "0" ]]; then
+if [[ "$1" != "-h" && "$(id -u)" -ne "0" && -z $BATS_VERSION ]]; then
     echo "You are currently executing me as $(whoami),"
     echo "but I need root privileges (e.g., to switch"
     echo "between schedulers)."
@@ -433,7 +433,7 @@ if [[ "$DEVS" == "" ]]; then
     DEVS=$BACKING_DEVS
 fi
 
-if [[ "$FIRST_PARAM" != "-h" ]]; then
+if [[ "$FIRST_PARAM" != "-h" && -z $BATS_VERSION ]]; then
     # test target devices
     for dev in $DEVS; do
 	cat /sys/block/$dev/queue/scheduler >/dev/null 2>&1
