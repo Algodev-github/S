@@ -881,6 +881,7 @@ fi
 
 send_email "S main-benchmark run started"
 echo
+echo Device: $dev
 echo Benchmarks: $BENCHMARKS
 echo Schedulers: $SCHEDNAMES
 
