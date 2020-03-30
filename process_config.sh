@@ -91,17 +91,17 @@ function find_dev_for_dir
 	exit
     fi
 
-    PART=$(basename $PART)
+    BASEPART=$(basename $PART)
     REALPART=$(basename $REALPATH)
 
     BACKING_DEVS=
-    if [[ "$(echo $PART | egrep loop)" != "" ]]; then
-	# loopback device: $PART is already equal to the device name
-	BACKING_DEVS=$PART
+    if [[ "$(echo $BASEPART | egrep loop)" != "" ]]; then
+	# loopback device: $BASEPART is already equal to the device name
+	BACKING_DEVS=$BASEPART
     else
 	# get devices from partition
 	for dev in $(ls /sys/block/); do
-	    match=$(lsblk /dev/$dev | egrep "$PART|$REALPART")
+	    match=$(lsblk /dev/$dev | egrep "$BASEPART|$REALPART")
 	    if [[ "$match" == "" ]]; then
 		continue
 	    fi
@@ -134,7 +134,7 @@ function find_dev_for_dir
     fi
 
     if [[ "$BACKING_DEVS" == "" ]]; then
-	echo Block devices for partition $PART or $REALPART unrecognized.
+	echo Block devices for partition $BASEPART or $REALPART unrecognized.
 	print_dev_help
 	exit
     fi
