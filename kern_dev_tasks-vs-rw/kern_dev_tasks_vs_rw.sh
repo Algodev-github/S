@@ -68,6 +68,10 @@ function cleanup_and_exit {
 	echo $1
 	shutdwn 'fio iostat make git'
 	cd ..
+	# rm work dir
+	if [ -f results-${sched}/trace ]; then
+	    cp -f results-${sched}/trace .
+	fi
 	rm -rf results-${sched}
 	exit
 }
