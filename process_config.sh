@@ -83,24 +83,24 @@ function find_dev_for_dir
     fi
     fi
 
-    PART=$(basename $PART)
+    BASEPART=$(basename $PART)
     REALPART=$(basename $REALPATH)
 
     BACKING_DEVS=
-    if [[ "$(echo $PART | egrep loop)" != "" ]]; then
-	# loopback device: $PART is already equal to the device name
-	BACKING_DEVS=$PART
+    if [[ "$(echo $BASEPART | egrep loop)" != "" ]]; then
+	# loopback device: $BASEPART is already equal to the device name
+	BACKING_DEVS=$BASEPART
     elif cat /proc/1/cgroup | tail -1 | egrep -q "container"; then
 	# is container. lsblk will return block devices of the host
 	# so let's use the host drive.
 	BACKING_DEVS=$(lsblk | egrep -m 1 "disk" | awk '{print $1;}')
-    elif ! egrep -q $PART /proc/partitions; then
+    elif ! egrep -q $BASEPART /proc/partitions; then
 	# is linux live OS. Use cd drive
 	BACKING_DEVS=$(lsblk | egrep -m 1 "rom" | awk '{print $1;}')
     else
 	# get devices from partition
 	for dev in $(ls /sys/block/); do
-	    if ! lsblk /dev/$dev | egrep -q "$PART|$REALPART"; then
+	    if ! lsblk /dev/$dev | egrep -q "$BASEPART|$REALPART"; then
 		# the block device does not contain the partition we're
 		# attempting to run benchmarks on.
 		continue
@@ -133,7 +133,7 @@ function find_dev_for_dir
     fi
 
     if [[ "$BACKING_DEVS" == "" ]]; then
-	echo Block devices for partition $PART or $REALPART unrecognized.
+	echo Block devices for partition $BASEPART or $REALPART unrecognized.
 	print_dev_help
 	exit
     fi

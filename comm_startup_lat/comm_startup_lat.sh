@@ -126,6 +126,10 @@ function clean_and_exit {
     fi
     shutdwn 'fio iostat'
     cd ..
+    # rm work dir
+    if [ -f results-${sched}/trace ]; then
+	cp -f results-${sched}/trace .
+    fi
     rm -rf results-$sched
     rm -f Stop-iterations current-pid # remove possible garbage
     if [[ "$XHOST_CONTROL" != "" ]]; then
