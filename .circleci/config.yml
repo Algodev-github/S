@@ -1,0 +1,98 @@
+# inspired by github.com/sdolenc/debian-matrix
+
+version: 2
+jobs:
+  download-bats-core:
+    docker:
+      - image: curlimages/curl
+    # download bash unit testing framework
+    # then persist it for other jobs.
+    steps:
+      - checkout
+      - run:
+          command: sh ./unit_tests/get_bats.sh
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - bats-core
+  deb10buster:
+    docker:
+      - image: sdolenc/debian-circleci:buster
+    <<: &commonSteps
+      steps:
+        - checkout
+        - attach_workspace:
+            at: /tmp
+        - run:
+            command: |
+              bash --version | head -2
+              echo ""
+              df --version 2>&1 | head -2 || true
+              echo ""
+
+              bash ./run_unit_tests.sh
+  deb09stretch:
+    docker:
+      - image: sdolenc/debian-circleci:stretch
+    <<: *commonSteps
+  deb08jessie:
+    docker:
+      - image: sdolenc/debian-circleci:jessie
+    <<: *commonSteps
+  deb07wheezy:
+    docker:
+      - image: sdolenc/debian-circleci:wheezy
+    <<: *commonSteps
+  deb06squeeze:
+    docker:
+      - image: sdolenc/debian-circleci:squeeze
+    <<: *commonSteps
+  bash_4_0:
+    docker:
+      - image: bash:4.0
+    <<: *commonSteps
+  bash_3_2:
+    docker:
+      - image: bash:3.2
+    <<: *commonSteps
+  cryptsetup:
+    docker:
+      - image: sdolenc/encrypted-circleci:cryptsetup
+    <<: *commonSteps
+  vm:
+    machine:
+      image: ubuntu-1604:201903-01
+    <<: *commonSteps
+
+workflows:
+  version: 2
+  all:
+    jobs:
+      - download-bats-core
+      - deb10buster:
+          requires:
+            - download-bats-core
+      - deb09stretch:
+          requires:
+            - download-bats-core
+      - deb08jessie:
+          requires:
+            - download-bats-core
+      - deb07wheezy:
+          requires:
+            - download-bats-core
+      - deb06squeeze:
+          requires:
+            - download-bats-core
+      - bash_4_0:
+          requires:
+            - download-bats-core
+      - bash_3_2:
+          requires:
+            - download-bats-core
+      - cryptsetup:
+          requires:
+            - download-bats-core
+      - vm:
+          requires:
+            - download-bats-core
