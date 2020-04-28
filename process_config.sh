@@ -37,6 +37,18 @@ function print_dev_help
     echo See the comments in $CONFPATH for details and more options.
 }
 
+function get_partition_info
+{
+	PART_INFO=
+	if [[ -e $1 ]]; then
+		PART_INFO=$(df $1 | egrep $1)
+	else
+		# most likely linux live os
+		PART_INFO=$(df | egrep $1)
+	fi
+	echo $PART_INFO
+}
+
 function find_partition_for_dir
 {
 	PART=$(df "$1" | tail -1 | awk '{print $1;}')
@@ -56,6 +68,8 @@ function find_dev_for_dir
 	exit
     fi
 
+    REALPATH=$PART
+    if [[ -e $PART ]]; then
     REALPATH=$(readlink -f $PART) # moves to /dev/dm-X in case of device mapper
     if [[ "$REALPATH" == "" ]]; then
 	echo The directory where you want me store my test files,
@@ -66,6 +80,7 @@ function find_dev_for_dir
 	echo to any local partition \(it is probably a remote filesystem\).
 	print_dev_help
 	exit
+    fi
     fi
 
     BASEPART=$(basename $PART)
@@ -248,12 +263,12 @@ function get_max_affordable_file_size
 	PART=$(find_partition_for_dir $BASE_DIR)
     fi
 
-    if [[ "$(df $PART | egrep $PART)" == "" ]]; then # it must be /dev/root
+    if [[ "$(get_partition_info $PART)" == "" ]]; then # it must be /dev/root
 	PART=/dev/root
     fi
 
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
-    FREESPACE=$(df $PART | egrep $PART | awk '{print $4}' | head -n 1)
+    FREESPACE=$(get_partition_info $PART | awk '{print $4}' | head -n 1)
     MAXTOTSIZE=$((($FREESPACE + $BASE_DIR_SIZE) / 2))
     MAXTOTSIZE_MiB=$(($MAXTOTSIZE / 1024))
     MAXSIZE_MiB=$((MAXTOTSIZE_MiB / 15))
@@ -382,11 +397,11 @@ function prepare_basedir
 	PART=$(find_partition_for_dir $BASE_DIR)
     fi
 
-    if [[ "$(df $PART | egrep $PART)" == "" ]]; then # it must be /dev/root
+    if [[ "$(get_partition_info $PART)" == "" ]]; then # it must be /dev/root
 	PART=/dev/root
     fi
 
-    FREESPACE=$(df $PART | egrep $PART | awk '{print $4}' | head -n 1)
+    FREESPACE=$(get_partition_info $PART | awk '{print $4}' | head -n 1)
 
     BASE_DIR_SIZE=$(du -s $BASE_DIR | awk '{print $1}')
 
