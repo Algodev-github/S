@@ -100,8 +100,9 @@ function find_dev_for_dir
     else
 	# get devices from partition
 	for dev in $(ls /sys/block/); do
-	    match=$(lsblk /dev/$dev | egrep "$BASEPART|$REALPART")
-	    if [[ "$match" == "" ]]; then
+	    if ! lsblk /dev/$dev | egrep -q "$BASEPART|$REALPART"; then
+		# the block device does not contain the partition we're
+		# attempting to run benchmarks on.
 		continue
 	    fi
 	    disk_line=$(lsblk -n -i /dev/$dev | egrep disk | egrep -v "^ |^\`|\|")
@@ -116,8 +117,7 @@ function find_dev_for_dir
 		fi
 	    fi
 
-	    raid_line=$(lsblk /dev/$dev | egrep raid | egrep ^md)
-	    if [[ "$raid_line" != "" ]]; then
+	    if lsblk /dev/$dev | grep -q "md.*raid"; then
 		if [[ "$(echo $HIGH_LEV_DEV | egrep md)" != "" ]]; then
 		    echo -n Stacked raids not supported
 		    echo " ($HIGH_LEV_DEV + $dev), sorry."
