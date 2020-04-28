@@ -98,6 +98,13 @@ function find_dev_for_dir
     if [[ "$(echo $BASEPART | egrep loop)" != "" ]]; then
 	# loopback device: $BASEPART is already equal to the device name
 	BACKING_DEVS=$BASEPART
+    elif cat /proc/1/cgroup | tail -1 | egrep -q "container"; then
+	# is container. lsblk will return block devices of the host
+	# so let's use the host drive.
+	BACKING_DEVS=$(lsblk | egrep -m 1 "disk" | awk '{print $1;}')
+    elif ! egrep -q $BASEPART /proc/partitions; then
+	# is linux live OS. Use cd drive
+	BACKING_DEVS=$(lsblk | egrep -m 1 "rom" | awk '{print $1;}')
     else
 	# get devices from partition
 	for dev in $(ls /sys/block/); do
