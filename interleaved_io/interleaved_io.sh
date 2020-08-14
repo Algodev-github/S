@@ -103,6 +103,10 @@ print_save_agg_thr $file_name
 cd ..
 
 # rm work dir
+if [ -f results-${sched}/trace ]; then
+	cp -f results-${sched}/trace .
+fi
+
 rm -rf results-${sched}
 
 restore_low_latency
