@@ -990,6 +990,11 @@ else
 	    echo With the following configuration io.cost seems to make it to control I/O,
 	    echo on a standard SATA SSD, you may want to change it if you use a different device:
 	    echo echo "\"$(cat /sys/block/$dev/dev) enable=1 $QoS\" > /cgroup/io.cost.qos"
+	    echo Even better, you may want to run
+	    echo sudo python3 ./linux/tools/cgroup/iocost_coef_gen.py
+	    echo to compute the most accurate model of your test drive.
+	    echo Then you may do, e.g.,
+	    echo echo "\"$(cat /sys/block/$dev/dev) rbps=528156881 rseqiops=73442 rrandiops=72800 wbps=386453414 wseqiops=79718 wrandiops=73186\" > /cgroup/io.cost.model"
 	    echo "$(cat /sys/block/$dev/dev) enable=1 $QoS" \
 		 > /cgroup/io.cost.qos
 	    if [[ $? -ne 0 ]]; then
