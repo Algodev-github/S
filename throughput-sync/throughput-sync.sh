@@ -166,26 +166,24 @@ end_time=$(date +'%s')
 
 actual_duration=$(($(date +'%s') - $start_time))
 
+if [ -f trace ]; then
+    cp -f trace ..
+fi
+
 if [ $actual_duration -gt $(($DURATION + 10)) ]; then
     echo Run lasted $actual_duration seconds instead of $DURATION
     echo In this conditions the system, and thus the results, are not reliable
     echo Aborting
-    rm -rf results-${sched}
-    exit
-fi
-
-mkdir -p $STAT_DEST_DIR
-file_name=$STAT_DEST_DIR/\
+else
+    mkdir -p $STAT_DEST_DIR
+    file_name=$STAT_DEST_DIR/\
 ${sched}-${NUM_READERS}r${NUM_WRITERS}\
 w-${RW_TYPE}-${DURATION}sec-aggthr_stat.txt
-echo "Results for $sched, $NUM_READERS $RW_TYPE readers and \
+    echo "Results for $sched, $NUM_READERS $RW_TYPE readers and \
 $NUM_WRITERS $RW_TYPE writers" | tee $file_name
-print_save_agg_thr $file_name
+    print_save_agg_thr $file_name
+fi
 
 cd ..
-
 # rm work dir
-if [ -f results-${sched}/trace ]; then
-    cp -f results-${sched}/trace .
-fi
 rm -rf results-${sched}
