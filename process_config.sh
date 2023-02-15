@@ -41,10 +41,10 @@ function get_partition_info
 {
 	PART_INFO=
 	if [[ -e $1 ]]; then
-		PART_INFO=$(df $1 | egrep $1)
+		PART_INFO=$(df $1 | grep -E $1)
 	else
 		# most likely linux live os
-		PART_INFO=$(df | egrep $1)
+		PART_INFO=$(df | grep -E $1)
 	fi
 	echo $PART_INFO
 }
@@ -87,28 +87,28 @@ function find_dev_for_dir
     REALPART=$(basename $REALPATH)
 
     BACKING_DEVS=
-    if [[ "$(echo $BASEPART | egrep loop)" != "" ]]; then
+    if [[ "$(echo $BASEPART | grep -E loop)" != "" ]]; then
 	# loopback device: $BASEPART is already equal to the device name
 	BACKING_DEVS=$BASEPART
-    elif cat /proc/1/cgroup | tail -1 | egrep -q "container"; then
+    elif cat /proc/1/cgroup | tail -1 | grep -E -q "container"; then
 	# is container. lsblk will return block devices of the host
 	# so let's use the host drive.
-	BACKING_DEVS=$(lsblk | egrep -m 1 "disk" | awk '{print $1;}')
-    elif ! egrep -q $BASEPART /proc/partitions; then
+	BACKING_DEVS=$(lsblk | grep -E -m 1 "disk" | awk '{print $1;}')
+    elif ! grep -E -q $BASEPART /proc/partitions; then
 	# is linux live OS. Use cd drive
-	BACKING_DEVS=$(lsblk | egrep -m 1 "rom" | awk '{print $1;}')
+	BACKING_DEVS=$(lsblk | grep -E -m 1 "rom" | awk '{print $1;}')
     else
 	# get devices from partition
 	for dev in $(ls /sys/block/); do
-	    if ! lsblk /dev/$dev | egrep -q "$BASEPART|$REALPART"; then
+	    if ! lsblk /dev/$dev | grep -E -q "$BASEPART|$REALPART"; then
 		# the block device does not contain the partition we're
 		# attempting to run benchmarks on.
 		continue
 	    fi
-	    disk_line=$(lsblk -n -i /dev/$dev | egrep disk | egrep -v "^ |^\`|\|")
+	    disk_line=$(lsblk -n -i /dev/$dev | grep -E disk | grep -E -v "^ |^\`|\|")
 	    if [[ "$disk_line" != "" && \
 		      ( "$(lsblk -n -o TRAN /dev/$dev 2> /dev/null)" != "" || \
-			    $(echo $dev | egrep "mmc|sda|nvme") != "" \
+			    $(echo $dev | grep -E "mmc|sda|nvme") != "" \
 			) ]]; then
 		BACKING_DEVS="$BACKING_DEVS $dev"
 
@@ -118,7 +118,7 @@ function find_dev_for_dir
 	    fi
 
 	    if lsblk /dev/$dev | grep -q "md.*raid"; then
-		if [[ "$(echo $HIGH_LEV_DEV | egrep md)" != "" ]]; then
+		if [[ "$(echo $HIGH_LEV_DEV | grep -E md)" != "" ]]; then
 		    echo -n Stacked raids not supported
 		    echo " ($HIGH_LEV_DEV + $dev), sorry."
 		    print_dev_help
@@ -141,7 +141,7 @@ function find_dev_for_dir
 
 function check_create_mount_part
 {
-    if [[ $(echo $BACKING_DEVS | egrep "mmc|nvme") != "" ]]; then
+    if [[ $(echo $BACKING_DEVS | grep -E "mmc|nvme") != "" ]]; then
 	extra_char=p
     fi
 
@@ -160,7 +160,7 @@ function check_create_mount_part
     fi
 
     BASE_DIR=$1
-    if [[ "$(mount | egrep $BASE_DIR)" == "" ]]; then
+    if [[ "$(mount | grep -E $BASE_DIR)" == "" ]]; then
 	fsck.ext4 -n $TARGET_PART
 	if [[ $? -ne 0 ]]; then
 	    mkfs.ext4 -F $TARGET_PART
@@ -212,7 +212,7 @@ function use_scsi_debug_dev
 	exit 1
     fi
 
-    if [[ "$(lsmod | egrep scsi_debug)" == "" ]]; then
+    if [[ "$(lsmod | grep -E scsi_debug)" == "" ]]; then
 	echo -n Setting up scsi_debug, this may take a little time ...
 	sudo modprobe scsi_debug ndelay=1600000 dev_size_mb=1000 max_queue=4
 	if [[ $? -ne 0 ]]; then
@@ -223,7 +223,7 @@ function use_scsi_debug_dev
 	echo " done"
     fi
 
-    BACKING_DEVS=$(lsscsi | egrep scsi_debug | sed 's<\(.*\)/dev/</dev/<')
+    BACKING_DEVS=$(lsscsi | grep -E scsi_debug | sed 's<\(.*\)/dev/</dev/<')
     BACKING_DEVS=$(echo $BACKING_DEVS | awk '{print $1}')
 
     check_create_mount_part /mnt/scsi_debug
@@ -343,7 +343,7 @@ function prepare_basedir
 	    TEST_DEV=$(echo $TEST_DEV | sed 's</dev/<<')
 	fi
 
-	DISK=$(lsblk -o TYPE /dev/$TEST_DEV | egrep disk)
+	DISK=$(lsblk -o TYPE /dev/$TEST_DEV | grep -E disk)
 
 	if [[ "$DISK" != "" ]]; then
 	    FORMAT_DISK=$FORMAT

@@ -270,11 +270,11 @@ function parse_table
     fi
 
     if [[ "$(echo $in_filename | \
-       egrep ".*latency.*-bw-table.txt")" != "" ]]; then
+       grep -E ".*latency.*-bw-table.txt")" != "" ]]; then
 	plot_bw_lat_bars plot_stacked_bar_subplots.py
 	return
     elif [[ "$(echo $in_filename | \
-		egrep ".*latency.*-lat-table.txt")" != "" ]]; then
+		grep -E ".*latency.*-lat-table.txt")" != "" ]]; then
 	plot_bw_lat_bars plot_bar_errbar_subplots.py
 	return
     fi
@@ -383,9 +383,9 @@ else
     if [ -d "$1" ]; then
 	num_tables_parsed=0
 	for table_file in "$1"/*-table.txt; do
-	    thr_component=$(echo $table_file | egrep throughput)
-	    startup_component=$(echo $table_file | egrep startup)
-	    video_component=$(echo $table_file | egrep video)
+	    thr_component=$(echo $table_file | grep -E throughput)
+	    startup_component=$(echo $table_file | grep -E startup)
+	    video_component=$(echo $table_file | grep -E video)
 
 	    if [[ "$thr_component" != "" && \
 		    ( "$startup_component" != "" || "$video_component" != "" ) ]]
@@ -425,7 +425,7 @@ else
 fi
 
 if [[ "$(echo $1 | \
-       egrep ".*latency.*-bw-table.txt")" != "" ]]; then
+       grep -E ".*latency.*-bw-table.txt")" != "" ]]; then
     exit
 fi
 type gnuplot >/dev/null 2>&1

@@ -49,5 +49,5 @@ load prev_impl
   [ -n "$free_space" ]
 
   # assert is number
-  echo $free_space | egrep -q "^[0-9]+$"
+  echo $free_space | grep -E -q "^[0-9]+$"
 }
