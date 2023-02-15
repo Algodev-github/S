@@ -96,7 +96,7 @@ function file_loop
 
 	if [[ $res_type =~ latency ]]; then
 	    in_files=$(find $1 -name "bw_lat-$sched---*---${workload_filter}*.txt")
-	    in_files=$(echo $in_files | egrep $sched)
+	    in_files=$(echo $in_files | grep -E $sched)
 	else
 	    in_files=$(find $1 -name "*$sched[-]${workload_filter}*.txt")
 	fi
@@ -351,7 +351,7 @@ function per_subdirectory_loop
 		cat line_file$cur_quant | tee -a $out_file > $REDIRECT
 		second_field=`tail -n 1 $out_file | awk '{print $2}'`
 
-		if [[ $(egrep X number_file$cur_quant) != "" ]]; then
+		if [[ $(grep -E X number_file$cur_quant) != "" ]]; then
 		    echo "         min         max         avg     std_dev" | \
 			tee -a $out_file > $REDIRECT
 		    echo "         X           X           X       X" | \

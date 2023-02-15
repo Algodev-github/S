@@ -363,7 +363,7 @@ function get_io {
     fio_outfile=$1-stats.txt
 
     value=$(tail -n 5 $fio_outfile | head -n 2 | \
-		egrep io= | awk '{print $7}')
+		grep -E io= | awk '{print $7}')
     echo $value | sed 's/(//' | sed 's/),//'
 }
 
@@ -630,23 +630,23 @@ function compute_statistics {
 	i_tot_lat_avg=$(awk '{print $11+$15}' < interfered-stats.txt)
 	i_tot_lat_dev=$(awk '{print $12+$16}' < interfered-stats.txt)
 
-	if [[ "$(echo $i_IO_type | egrep read)" != "" ]]; then
+	if [[ "$(echo $i_IO_type | grep -E read)" != "" ]]; then
 	    i_what=reader
 	else
 	    i_what=writer
 	fi
 
-	if [[ "$(echo $i_IO_type | egrep rand)" != "" ]]; then
+	if [[ "$(echo $i_IO_type | grep -E rand)" != "" ]]; then
 	    i_what="rand $i_what"
 	else
 	    i_what="seq $i_what"
 	fi
 
-	I_mix=$(echo ${I_IO_types[@]} | egrep read)
+	I_mix=$(echo ${I_IO_types[@]} | grep -E read)
 
 	if [[ "$I_mix" == "" ]]; then
 	    I_mix=writers
-	elif [[ "$(echo ${I_IO_types[@]} | egrep write)" != "" ]]; then
+	elif [[ "$(echo ${I_IO_types[@]} | grep -E write)" != "" ]]; then
 	    I_mix="readers/writers"
 	else
 	    I_mix=readers
@@ -947,12 +947,12 @@ controller=blkio
 
 # prefer v2 also for prop policy
 if [[ ( "$type_bw_control" == prop && \
-	    "$(mount | egrep "type cgroup2")" != "" ) || \
+	    "$(mount | grep -E "type cgroup2")" != "" ) || \
 	  "$type_bw_control" == low || "$type_bw_control" == lat || \
 	  "$type_bw_control" == cost ]]; then
     # NOTE: cgroups-v2 needed to use low limits or latency/cost controller
     # (cgroups-v2 must be enabled in the kernel)
-    groupdirs=$(mount | egrep ".* on .*blkio.*" | awk '{print $3}')
+    groupdirs=$(mount | grep -E ".* on .*blkio.*" | awk '{print $3}')
     if [[ "$groupdirs" != "" ]]; then
 	umount $groupdirs >/dev/null 2>&1 # to make the io controller available
     fi

@@ -46,7 +46,7 @@ function test_X_access {
 		# off, save previous access-control state, to re-enable it
 		# again at the end of the test, if needed.
 		XHOST_CONTROL=$($SUDO_PREFIX xhost 2> /dev/null |\
-				egrep "enabled")
+				grep -E "enabled")
 		$SUDO_PREFIX xhost + > /dev/null 2>&1
 
 		if [[ $? -ne 0 ]]; then
@@ -92,7 +92,7 @@ function enable_X_access_and_test_cmd {
 		# off, save previous access-control state, to re-enable it
 		# again at the end of the benchmark, if needed.
 		XHOST_CONTROL=$($SUDO_PREFIX xhost 2> /dev/null |\
-				egrep "enabled")
+				grep -E "enabled")
 		$SUDO_PREFIX xhost + > /dev/null 2>&1
 
 		if [[ $? -ne 0 && "$COMMAND" == "" ]]; then
@@ -110,7 +110,7 @@ function enable_X_access_and_test_cmd {
 
 		$COMMAND >comm_out 2>&1
 		COM_OUT=$?
-		fail_str=$(egrep -i "fail|error|can\'t open display" comm_out)
+		fail_str=$(grep -E -i "fail|error|can\'t open display" comm_out)
 		if [[ $COM_OUT -ne 0 || "$fail_str" != "" ]]; then
 			continue
 		fi
@@ -176,7 +176,7 @@ function restore_scheduler
 	    echo &> /dev/null
 	PIPE_STATUS=${PIPESTATUS[0]}
 	NEW_SCHED=$(cat /sys/block/$dev/queue/scheduler | \
-			egrep "\[$SAVEDSCHED\]")
+			grep -E "\[$SAVEDSCHED\]")
 	if [[ $PIPE_STATUS -ne 0 || "$NEW_SCHED" == "" ]]; then
 	    echo "Restore of $SAVEDSCHED failed:" > /dev/tty
 	    cat /sys/block/$dev/queue/scheduler > /dev/tty
@@ -196,7 +196,7 @@ function set_scheduler
 	    PIPE_STATUS=${PIPESTATUS[0]}
 	    if [[ $(cat /sys/block/$dev/queue/scheduler | wc -w) -gt 1 ]]; then
 		NEW_SCHED=$(cat /sys/block/$dev/queue/scheduler | \
-			    egrep "\[$sched\]")
+			    grep -E "\[$sched\]")
 	    else
 		NEW_SCHED=$(cat /sys/block/$dev/queue/scheduler)
 	    fi

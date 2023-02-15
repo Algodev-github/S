@@ -192,7 +192,7 @@ function repeat
 
 		if [ "$test_suffix" == startup ] ; then
 			bash $2 "$3" $RES_DIR/$1/repetition$i $4
-		else if [[ "$(echo $1 | egrep latency)" != "" ]]; then
+		else if [[ "$(echo $1 | grep -E latency)" != "" ]]; then
 			 # use eval to handle double quotes in $2
 			 eval $2 -o $RES_DIR/$1/repetition$i
 		     else
@@ -779,7 +779,7 @@ if [[ "${#kern_wl[@]}" -eq "0" ]]; then
     echo "WARNING: no kernel-devel workload left after filtering" >&2
 fi
 
-if [[ "$(echo $BENCHMARKS | egrep replayed)" != "" ]]; then
+if [[ "$(echo $BENCHMARKS | grep -E replayed)" != "" ]]; then
     ../utilities/check_dependencies.sh dd fio iostat bc g++
 
     if [[ $? -ne 0 ]]; then
@@ -800,7 +800,7 @@ if [[ "$(echo $BENCHMARKS | egrep replayed)" != "" ]]; then
 	fi
     fi
     cd $OLDPWD
-elif [[ "$(echo $BENCHMARKS | egrep startup)" != "" ]]; then
+elif [[ "$(echo $BENCHMARKS | grep -E startup)" != "" ]]; then
     ../utilities/check_dependencies.sh dd fio iostat \
 				       xterm gnome-terminal lowriter
     if [[ $? -ne 0 ]]; then
@@ -916,7 +916,7 @@ for sched in $SCHEDULERS; do
 	echo "for $benchmark ($bench_id/$num_benchs)"
 	send_email "$benchmark tests beginning"
 
-	policy_part=$(echo $sched | egrep '^prop-|^low-|^max-|^none-|^lat-')
+	policy_part=$(echo $sched | grep -E '^prop-|^low-|^max-|^none-|^lat-')
 
 	if [[ $benchmark != bandwidth-latency && $benchmark != latency && \
 		  $benchmark != bw-lat-equal-weights && \

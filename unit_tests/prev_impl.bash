@@ -12,7 +12,7 @@ function original_find_partition_for_dir
         do
             curpart=$(echo "$var" | cut -f 1 -d " ")
 
-            if [[ "$(echo $curpart | egrep '/')" == "" ]] && [[ -z "$2" ]]; then
+            if [[ "$(echo $curpart | grep -E '/')" == "" ]] && [[ -z "$2" ]]; then
                 continue
             fi
 
